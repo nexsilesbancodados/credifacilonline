@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { addDays, addWeeks, addMonths } from "date-fns";
+import { addDays, addWeeks, addMonths, getDay } from "date-fns";
 
 export interface Contract {
   id: string;
@@ -14,7 +14,8 @@ export interface Contract {
   installment_value: number;
   total_amount: number;
   total_profit: number;
-  frequency: "diario" | "semanal" | "quinzenal" | "mensal";
+  frequency: "diario" | "semanal" | "mensal";
+  daily_type?: "seg-seg" | "seg-sex" | "seg-sab" | null;
   start_date: string;
   first_due_date: string;
   status: "Ativo" | "Atraso" | "Quitado" | "Renegociado";
@@ -48,20 +49,44 @@ export interface CreateContractData {
   installment_value: number;
   total_amount: number;
   total_profit: number;
-  frequency: "diario" | "semanal" | "quinzenal" | "mensal";
+  frequency: "diario" | "semanal" | "mensal";
+  daily_type?: "seg-seg" | "seg-sex" | "seg-sab";
   start_date: string;
   first_due_date: string;
   paid_installments?: number;
 }
 
-function getNextDueDate(currentDate: Date, frequency: string): Date {
+// Check if a date is valid for daily collection based on dailyType
+function isValidCollectionDay(date: Date, dailyType: string): boolean {
+  const dayOfWeek = getDay(date); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  
+  switch (dailyType) {
+    case "seg-seg": // Monday to Monday (all days)
+      return true;
+    case "seg-sex": // Monday to Friday (weekdays only)
+      return dayOfWeek >= 1 && dayOfWeek <= 5;
+    case "seg-sab": // Monday to Saturday (no Sunday)
+      return dayOfWeek >= 1 && dayOfWeek <= 6;
+    default:
+      return true;
+  }
+}
+
+function getNextDueDate(currentDate: Date, frequency: string, dailyType?: string): Date {
+  let nextDate: Date;
+  
   switch (frequency) {
     case "diario":
-      return addDays(currentDate, 1);
+      nextDate = addDays(currentDate, 1);
+      // Skip invalid days for daily frequency
+      if (dailyType && dailyType !== "seg-seg") {
+        while (!isValidCollectionDay(nextDate, dailyType)) {
+          nextDate = addDays(nextDate, 1);
+        }
+      }
+      return nextDate;
     case "semanal":
       return addWeeks(currentDate, 1);
-    case "quinzenal":
-      return addWeeks(currentDate, 2);
     case "mensal":
     default:
       return addMonths(currentDate, 1);
@@ -129,7 +154,7 @@ export function useContracts(clientId?: string) {
           status: isPaid ? "Pago" : "Pendente",
           fine: 0,
         });
-        dueDate = getNextDueDate(dueDate, contractData.frequency);
+        dueDate = getNextDueDate(dueDate, contractData.frequency, contractData.daily_type);
       }
 
       const { error: installmentsError } = await supabase

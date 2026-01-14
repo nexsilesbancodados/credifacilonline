@@ -742,6 +742,7 @@ const NovoContrato = () => {
                     total_amount: totalAmount,
                     total_profit: totalProfit,
                     frequency: formData.frequency as any,
+                    daily_type: formData.frequency === "diario" ? formData.dailyType as any : undefined,
                     start_date: formData.startDate,
                     first_due_date: formData.firstDueDate,
                     paid_installments: formData.paidInstallments,
