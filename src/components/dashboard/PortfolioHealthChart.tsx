@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
-const data = [
-  { name: "Em Dia", value: 68, color: "hsl(142, 71%, 45%)" },
-  { name: "Atraso", value: 22, color: "hsl(45, 90%, 50%)" },
-  { name: "Quitados", value: 10, color: "hsl(46, 14%, 50%)" },
-];
+interface PortfolioHealthChartProps {
+  data?: {
+    ativo: number;
+    atraso: number;
+    quitado: number;
+  };
+}
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -19,7 +21,31 @@ const CustomTooltip = ({ active, payload }: any) => {
   return null;
 };
 
-export function PortfolioHealthChart() {
+export function PortfolioHealthChart({ data }: PortfolioHealthChartProps) {
+  const total = (data?.ativo || 0) + (data?.atraso || 0) + (data?.quitado || 0);
+  
+  const chartData = total > 0 ? [
+    { 
+      name: "Em Dia", 
+      value: Math.round((data?.ativo || 0) / total * 100), 
+      color: "hsl(142, 71%, 45%)" 
+    },
+    { 
+      name: "Atraso", 
+      value: Math.round((data?.atraso || 0) / total * 100), 
+      color: "hsl(45, 90%, 50%)" 
+    },
+    { 
+      name: "Quitados", 
+      value: Math.round((data?.quitado || 0) / total * 100), 
+      color: "hsl(46, 14%, 50%)" 
+    },
+  ] : [
+    { name: "Em Dia", value: 0, color: "hsl(142, 71%, 45%)" },
+    { name: "Atraso", value: 0, color: "hsl(45, 90%, 50%)" },
+    { name: "Quitados", value: 0, color: "hsl(46, 14%, 50%)" },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -37,7 +63,7 @@ export function PortfolioHealthChart() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data}
+                data={chartData}
                 cx="50%"
                 cy="50%"
                 innerRadius={50}
@@ -46,7 +72,7 @@ export function PortfolioHealthChart() {
                 dataKey="value"
                 strokeWidth={0}
               >
-                {data.map((entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={entry.color}
@@ -60,7 +86,7 @@ export function PortfolioHealthChart() {
         </div>
 
         <div className="flex-1 space-y-3">
-          {data.map((item, index) => (
+          {chartData.map((item, index) => (
             <motion.div
               key={item.name}
               initial={{ opacity: 0, x: 20 }}

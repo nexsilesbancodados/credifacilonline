@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Search,
-  Filter,
   Grid3X3,
   List,
   Plus,
@@ -12,86 +11,14 @@ import {
   Mail,
   MoreVertical,
   ChevronRight,
+  Loader2,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useClients, Client } from "@/hooks/useClients";
 
 type Status = "Todos" | "Ativo" | "Atraso" | "Quitado";
 type ViewMode = "grid" | "list";
-
-const mockClients = [
-  {
-    id: "1",
-    name: "Maria Santos",
-    cpf: "123.456.789-00",
-    email: "maria@email.com",
-    phone: "(11) 98765-4321",
-    status: "Ativo" as const,
-    totalLoan: 15000,
-    pendingAmount: 8500,
-    progress: 43,
-    avatar: "MS",
-  },
-  {
-    id: "2",
-    name: "Carlos Oliveira",
-    cpf: "987.654.321-00",
-    email: "carlos@email.com",
-    phone: "(11) 91234-5678",
-    status: "Atraso" as const,
-    totalLoan: 8000,
-    pendingAmount: 5200,
-    progress: 35,
-    avatar: "CO",
-  },
-  {
-    id: "3",
-    name: "Ana Paula Silva",
-    cpf: "456.789.123-00",
-    email: "ana@email.com",
-    phone: "(11) 99876-5432",
-    status: "Ativo" as const,
-    totalLoan: 25000,
-    pendingAmount: 12000,
-    progress: 52,
-    avatar: "AP",
-  },
-  {
-    id: "4",
-    name: "Roberto Lima",
-    cpf: "321.654.987-00",
-    email: "roberto@email.com",
-    phone: "(11) 94567-8901",
-    status: "Quitado" as const,
-    totalLoan: 5000,
-    pendingAmount: 0,
-    progress: 100,
-    avatar: "RL",
-  },
-  {
-    id: "5",
-    name: "Fernanda Costa",
-    cpf: "789.123.456-00",
-    email: "fernanda@email.com",
-    phone: "(11) 95678-9012",
-    status: "Ativo" as const,
-    totalLoan: 12000,
-    pendingAmount: 9600,
-    progress: 20,
-    avatar: "FC",
-  },
-  {
-    id: "6",
-    name: "José Pereira",
-    cpf: "654.321.987-00",
-    email: "jose@email.com",
-    phone: "(11) 96789-0123",
-    status: "Atraso" as const,
-    totalLoan: 18000,
-    pendingAmount: 14400,
-    progress: 20,
-    avatar: "JP",
-  },
-];
 
 const statusStyles = {
   Ativo: "bg-success/20 text-success border-success/30",
@@ -99,14 +26,21 @@ const statusStyles = {
   Quitado: "bg-accent/20 text-accent border-accent/30",
 };
 
+const getInitials = (name: string) => {
+  const names = name.trim().split(" ");
+  if (names.length === 1) return names[0].slice(0, 2).toUpperCase();
+  return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+};
+
 const Clientes = () => {
+  const { clients, isLoading } = useClients();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<Status>("Todos");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   const filters: Status[] = ["Todos", "Ativo", "Atraso", "Quitado"];
 
-  const filteredClients = mockClients.filter((client) => {
+  const filteredClients = clients.filter((client) => {
     const matchesSearch =
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       client.cpf.includes(searchQuery);
@@ -134,14 +68,16 @@ const Clientes = () => {
             </p>
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-3 font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
-          >
-            <Plus className="h-5 w-5" />
-            Novo Cliente
-          </motion.button>
+          <Link to="/contratos/novo">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-3 font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
+            >
+              <Plus className="h-5 w-5" />
+              Novo Cliente
+            </motion.button>
+          </Link>
         </div>
       </motion.div>
 
@@ -211,8 +147,43 @@ const Clientes = () => {
         </div>
       </motion.div>
 
-      {/* Client Grid/List */}
-      {viewMode === "grid" ? (
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Carregando clientes...</p>
+        </div>
+      ) : filteredClients.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center py-20"
+        >
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-secondary/50">
+            <Users className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <h3 className="mt-4 text-lg font-medium text-foreground">
+            {searchQuery || activeFilter !== "Todos"
+              ? "Nenhum cliente encontrado"
+              : "Nenhum cliente cadastrado"}
+          </h3>
+          <p className="mt-2 text-muted-foreground">
+            {searchQuery || activeFilter !== "Todos"
+              ? "Tente ajustar os filtros de busca"
+              : "Crie um novo contrato para cadastrar seu primeiro cliente"}
+          </p>
+          <Link to="/contratos/novo">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="mt-6 flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-3 font-medium text-primary-foreground shadow-gold"
+            >
+              <Plus className="h-5 w-5" />
+              Novo Contrato
+            </motion.button>
+          </Link>
+        </motion.div>
+      ) : viewMode === "grid" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredClients.map((client, index) => (
             <motion.div
@@ -226,7 +197,7 @@ const Clientes = () => {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-primary-foreground">
-                    {client.avatar}
+                    {getInitials(client.name)}
                   </div>
                   <div>
                     <h3 className="font-medium text-foreground">{client.name}</h3>
@@ -243,45 +214,39 @@ const Clientes = () => {
                 </span>
               </div>
 
-              <div className="mt-4 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Valor Pendente</span>
-                  <span className="font-display font-semibold text-foreground">
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(client.pendingAmount)}
-                  </span>
-                </div>
-
-                <div className="relative h-2 w-full overflow-hidden rounded-full bg-secondary">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${client.progress}%` }}
-                    transition={{ duration: 1, delay: index * 0.1 }}
-                    className={cn(
-                      "absolute left-0 top-0 h-full rounded-full",
-                      client.status === "Quitado"
-                        ? "bg-success"
-                        : client.status === "Atraso"
-                        ? "bg-destructive"
-                        : "bg-primary"
-                    )}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground text-right">
-                  {client.progress}% pago
-                </p>
+              <div className="mt-4 space-y-2">
+                {client.city && client.state && (
+                  <p className="text-sm text-muted-foreground">
+                    {client.city}, {client.state}
+                  </p>
+                )}
+                {client.whatsapp && (
+                  <p className="text-sm text-muted-foreground">{client.whatsapp}</p>
+                )}
               </div>
 
               <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-4">
                 <div className="flex gap-2">
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-                    <Phone className="h-4 w-4" />
-                  </button>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-                    <Mail className="h-4 w-4" />
-                  </button>
+                  {client.whatsapp && (
+                    <a
+                      href={`https://wa.me/55${client.whatsapp.replace(/\D/g, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Phone className="h-4 w-4" />
+                    </a>
+                  )}
+                  {client.email && (
+                    <a
+                      href={`mailto:${client.email}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Mail className="h-4 w-4" />
+                    </a>
+                  )}
                 </div>
                 <Link 
                   to={`/clientes/${client.id}`}
@@ -313,11 +278,11 @@ const Clientes = () => {
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
                   Status
                 </th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground">
-                  Valor Pendente
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
+                  Cidade
                 </th>
-                <th className="px-6 py-4 text-center text-sm font-medium text-muted-foreground">
-                  Progresso
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
+                  Contato
                 </th>
                 <th className="px-6 py-4"></th>
               </tr>
@@ -332,15 +297,15 @@ const Clientes = () => {
                   className="hover:bg-secondary/20 transition-colors cursor-pointer"
                 >
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
+                    <Link to={`/clientes/${client.id}`} className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-sm text-primary-foreground">
-                        {client.avatar}
+                        {getInitials(client.name)}
                       </div>
                       <div>
                         <p className="font-medium text-foreground">{client.name}</p>
                         <p className="text-xs text-muted-foreground">{client.email}</p>
                       </div>
-                    </div>
+                    </Link>
                   </td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">
                     {client.cpf}
@@ -355,36 +320,18 @@ const Clientes = () => {
                       {client.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right font-display font-semibold text-foreground">
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(client.pendingAmount)}
+                  <td className="px-6 py-4 text-sm text-muted-foreground">
+                    {client.city && client.state ? `${client.city}, ${client.state}` : "-"}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-muted-foreground">
+                    {client.whatsapp || "-"}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="relative h-2 w-20 overflow-hidden rounded-full bg-secondary">
-                        <div
-                          className={cn(
-                            "absolute left-0 top-0 h-full rounded-full",
-                            client.status === "Quitado"
-                              ? "bg-success"
-                              : client.status === "Atraso"
-                              ? "bg-destructive"
-                              : "bg-primary"
-                          )}
-                          style={{ width: `${client.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {client.progress}%
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
+                    <Link to={`/clientes/${client.id}`}>
+                      <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                        <MoreVertical className="h-4 w-4" />
+                      </button>
+                    </Link>
                   </td>
                 </motion.tr>
               ))}
