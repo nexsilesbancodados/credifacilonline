@@ -10,6 +10,10 @@ import NovoContrato from "./pages/NovoContrato";
 import MesaCobranca from "./pages/MesaCobranca";
 import Tesouraria from "./pages/Tesouraria";
 import Analises from "./pages/Analises";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,12 +26,16 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/clientes/:id" element={<ClienteDossie />} />
           <Route path="/contratos/novo" element={<NovoContrato />} />
           <Route path="/cobranca" element={<MesaCobranca />} />
           <Route path="/tesouraria" element={<Tesouraria />} />
           <Route path="/analises" element={<Analises />} />
+          <Route path="/configuracoes" element={<Configuracoes />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
