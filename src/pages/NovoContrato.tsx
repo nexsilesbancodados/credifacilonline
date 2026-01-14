@@ -49,6 +49,7 @@ const NovoContrato = () => {
     installments: 12,
     installmentValue: 0,
     frequency: "mensal",
+    dailyType: "seg-seg", // seg-seg, seg-sex, seg-sab
     startDate: "",
     firstDueDate: "",
     paidInstallments: 0,
@@ -126,8 +127,13 @@ const NovoContrato = () => {
   const frequencies = [
     { value: "diario", label: "Diário" },
     { value: "semanal", label: "Semanal" },
-    { value: "quinzenal", label: "Quinzenal" },
     { value: "mensal", label: "Mensal" },
+  ];
+
+  const dailyTypes = [
+    { value: "seg-seg", label: "Segunda a Segunda", description: "Todos os dias" },
+    { value: "seg-sex", label: "Segunda a Sexta", description: "Dias úteis" },
+    { value: "seg-sab", label: "Segunda a Sábado", description: "Exceto domingo" },
   ];
 
   return (
@@ -504,25 +510,71 @@ const NovoContrato = () => {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  Frequência
-                </label>
-                <select
-                  value={formData.frequency}
-                  onChange={(e) =>
-                    setFormData({ ...formData, frequency: e.target.value })
-                  }
-                  className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  {frequencies.map((freq) => (
-                    <option key={freq.value} value={freq.value}>
-                      {freq.label}
-                    </option>
-                  ))}
-                </select>
+            {/* Frequency Selection */}
+            <div className="mb-4">
+              <label className="mb-3 block text-sm font-medium text-muted-foreground">
+                Frequência de Pagamento
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {frequencies.map((freq) => (
+                  <button
+                    key={freq.value}
+                    type="button"
+                    onClick={() =>
+                      setFormData({ ...formData, frequency: freq.value })
+                    }
+                    className={cn(
+                      "rounded-xl px-4 py-2 text-sm font-medium transition-all",
+                      formData.frequency === freq.value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary/50 text-foreground hover:bg-secondary border border-border"
+                    )}
+                  >
+                    {freq.label}
+                  </button>
+                ))}
               </div>
+            </div>
+
+            {/* Daily Sub-options */}
+            {formData.frequency === "diario" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-4"
+              >
+                <label className="mb-3 block text-sm font-medium text-muted-foreground">
+                  Dias de Cobrança
+                </label>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {dailyTypes.map((type) => (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, dailyType: type.value })
+                      }
+                      className={cn(
+                        "rounded-xl p-3 text-left transition-all border",
+                        formData.dailyType === type.value
+                          ? "border-primary bg-primary/10"
+                          : "border-border/50 bg-secondary/30 hover:border-border"
+                      )}
+                    >
+                      <p className="font-medium text-foreground text-sm">
+                        {type.label}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {type.description}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
                   Data de Início
