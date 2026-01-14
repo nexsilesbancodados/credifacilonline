@@ -1,6 +1,8 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 import {
   Calculator,
   User,
@@ -18,7 +20,9 @@ import { cn } from "@/lib/utils";
 type CalculationMode = "rate" | "installment";
 
 const NovoContrato = () => {
+  const { toast } = useToast();
   const [mode, setMode] = useState<CalculationMode>("rate");
+  const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [formData, setFormData] = useState({
     // Client data
     name: "",
@@ -42,6 +46,51 @@ const NovoContrato = () => {
     firstDueDate: "",
     paidInstallments: 0,
   });
+
+  // CEP lookup function
+  const fetchAddressByCep = useCallback(async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, "");
+    
+    if (cleanCep.length !== 8) return;
+    
+    setIsLoadingCep(true);
+    
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await response.json();
+      
+      if (data.erro) {
+        toast({
+          title: "CEP não encontrado",
+          description: "Verifique o CEP digitado e tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setFormData((prev) => ({
+        ...prev,
+        street: data.logradouro || "",
+        neighborhood: data.bairro || "",
+        city: data.localidade || "",
+        state: data.uf || "",
+        complement: data.complemento || "",
+      }));
+      
+      toast({
+        title: "Endereço encontrado!",
+        description: `${data.logradouro}, ${data.bairro} - ${data.localidade}/${data.uf}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao buscar CEP",
+        description: "Não foi possível conectar ao serviço. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingCep(false);
+    }
+  }, [toast]);
 
   // Calculate based on mode
   const calculateInstallment = () => {
@@ -342,15 +391,29 @@ const NovoContrato = () => {
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
                   CEP
                 </label>
-                <input
-                  type="text"
-                  value={formData.cep}
-                  onChange={(e) =>
-                    setFormData({ ...formData, cep: e.target.value })
-                  }
-                  placeholder="00000-000"
-                  className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.cep}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({ ...formData, cep: value });
+                      // Auto-fetch when CEP has 8 digits (with or without hyphen)
+                      const cleanCep = value.replace(/\D/g, "");
+                      if (cleanCep.length === 8) {
+                        fetchAddressByCep(cleanCep);
+                      }
+                    }}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 pr-10 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  {isLoadingCep && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="sm:col-span-2">
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
