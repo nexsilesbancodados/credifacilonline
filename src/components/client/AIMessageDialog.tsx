@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Copy, MessageCircle, Check, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Client {
   name: string;
@@ -28,45 +30,48 @@ export const AIMessageDialog = ({ open, onOpenChange, client }: AIMessageDialogP
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedMessage, setGeneratedMessage] = useState("");
   const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
 
   const generateMessage = async () => {
     setIsGenerating(true);
-    // Simulate AI generation
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    setGeneratedMessage("");
 
-    const messages = {
-      amigavel: `Olá ${client.name}! 😊
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-collection-message", {
+        body: {
+          clientName: client.name,
+          pendingAmount: client.financialSummary.pendingAmount,
+          tone: selectedTone,
+        },
+      });
 
-Espero que esteja tudo bem com você! Passando para lembrar que temos um pagamento em aberto no valor de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.pendingAmount)}.
+      if (error) {
+        throw new Error(error.message);
+      }
 
-Sei que imprevistos acontecem, então se precisar de alguma flexibilidade, é só me avisar que encontramos uma solução juntos.
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
-Qualquer dúvida, estou à disposição! 🙏`,
-
-      formal: `Prezado(a) ${client.name},
-
-Conforme nosso contrato, informamos que existe um débito pendente no valor de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.pendingAmount)}.
-
-Solicitamos a regularização do pagamento para evitar a incidência de encargos adicionais.
-
-Em caso de dúvidas ou necessidade de renegociação, favor entrar em contato.
-
-Atenciosamente.`,
-
-      urgente: `${client.name}, ATENÇÃO!
-
-Identificamos um débito vencido de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.pendingAmount)} em seu nome.
-
-É fundamental que você regularize essa pendência HOJE para evitar:
-- Acúmulo de multas e juros
-- Restrição de crédito
-- Medidas de cobrança
-
-Entre em contato AGORA para resolver.`,
-    };
-
-    setGeneratedMessage(messages[selectedTone as keyof typeof messages]);
-    setIsGenerating(false);
+      setGeneratedMessage(data.message || "");
+    } catch (error) {
+      console.error("Error generating message:", error);
+      toast({
+        title: "Erro ao gerar mensagem",
+        description: error instanceof Error ? error.message : "Tente novamente",
+        variant: "destructive",
+      });
+      
+      // Fallback message
+      const fallbackMessages = {
+        amigavel: `Olá ${client.name}! 😊\n\nEspero que esteja tudo bem! Passando para lembrar que temos um pagamento em aberto no valor de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.pendingAmount)}.\n\nSe precisar de ajuda, estou à disposição! 🙏`,
+        formal: `Prezado(a) ${client.name},\n\nInformamos que existe um débito pendente no valor de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.pendingAmount)}.\n\nSolicitamos a regularização do pagamento.\n\nAtenciosamente.`,
+        urgente: `${client.name}, ATENÇÃO!\n\nIdentificamos um débito de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.pendingAmount)} em seu nome.\n\nRegularize HOJE para evitar encargos.\n\nEntre em contato AGORA.`,
+      };
+      setGeneratedMessage(fallbackMessages[selectedTone as keyof typeof fallbackMessages] || fallbackMessages.amigavel);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const copyToClipboard = async () => {

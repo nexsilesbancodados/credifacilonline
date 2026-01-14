@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Users, label: "Clientes", path: "/clientes" },
-  { icon: FileText, label: "Novo Contrato", path: "/contratos/novo" },
+  { icon: FileText, label: "Contratos", path: "/contratos" },
   { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca" },
   { icon: Wallet, label: "Tesouraria", path: "/tesouraria" },
   { icon: BarChart3, label: "Análises", path: "/analises" },
