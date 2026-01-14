@@ -100,10 +100,12 @@ const NovoContrato = () => {
   }, [toast]);
 
   // Calculate based on mode
+  // Juros simples: Total = Capital × (1 + Taxa)
+  // Exemplo: R$ 1000 a 10% = R$ 1100, em 10 parcelas = R$ 110 cada
   const calculateInstallment = () => {
     const { capital, interestRate, installments } = formData;
-    const monthlyRate = interestRate / 100;
-    const totalAmount = capital * (1 + monthlyRate * installments);
+    const rate = interestRate / 100;
+    const totalAmount = capital * (1 + rate);
     return totalAmount / installments;
   };
 
@@ -112,7 +114,7 @@ const NovoContrato = () => {
     if (installmentValue <= 0 || capital <= 0) return 0;
     const totalAmount = installmentValue * installments;
     const profit = totalAmount - capital;
-    const rate = (profit / capital / installments) * 100;
+    const rate = (profit / capital) * 100;
     return rate;
   };
 
