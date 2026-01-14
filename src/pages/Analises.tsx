@@ -28,7 +28,8 @@ import { useTreasury } from "@/hooks/useTreasury";
 import { useClients } from "@/hooks/useClients";
 import { format, subMonths, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { ExportReports } from "@/components/reports/ExportReports";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -74,6 +75,7 @@ const reports = [
 ];
 
 const Analises = () => {
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
@@ -213,15 +215,28 @@ const Analises = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-8"
+        className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
       >
-        <h1 className="font-display text-3xl font-bold text-foreground">
-          Análises e Relatórios
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          Métricas de performance e insights da sua carteira
-        </p>
+        <div>
+          <h1 className="font-display text-3xl font-bold text-foreground">
+            Análises e Relatórios
+          </h1>
+          <p className="mt-1 text-muted-foreground">
+            Métricas de performance e insights da sua carteira
+          </p>
+        </div>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setIsExportOpen(true)}
+          className="flex items-center gap-2 rounded-xl bg-gradient-gold px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold"
+        >
+          <Download className="h-4 w-4" />
+          Exportar Relatórios
+        </motion.button>
       </motion.div>
+
+      <ExportReports open={isExportOpen} onOpenChange={setIsExportOpen} />
 
       {isLoading && (
         <div className="flex items-center justify-center py-12">
