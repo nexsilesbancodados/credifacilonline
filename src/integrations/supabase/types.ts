@@ -14,6 +14,252 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          client_id: string | null
+          contract_id: string | null
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          operator_id: string
+          type: string
+        }
+        Insert: {
+          client_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          operator_id: string
+          type: string
+        }
+        Update: {
+          client_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          operator_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          avatar_url: string | null
+          cep: string | null
+          city: string | null
+          complement: string | null
+          cpf: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          neighborhood: string | null
+          number: string | null
+          operator_id: string
+          state: string | null
+          status: string
+          street: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          cep?: string | null
+          city?: string | null
+          complement?: string | null
+          cpf: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          neighborhood?: string | null
+          number?: string | null
+          operator_id: string
+          state?: string | null
+          status?: string
+          street?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          cep?: string | null
+          city?: string | null
+          complement?: string | null
+          cpf?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          neighborhood?: string | null
+          number?: string | null
+          operator_id?: string
+          state?: string | null
+          status?: string
+          street?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      contracts: {
+        Row: {
+          capital: number
+          client_id: string
+          created_at: string
+          first_due_date: string
+          frequency: string
+          id: string
+          installment_value: number
+          installments: number
+          interest_rate: number
+          operator_id: string
+          renegotiated_from_id: string | null
+          start_date: string
+          status: string
+          total_amount: number
+          total_profit: number
+          updated_at: string
+        }
+        Insert: {
+          capital: number
+          client_id: string
+          created_at?: string
+          first_due_date: string
+          frequency?: string
+          id?: string
+          installment_value: number
+          installments: number
+          interest_rate: number
+          operator_id: string
+          renegotiated_from_id?: string | null
+          start_date: string
+          status?: string
+          total_amount: number
+          total_profit: number
+          updated_at?: string
+        }
+        Update: {
+          capital?: number
+          client_id?: string
+          created_at?: string
+          first_due_date?: string
+          frequency?: string
+          id?: string
+          installment_value?: number
+          installments?: number
+          interest_rate?: number
+          operator_id?: string
+          renegotiated_from_id?: string | null
+          start_date?: string
+          status?: string
+          total_amount?: number
+          total_profit?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_renegotiated_from_id_fkey"
+            columns: ["renegotiated_from_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      installments: {
+        Row: {
+          amount_due: number
+          amount_paid: number | null
+          client_id: string
+          contract_id: string
+          created_at: string
+          due_date: string
+          fine: number | null
+          id: string
+          installment_number: number
+          operator_id: string
+          payment_date: string | null
+          status: string
+          total_installments: number
+          updated_at: string
+        }
+        Insert: {
+          amount_due: number
+          amount_paid?: number | null
+          client_id: string
+          contract_id: string
+          created_at?: string
+          due_date: string
+          fine?: number | null
+          id?: string
+          installment_number: number
+          operator_id: string
+          payment_date?: string | null
+          status?: string
+          total_installments: number
+          updated_at?: string
+        }
+        Update: {
+          amount_due?: number
+          amount_paid?: number | null
+          client_id?: string
+          contract_id?: string
+          created_at?: string
+          due_date?: string
+          fine?: number | null
+          id?: string
+          installment_number?: number
+          operator_id?: string
+          payment_date?: string | null
+          status?: string
+          total_installments?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -56,12 +302,51 @@ export type Database = {
         }
         Relationships: []
       }
+      treasury_transactions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          date: string
+          description: string
+          id: string
+          operator_id: string
+          reference_id: string | null
+          reference_type: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          date?: string
+          description: string
+          id?: string
+          operator_id: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          operator_id?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      update_overdue_installments: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

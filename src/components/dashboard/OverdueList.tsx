@@ -1,41 +1,8 @@
 import { motion } from "framer-motion";
-import { AlertTriangle, Phone, MessageCircle, ChevronRight } from "lucide-react";
+import { AlertTriangle, Phone, MessageCircle, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const overdueClients = [
-  {
-    id: "1",
-    name: "Maria Santos",
-    daysOverdue: 15,
-    amount: 1250.0,
-    installment: "4/12",
-    phone: "(11) 98765-4321",
-  },
-  {
-    id: "2",
-    name: "Carlos Oliveira",
-    daysOverdue: 8,
-    amount: 890.0,
-    installment: "2/6",
-    phone: "(11) 91234-5678",
-  },
-  {
-    id: "3",
-    name: "Ana Paula",
-    daysOverdue: 5,
-    amount: 2100.0,
-    installment: "7/24",
-    phone: "(11) 99876-5432",
-  },
-  {
-    id: "4",
-    name: "Roberto Lima",
-    daysOverdue: 3,
-    amount: 650.0,
-    installment: "1/3",
-    phone: "(11) 94567-8901",
-  },
-];
+import { useOverdueClients } from "@/hooks/useDashboard";
+import { Link } from "react-router-dom";
 
 function getSeverity(days: number): "low" | "medium" | "high" {
   if (days <= 5) return "low";
@@ -56,6 +23,14 @@ const badgeStyles = {
 };
 
 export function OverdueList() {
+  const { data: overdueClients, isLoading } = useOverdueClients();
+
+  const getInitials = (name: string) => {
+    const names = name.trim().split(" ");
+    if (names.length === 1) return names[0].slice(0, 2).toUpperCase();
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -73,74 +48,100 @@ export function OverdueList() {
               Pagamentos Atrasados
             </h3>
             <p className="text-sm text-muted-foreground">
-              {overdueClients.length} clientes precisam de atenção
+              {overdueClients?.length || 0} parcelas precisam de atenção
             </p>
           </div>
         </div>
         
-        <button className="flex items-center gap-1 text-sm text-primary hover:underline">
+        <Link to="/cobranca" className="flex items-center gap-1 text-sm text-primary hover:underline">
           Ver todos
           <ChevronRight className="h-4 w-4" />
-        </button>
+        </Link>
       </div>
 
       <div className="mt-4 space-y-3">
-        {overdueClients.map((client, index) => {
-          const severity = getSeverity(client.daysOverdue);
-          
-          return (
-            <motion.div
-              key={client.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 + index * 0.1 }}
-              className={cn(
-                "group flex items-center justify-between rounded-xl border-l-4 p-4 transition-all hover:scale-[1.02]",
-                severityStyles[severity]
-              )}
-            >
-              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center font-display font-semibold text-foreground">
-                  {client.name.split(" ").map((n) => n[0]).join("")}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : !overdueClients || overdueClients.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/20">
+              <span className="text-2xl">🎉</span>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Nenhuma parcela atrasada! Continue assim.
+            </p>
+          </div>
+        ) : (
+          overdueClients.slice(0, 4).map((item: any, index: number) => {
+            const severity = getSeverity(item.daysOverdue);
+            const client = item.clients;
+            
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5 + index * 0.1 }}
+                className={cn(
+                  "group flex items-center justify-between rounded-xl border-l-4 p-4 transition-all hover:scale-[1.02]",
+                  severityStyles[severity]
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center font-display font-semibold text-foreground">
+                    {getInitials(client?.name || "")}
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{client?.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Vencimento: {new Date(item.due_date).toLocaleDateString("pt-BR")}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-foreground">{client.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Parcela {client.installment}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <p className="font-display font-semibold text-foreground">
-                    {new Intl.NumberFormat("pt-BR", {
-                      style: "currency",
-                      currency: "BRL",
-                    }).format(client.amount)}
-                  </p>
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
-                      badgeStyles[severity]
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="font-display font-semibold text-foreground">
+                      {new Intl.NumberFormat("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      }).format(Number(item.amount_due))}
+                    </p>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+                        badgeStyles[severity]
+                      )}
+                    >
+                      {item.daysOverdue} dias
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    {client?.whatsapp && (
+                      <a
+                        href={`https://wa.me/55${client.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/20 text-success hover:bg-success/30 transition-colors"
+                      >
+                        <Phone className="h-4 w-4" />
+                      </a>
                     )}
-                  >
-                    {client.daysOverdue} dias
-                  </span>
+                    <Link 
+                      to={`/clientes/${item.client_id}`}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Link>
+                  </div>
                 </div>
-
-                <div className="flex gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/20 text-success hover:bg-success/30 transition-colors">
-                    <Phone className="h-4 w-4" />
-                  </button>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
-                    <MessageCircle className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
+              </motion.div>
+            );
+          })
+        )}
       </div>
     </motion.div>
   );

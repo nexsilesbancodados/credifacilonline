@@ -1,8 +1,11 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useClients } from "@/hooks/useClients";
+import { useContracts } from "@/hooks/useContracts";
 import {
   Calculator,
   User,
@@ -20,9 +23,13 @@ import { cn } from "@/lib/utils";
 type CalculationMode = "rate" | "installment";
 
 const NovoContrato = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const { createClient, isCreating: isCreatingClient } = useClients();
+  const { createContract, isCreating: isCreatingContract } = useContracts();
   const [mode, setMode] = useState<CalculationMode>("rate");
   const [isLoadingCep, setIsLoadingCep] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     // Client data
     name: "",
@@ -638,10 +645,64 @@ const NovoContrato = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-gold py-4 font-display font-semibold text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
+              disabled={isSaving || !formData.name || !formData.cpf || !formData.startDate || !formData.firstDueDate}
+              onClick={async () => {
+                if (!formData.name || !formData.cpf) {
+                  toast({ title: "Erro", description: "Preencha o nome e CPF do cliente.", variant: "destructive" });
+                  return;
+                }
+                if (!formData.startDate || !formData.firstDueDate) {
+                  toast({ title: "Erro", description: "Preencha as datas do contrato.", variant: "destructive" });
+                  return;
+                }
+                setIsSaving(true);
+                try {
+                  // Import supabase
+                  const { supabase } = await import("@/integrations/supabase/client");
+                  const { data: { user } } = await supabase.auth.getUser();
+                  
+                  // Create client first
+                  const { data: clientData, error: clientError } = await supabase.from("clients").insert({
+                    operator_id: user?.id,
+                    name: formData.name,
+                    cpf: formData.cpf,
+                    email: formData.email || null,
+                    whatsapp: formData.whatsapp || null,
+                    cep: formData.cep || null,
+                    street: formData.street || null,
+                    number: formData.number || null,
+                    complement: formData.complement || null,
+                    neighborhood: formData.neighborhood || null,
+                    city: formData.city || null,
+                    state: formData.state || null,
+                  }).select().single();
+                  if (clientError) throw clientError;
+                  
+                  // Then create contract
+                  await createContract({
+                    client_id: clientData.id,
+                    capital: formData.capital,
+                    interest_rate: rateResult,
+                    installments: formData.installments,
+                    installment_value: installmentResult,
+                    total_amount: totalAmount,
+                    total_profit: totalProfit,
+                    frequency: formData.frequency as any,
+                    start_date: formData.startDate,
+                    first_due_date: formData.firstDueDate,
+                    paid_installments: formData.paidInstallments,
+                  });
+                  navigate("/clientes");
+                } catch (error: any) {
+                  toast({ title: "Erro ao criar contrato", description: error.message, variant: "destructive" });
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-gold py-4 font-display font-semibold text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg disabled:opacity-50"
             >
-              <Check className="h-5 w-5" />
-              Criar Contrato
+              {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
+              {isSaving ? "Salvando..." : "Criar Contrato"}
             </motion.button>
 
             <p className="mt-4 text-center text-xs text-muted-foreground">
