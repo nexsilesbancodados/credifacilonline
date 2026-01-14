@@ -1,0 +1,160 @@
+import { Link, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Phone,
+  Wallet,
+  BarChart3,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
+
+const menuItems = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: Users, label: "Clientes", path: "/clientes" },
+  { icon: FileText, label: "Novo Contrato", path: "/contratos/novo" },
+  { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca" },
+  { icon: Wallet, label: "Tesouraria", path: "/tesouraria" },
+  { icon: BarChart3, label: "Análises", path: "/analises" },
+  { icon: Settings, label: "Configurações", path: "/configuracoes" },
+];
+
+export function Sidebar() {
+  const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  return (
+    <motion.aside
+      initial={{ x: -100, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className={cn(
+        "fixed left-0 top-0 z-40 h-screen transition-all duration-300",
+        isCollapsed ? "w-20" : "w-64"
+      )}
+      style={{
+        background: "linear-gradient(180deg, hsl(38, 22%, 7%) 0%, hsl(38, 22%, 5%) 100%)",
+      }}
+    >
+      {/* Border gradient right */}
+      <div className="absolute right-0 top-0 h-full w-px bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" />
+      
+      {/* Logo section */}
+      <div className="flex h-20 items-center justify-between px-4">
+        <Link to="/" className="flex items-center gap-3">
+          <div className="relative">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-gold shadow-gold">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div className="absolute -inset-1 rounded-xl bg-primary/20 blur-md -z-10" />
+          </div>
+          {!isCollapsed && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <h1 className="font-display text-lg font-bold text-gradient-gold">
+                CreditWise
+              </h1>
+              <p className="text-xs text-muted-foreground">Elite</p>
+            </motion.div>
+          )}
+        </Link>
+        
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="mt-6 px-3">
+        <ul className="space-y-1">
+          {menuItems.map((item, index) => {
+            const isActive = location.pathname === item.path;
+            const Icon = item.icon;
+
+            return (
+              <motion.li
+                key={item.path}
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: index * 0.05 + 0.2 }}
+              >
+                <Link
+                  to={item.path}
+                  className={cn(
+                    "group relative flex items-center gap-3 rounded-xl px-3 py-3 font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  <Icon className={cn(
+                    "h-5 w-5 transition-transform",
+                    isActive && "text-primary",
+                    "group-hover:scale-110"
+                  )} />
+                  {!isCollapsed && (
+                    <span className="text-sm">{item.label}</span>
+                  )}
+                  {isActive && !isCollapsed && (
+                    <div className="absolute right-3 h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  )}
+                </Link>
+              </motion.li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* User section */}
+      <div className="absolute bottom-0 left-0 right-0 p-4">
+        <div className={cn(
+          "rounded-xl bg-secondary/30 p-3 backdrop-blur-sm",
+          isCollapsed && "flex items-center justify-center"
+        )}>
+          {!isCollapsed ? (
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold">
+                JD
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">João Da Silva</p>
+                <p className="text-xs text-muted-foreground">Operador</p>
+              </div>
+              <button className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="h-10 w-10 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold">
+              JD
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.aside>
+  );
+}
