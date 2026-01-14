@@ -1,6 +1,7 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Search,
   Filter,
@@ -282,10 +283,13 @@ const Clientes = () => {
                     <Mail className="h-4 w-4" />
                   </button>
                 </div>
-                <button className="flex items-center gap-1 text-sm text-primary hover:underline">
+                <Link 
+                  to={`/clientes/${client.id}`}
+                  className="flex items-center gap-1 text-sm text-primary hover:underline"
+                >
                   Ver Dossiê
                   <ChevronRight className="h-4 w-4" />
-                </button>
+                </Link>
               </div>
 
               {/* Hover glow */}
