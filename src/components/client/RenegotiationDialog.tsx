@@ -2,9 +2,15 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Calculator, TrendingDown, Clock, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useRenegotiation } from "@/hooks/useRenegotiation";
+import { useToast } from "@/hooks/use-toast";
 
 interface Client {
+  id: string;
   name: string;
+  status: string;
+  contractId?: string;
   financialSummary: {
     pendingAmount: number;
     totalInstallments: number;
@@ -25,6 +31,9 @@ export const RenegotiationDialog = ({ open, onOpenChange, client }: Renegotiatio
   const [newRate, setNewRate] = useState(client.financialSummary.interestRate);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<{ installments: number; rate: number; reason: string } | null>(null);
+  
+  const { renegotiate, isRenegotiating } = useRenegotiation();
+  const { toast } = useToast();
 
   const remainingAmount = client.financialSummary.pendingAmount;
   
@@ -41,22 +50,76 @@ export const RenegotiationDialog = ({ open, onOpenChange, client }: Renegotiatio
 
   const handleAISuggestion = async () => {
     setIsGeneratingAI(true);
-    // Simulate AI response
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setAiSuggestion({
-      installments: 8,
-      rate: 8,
-      reason: "Com base no histórico de pagamentos do cliente e seu perfil de risco moderado, sugiro estender o prazo para 8 parcelas com taxa reduzida de 8% a.m. Isso mantém a margem de lucro enquanto aumenta a probabilidade de quitação."
-    });
-    setNewInstallments(8);
-    setNewRate(8);
-    setIsGeneratingAI(false);
+    setAiSuggestion(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke("suggest-renegotiation", {
+        body: {
+          clientName: client.name,
+          pendingAmount: remainingAmount,
+          totalInstallments: client.financialSummary.totalInstallments,
+          paidInstallments: client.financialSummary.paidInstallments,
+          currentRate: client.financialSummary.interestRate,
+          clientStatus: client.status,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      const suggestion = {
+        installments: data.installments || 8,
+        rate: data.rate || 8,
+        reason: data.reason || "Sugestão baseada no perfil do cliente.",
+      };
+
+      setAiSuggestion(suggestion);
+      setNewInstallments(suggestion.installments);
+      setNewRate(suggestion.rate);
+    } catch (error) {
+      console.error("Error getting AI suggestion:", error);
+      // Fallback suggestion
+      const fallbackSuggestion = {
+        installments: Math.min(12, client.financialSummary.totalInstallments - client.financialSummary.paidInstallments + 4),
+        rate: Math.max(5, client.financialSummary.interestRate - 2),
+        reason: "Sugestão baseada no perfil: estender prazo e reduzir taxa para aumentar probabilidade de quitação.",
+      };
+      setAiSuggestion(fallbackSuggestion);
+      setNewInstallments(fallbackSuggestion.installments);
+      setNewRate(fallbackSuggestion.rate);
+      
+      toast({
+        title: "Sugestão gerada localmente",
+        description: "Não foi possível conectar à IA, usando sugestão padrão.",
+      });
+    } finally {
+      setIsGeneratingAI(false);
+    }
   };
 
-  const handleApplySuggestion = () => {
-    if (aiSuggestion) {
-      setNewInstallments(aiSuggestion.installments);
-      setNewRate(aiSuggestion.rate);
+  const handleConfirmRenegotiation = async () => {
+    if (!client.contractId) {
+      toast({
+        title: "Erro",
+        description: "ID do contrato não encontrado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await renegotiate({
+        clientId: client.id,
+        originalContractId: client.contractId,
+        pendingAmount: remainingAmount,
+        newInstallments,
+        newRate,
+        newInstallmentValue,
+        totalNewAmount,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      // Error handled in hook
     }
   };
 
@@ -230,16 +293,19 @@ export const RenegotiationDialog = ({ open, onOpenChange, client }: Renegotiatio
           <div className="flex gap-3">
             <button
               onClick={() => onOpenChange(false)}
-              className="flex-1 rounded-xl border border-border bg-secondary px-4 py-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
+              disabled={isRenegotiating}
+              className="flex-1 rounded-xl border border-border bg-secondary px-4 py-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
             >
               Cancelar
             </button>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex-1 rounded-xl bg-success px-4 py-3 text-sm font-medium text-success-foreground hover:bg-success/90 transition-colors"
+              onClick={handleConfirmRenegotiation}
+              disabled={isRenegotiating || !client.contractId}
+              className="flex-1 rounded-xl bg-success px-4 py-3 text-sm font-medium text-success-foreground hover:bg-success/90 transition-colors disabled:opacity-50"
             >
-              Confirmar Renegociação
+              {isRenegotiating ? "Processando..." : "Confirmar Renegociação"}
             </motion.button>
           </div>
         </motion.div>
