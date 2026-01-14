@@ -659,6 +659,14 @@ const NovoContrato = () => {
               </div>
 
               <div className="flex justify-between items-center py-3 border-b border-border/50">
+                <span className="text-muted-foreground">Frequência</span>
+                <span className="font-display font-semibold text-foreground">
+                  {frequencies.find(f => f.value === formData.frequency)?.label}
+                  {formData.frequency === "diario" && ` (${dailyTypes.find(d => d.value === formData.dailyType)?.label})`}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-3 border-b border-border/50">
                 <span className="text-muted-foreground">Parcelas</span>
                 <span className="font-display font-semibold text-foreground">
                   {formData.installments}x
