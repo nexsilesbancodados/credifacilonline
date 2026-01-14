@@ -1,34 +1,68 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, DollarSign, Calendar, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Installment {
   id: string;
-  number: number;
-  dueDate: string;
-  amount: number;
+  installment_number?: number;
+  number?: number;
+  due_date?: string;
+  dueDate?: string;
+  amount_due?: number;
+  amount?: number;
   status: string;
-  fine: number;
+  fine?: number;
+  clients?: {
+    name?: string;
+  };
 }
 
 interface PaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   installment: Installment | null;
-  clientName: string;
+  clientName?: string;
+  onConfirm?: (amountPaid: number) => void;
 }
 
-export const PaymentDialog = ({ open, onOpenChange, installment, clientName }: PaymentDialogProps) => {
+export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onConfirm }: PaymentDialogProps) => {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
-  const [amountPaid, setAmountPaid] = useState(installment ? installment.amount + installment.fine : 0);
   const [paymentMethod, setPaymentMethod] = useState("pix");
+
+  // Normalize installment data (support both formats)
+  const normalizedInstallment = installment ? {
+    id: installment.id,
+    number: installment.installment_number || installment.number || 1,
+    dueDate: installment.due_date || installment.dueDate || "",
+    amount: installment.amount_due || installment.amount || 0,
+    status: installment.status,
+    fine: installment.fine || 0,
+  } : null;
+
+  const resolvedClientName = clientName || installment?.clients?.name || "Cliente";
+  const totalDue = normalizedInstallment ? normalizedInstallment.amount + normalizedInstallment.fine : 0;
+
+  const [amountPaid, setAmountPaid] = useState(totalDue);
+
+  // Reset amount when installment changes
+  useEffect(() => {
+    if (normalizedInstallment) {
+      setAmountPaid(normalizedInstallment.amount + normalizedInstallment.fine);
+    }
+  }, [installment]);
 
   if (!open) return null;
 
-  const totalDue = installment ? installment.amount + installment.fine : 0;
   const isPartialPayment = amountPaid < totalDue;
   const isOverPayment = amountPaid > totalDue;
+
+  const handleConfirm = () => {
+    if (onConfirm) {
+      onConfirm(amountPaid);
+    }
+    onOpenChange(false);
+  };
 
   return (
     <AnimatePresence>
@@ -56,7 +90,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName }: P
                 Registrar Pagamento
               </h2>
               <p className="text-sm text-muted-foreground">
-                {clientName} {installment ? `- Parcela ${installment.number}` : ""}
+                {resolvedClientName} {normalizedInstallment ? `- Parcela ${normalizedInstallment.number}` : ""}
               </p>
             </div>
             <button
@@ -67,7 +101,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName }: P
             </button>
           </div>
 
-          {installment && (
+          {normalizedInstallment && (
             <>
               {/* Installment Info */}
               <div className="mb-6 rounded-xl bg-secondary/50 p-4">
@@ -77,20 +111,20 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName }: P
                     <span className="text-sm text-muted-foreground">Vencimento</span>
                   </div>
                   <span className="text-sm font-medium text-foreground">
-                    {new Date(installment.dueDate).toLocaleDateString("pt-BR")}
+                    {new Date(normalizedInstallment.dueDate).toLocaleDateString("pt-BR")}
                   </span>
                 </div>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm text-muted-foreground">Valor da Parcela</span>
                   <span className="font-display font-semibold text-foreground">
-                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installment.amount)}
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(normalizedInstallment.amount)}
                   </span>
                 </div>
-                {installment.fine > 0 && (
+                {normalizedInstallment.fine > 0 && (
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-destructive">Multa/Juros</span>
                     <span className="font-display font-semibold text-destructive">
-                      + {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installment.fine)}
+                      + {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(normalizedInstallment.fine)}
                     </span>
                   </div>
                 )}
@@ -157,6 +191,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName }: P
                     ].map((method) => (
                       <button
                         key={method.value}
+                        type="button"
                         onClick={() => setPaymentMethod(method.value)}
                         className={cn(
                           "rounded-lg px-3 py-2 text-sm font-medium transition-all",
@@ -183,6 +218,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName }: P
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
+                  onClick={handleConfirm}
                   className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-success px-4 py-3 text-sm font-medium text-success-foreground hover:bg-success/90 transition-colors"
                 >
                   <CheckCircle2 className="h-4 w-4" />
@@ -192,7 +228,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName }: P
             </>
           )}
 
-          {!installment && (
+          {!normalizedInstallment && (
             <div className="text-center py-8 text-muted-foreground">
               <p>Selecione uma parcela para registrar o pagamento.</p>
             </div>

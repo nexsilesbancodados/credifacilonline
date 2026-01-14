@@ -7,6 +7,7 @@ import {
   BarChart3,
   Download,
   FileText,
+  Loader2,
 } from "lucide-react";
 import {
   BarChart,
@@ -22,33 +23,12 @@ import {
   LineChart,
   Line,
 } from "recharts";
-
-const monthlyData = [
-  { month: "Jul", emprestado: 85000, recebido: 42000, lucro: 12000 },
-  { month: "Ago", emprestado: 92000, recebido: 48000, lucro: 14500 },
-  { month: "Set", emprestado: 78000, recebido: 52000, lucro: 15200 },
-  { month: "Out", emprestado: 105000, recebido: 58000, lucro: 17800 },
-  { month: "Nov", emprestado: 118000, recebido: 65000, lucro: 19500 },
-  { month: "Dez", emprestado: 142000, recebido: 72000, lucro: 22100 },
-];
-
-const portfolioDistribution = [
-  { name: "0-5k", value: 25, color: "hsl(45, 90%, 50%)" },
-  { name: "5k-10k", value: 35, color: "hsl(45, 90%, 40%)" },
-  { name: "10k-20k", value: 28, color: "hsl(38, 85%, 45%)" },
-  { name: "20k+", value: 12, color: "hsl(38, 75%, 35%)" },
-];
-
-const riskReturnData = [
-  { risk: 2, return: 8, name: "Cliente A" },
-  { risk: 3, return: 10, name: "Cliente B" },
-  { risk: 4, return: 12, name: "Cliente C" },
-  { risk: 5, return: 15, name: "Cliente D" },
-  { risk: 2.5, return: 9, name: "Cliente E" },
-  { risk: 6, return: 18, name: "Cliente F" },
-  { risk: 3.5, return: 11, name: "Cliente G" },
-  { risk: 7, return: 22, name: "Cliente H" },
-];
+import { useContracts, useInstallments } from "@/hooks/useContracts";
+import { useTreasury } from "@/hooks/useTreasury";
+import { useClients } from "@/hooks/useClients";
+import { format, subMonths, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { useMemo } from "react";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -94,6 +74,138 @@ const reports = [
 ];
 
 const Analises = () => {
+  const { contracts, isLoading: isLoadingContracts } = useContracts();
+  const { installments, isLoading: isLoadingInstallments } = useInstallments();
+  const { transactions, isLoading: isLoadingTreasury } = useTreasury();
+  const { clients, isLoading: isLoadingClients } = useClients();
+
+  const isLoading = isLoadingContracts || isLoadingInstallments || isLoadingTreasury || isLoadingClients;
+
+  // Calculate monthly performance data (last 6 months)
+  const monthlyData = useMemo(() => {
+    if (!transactions || !contracts) return [];
+
+    const data = [];
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = subMonths(new Date(), i);
+      const monthStart = startOfMonth(monthDate);
+      const monthEnd = endOfMonth(monthDate);
+      const monthLabel = format(monthDate, "MMM", { locale: ptBR });
+
+      // Filter transactions for this month
+      const monthTransactions = transactions.filter((t) => {
+        const tDate = parseISO(t.date);
+        return tDate >= monthStart && tDate <= monthEnd;
+      });
+
+      // Calculate totals
+      const emprestado = monthTransactions
+        .filter((t) => t.type === "saida" && t.category === "Empréstimo")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      const recebido = monthTransactions
+        .filter((t) => t.type === "entrada")
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      // Calculate profit (received - original capital proportion)
+      const lucro = monthTransactions
+        .filter((t) => t.type === "entrada" && t.category === "Recebimento")
+        .reduce((sum, t) => sum + Number(t.amount) * 0.1, 0); // Approximate 10% profit
+
+      data.push({
+        month: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+        emprestado,
+        recebido,
+        lucro,
+      });
+    }
+    return data;
+  }, [transactions, contracts]);
+
+  // Calculate portfolio distribution by contract value range
+  const portfolioDistribution = useMemo(() => {
+    if (!contracts || contracts.length === 0) {
+      return [
+        { name: "Sem dados", value: 100, color: "hsl(38, 15%, 30%)" },
+      ];
+    }
+
+    const ranges = {
+      "0-5k": { count: 0, color: "hsl(45, 90%, 50%)" },
+      "5k-10k": { count: 0, color: "hsl(45, 90%, 40%)" },
+      "10k-20k": { count: 0, color: "hsl(38, 85%, 45%)" },
+      "20k+": { count: 0, color: "hsl(38, 75%, 35%)" },
+    };
+
+    contracts.forEach((c) => {
+      const capital = Number(c.capital);
+      if (capital <= 5000) ranges["0-5k"].count++;
+      else if (capital <= 10000) ranges["5k-10k"].count++;
+      else if (capital <= 20000) ranges["10k-20k"].count++;
+      else ranges["20k+"].count++;
+    });
+
+    const total = contracts.length;
+    return Object.entries(ranges).map(([name, data]) => ({
+      name,
+      value: total > 0 ? Math.round((data.count / total) * 100) : 0,
+      color: data.color,
+    })).filter(item => item.value > 0);
+  }, [contracts]);
+
+  // Calculate KPIs
+  const kpis = useMemo(() => {
+    const totalCapital = contracts?.reduce((sum, c) => sum + Number(c.capital), 0) || 0;
+    const totalProfit = contracts?.reduce((sum, c) => sum + Number(c.total_profit), 0) || 0;
+    const avgRate = contracts?.length
+      ? contracts.reduce((sum, c) => sum + Number(c.interest_rate), 0) / contracts.length
+      : 0;
+    const avgTicket = contracts?.length ? totalCapital / contracts.length : 0;
+    const roi = totalCapital > 0 ? (totalProfit / totalCapital) * 100 : 0;
+
+    // Growth calculation (compare last 2 months)
+    const thisMonth = subMonths(new Date(), 0);
+    const lastMonth = subMonths(new Date(), 1);
+    const thisMonthContracts = contracts?.filter((c) => {
+      const cDate = parseISO(c.created_at);
+      return cDate >= startOfMonth(thisMonth);
+    }).length || 0;
+    const lastMonthContracts = contracts?.filter((c) => {
+      const cDate = parseISO(c.created_at);
+      return cDate >= startOfMonth(lastMonth) && cDate < startOfMonth(thisMonth);
+    }).length || 0;
+    const growth = lastMonthContracts > 0 
+      ? ((thisMonthContracts - lastMonthContracts) / lastMonthContracts) * 100 
+      : 0;
+
+    return {
+      roi: roi.toFixed(1),
+      avgRate: avgRate.toFixed(1),
+      avgTicket: new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(avgTicket),
+      growth: (growth >= 0 ? "+" : "") + growth.toFixed(0),
+    };
+  }, [contracts]);
+
+  // Risk vs Return data (based on actual clients)
+  const riskReturnData = useMemo(() => {
+    if (!clients || !contracts) return [];
+
+    return clients.slice(0, 8).map((client, index) => {
+      const clientContracts = contracts.filter((c) => c.client_id === client.id);
+      const avgRate = clientContracts.length
+        ? clientContracts.reduce((sum, c) => sum + Number(c.interest_rate), 0) / clientContracts.length
+        : 5;
+      // Risk based on client status
+      const risk = client.status === "Atraso" ? 6 : 2 + Math.random() * 3;
+
+      return {
+        risk: Number(risk.toFixed(1)),
+        return: avgRate || 10,
+        name: client.name.split(" ")[0],
+      };
+    });
+  }, [clients, contracts]);
+
   return (
     <MainLayout>
       {/* Header */}
@@ -111,253 +223,271 @@ const Analises = () => {
         </p>
       </motion.div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-6 md:grid-cols-4 mb-8">
-        {[
-          { label: "ROI Médio", value: "32.5%", icon: TrendingUp, color: "success" },
-          { label: "Taxa Média", value: "8.2%", icon: Target, color: "primary" },
-          { label: "Ticket Médio", value: "R$ 12.450", icon: PieChart, color: "warning" },
-          { label: "Crescimento", value: "+18%", icon: BarChart3, color: "success" },
-        ].map((kpi, index) => {
-          const Icon = kpi.icon;
-          return (
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {!isLoading && (
+        <>
+          {/* KPI Cards */}
+          <div className="grid gap-6 md:grid-cols-4 mb-8">
+            {[
+              { label: "ROI Médio", value: `${kpis.roi}%`, icon: TrendingUp, color: "success" },
+              { label: "Taxa Média", value: `${kpis.avgRate}%`, icon: Target, color: "primary" },
+              { label: "Ticket Médio", value: kpis.avgTicket, icon: PieChart, color: "warning" },
+              { label: "Crescimento", value: `${kpis.growth}%`, icon: BarChart3, color: "success" },
+            ].map((kpi, index) => {
+              const Icon = kpi.icon;
+              return (
+                <motion.div
+                  key={kpi.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">{kpi.label}</p>
+                    <Icon className={`h-5 w-5 text-${kpi.color}`} />
+                  </div>
+                  <p className="mt-2 font-display text-2xl font-bold text-foreground">
+                    {kpi.value}
+                  </p>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid gap-6 lg:grid-cols-2 mb-8">
+            {/* Monthly Performance Chart */}
             <motion.div
-              key={kpi.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5"
+              transition={{ delay: 0.2 }}
+              className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
             >
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{kpi.label}</p>
-                <Icon className={`h-5 w-5 text-${kpi.color}`} />
-              </div>
-              <p className="mt-2 font-display text-2xl font-bold text-foreground">
-                {kpi.value}
-              </p>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-8">
-        {/* Monthly Performance Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
-        >
-          <h3 className="font-display text-lg font-semibold text-foreground mb-6">
-            Performance Mensal
-          </h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(38, 15%, 18%)" />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "hsl(46, 10%, 55%)", fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "hsl(46, 10%, 55%)", fontSize: 12 }}
-                  tickFormatter={(value) =>
-                    new Intl.NumberFormat("pt-BR", {
-                      notation: "compact",
-                    }).format(value)
-                  }
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar
-                  dataKey="emprestado"
-                  name="Emprestado"
-                  fill="hsl(217, 91%, 60%)"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="recebido"
-                  name="Recebido"
-                  fill="hsl(142, 71%, 45%)"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="lucro"
-                  name="Lucro"
-                  fill="hsl(45, 90%, 50%)"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        {/* Portfolio Distribution */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
-        >
-          <h3 className="font-display text-lg font-semibold text-foreground mb-6">
-            Distribuição por Faixa de Valor
-          </h3>
-          <div className="flex items-center gap-8">
-            <div className="h-56 w-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart>
-                  <Pie
-                    data={portfolioDistribution}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {portfolioDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </RechartsPieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 space-y-3">
-              {portfolioDistribution.map((item) => (
-                <div key={item.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-sm text-muted-foreground">{item.name}</span>
+              <h3 className="font-display text-lg font-semibold text-foreground mb-6">
+                Performance Mensal
+              </h3>
+              <div className="h-72">
+                {monthlyData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(38, 15%, 18%)" />
+                      <XAxis
+                        dataKey="month"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "hsl(46, 10%, 55%)", fontSize: 12 }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "hsl(46, 10%, 55%)", fontSize: 12 }}
+                        tickFormatter={(value) =>
+                          new Intl.NumberFormat("pt-BR", {
+                            notation: "compact",
+                          }).format(value)
+                        }
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar
+                        dataKey="emprestado"
+                        name="Emprestado"
+                        fill="hsl(217, 91%, 60%)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="recebido"
+                        name="Recebido"
+                        fill="hsl(142, 71%, 45%)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="lucro"
+                        name="Lucro"
+                        fill="hsl(45, 90%, 50%)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    Sem dados para exibir
                   </div>
-                  <span className="font-display font-semibold text-foreground">
-                    {item.value}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      </div>
+                )}
+              </div>
+            </motion.div>
 
-      {/* Risk vs Return Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6 mb-8"
-      >
-        <h3 className="font-display text-lg font-semibold text-foreground mb-6">
-          Análise de Risco vs. Retorno
-        </h3>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={riskReturnData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(38, 15%, 18%)" />
-              <XAxis
-                dataKey="risk"
-                name="Risco"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "hsl(46, 10%, 55%)", fontSize: 12 }}
-                label={{
-                  value: "Risco",
-                  position: "bottom",
-                  fill: "hsl(46, 10%, 55%)",
-                }}
-              />
-              <YAxis
-                dataKey="return"
-                name="Retorno"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: "hsl(46, 10%, 55%)", fontSize: 12 }}
-                label={{
-                  value: "Retorno %",
-                  angle: -90,
-                  position: "insideLeft",
-                  fill: "hsl(46, 10%, 55%)",
-                }}
-              />
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const data = payload[0].payload;
-                    return (
-                      <div className="rounded-lg bg-popover border border-border px-4 py-3 shadow-lg">
-                        <p className="font-medium text-foreground">{data.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Risco: {data.risk} | Retorno: {data.return}%
-                        </p>
+            {/* Portfolio Distribution */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
+            >
+              <h3 className="font-display text-lg font-semibold text-foreground mb-6">
+                Distribuição por Faixa de Valor
+              </h3>
+              <div className="flex items-center gap-8">
+                <div className="h-56 w-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={portfolioDistribution}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={4}
+                        dataKey="value"
+                      >
+                        {portfolioDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex-1 space-y-3">
+                  {portfolioDistribution.map((item) => (
+                    <div key={item.name} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-sm text-muted-foreground">{item.name}</span>
                       </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="return"
-                stroke="hsl(45, 90%, 50%)"
-                strokeWidth={2}
-                dot={{
-                  fill: "hsl(45, 90%, 50%)",
-                  strokeWidth: 0,
-                  r: 6,
-                }}
-                activeDot={{
-                  fill: "hsl(45, 90%, 50%)",
-                  strokeWidth: 2,
-                  stroke: "hsl(38, 22%, 8%)",
-                  r: 8,
-                }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
+                      <span className="font-display font-semibold text-foreground">
+                        {item.value}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          </div>
 
-      {/* Reports Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
-      >
-        <h3 className="font-display text-lg font-semibold text-foreground mb-6">
-          Central de Relatórios
-        </h3>
-        <div className="grid gap-4 md:grid-cols-3">
-          {reports.map((report, index) => {
-            const Icon = report.icon;
-            return (
-              <motion.button
-                key={report.id}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-4 rounded-xl border border-border/50 bg-secondary/30 p-4 text-left transition-colors hover:border-primary/30 hover:bg-secondary/50"
-              >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20">
-                  <Icon className="h-6 w-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{report.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {report.description}
-                  </p>
-                </div>
-                <Download className="h-5 w-5 text-muted-foreground" />
-              </motion.button>
-            );
-          })}
-        </div>
-      </motion.div>
+          {/* Risk vs Return Chart */}
+          {riskReturnData.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6 mb-8"
+            >
+              <h3 className="font-display text-lg font-semibold text-foreground mb-6">
+                Análise de Risco vs. Retorno
+              </h3>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={riskReturnData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(38, 15%, 18%)" />
+                    <XAxis
+                      dataKey="risk"
+                      name="Risco"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "hsl(46, 10%, 55%)", fontSize: 12 }}
+                      label={{
+                        value: "Risco",
+                        position: "bottom",
+                        fill: "hsl(46, 10%, 55%)",
+                      }}
+                    />
+                    <YAxis
+                      dataKey="return"
+                      name="Retorno"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "hsl(46, 10%, 55%)", fontSize: 12 }}
+                      label={{
+                        value: "Retorno %",
+                        angle: -90,
+                        position: "insideLeft",
+                        fill: "hsl(46, 10%, 55%)",
+                      }}
+                    />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="rounded-lg bg-popover border border-border px-4 py-3 shadow-lg">
+                              <p className="font-medium text-foreground">{data.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                Risco: {data.risk} | Retorno: {data.return}%
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="return"
+                      stroke="hsl(45, 90%, 50%)"
+                      strokeWidth={2}
+                      dot={{
+                        fill: "hsl(45, 90%, 50%)",
+                        strokeWidth: 0,
+                        r: 6,
+                      }}
+                      activeDot={{
+                        fill: "hsl(45, 90%, 50%)",
+                        strokeWidth: 2,
+                        stroke: "hsl(38, 22%, 8%)",
+                        r: 8,
+                      }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Reports Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
+          >
+            <h3 className="font-display text-lg font-semibold text-foreground mb-6">
+              Central de Relatórios
+            </h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              {reports.map((report) => {
+                const Icon = report.icon;
+                return (
+                  <motion.button
+                    key={report.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center gap-4 rounded-xl border border-border/50 bg-secondary/30 p-4 text-left transition-colors hover:border-primary/30 hover:bg-secondary/50"
+                  >
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20">
+                      <Icon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{report.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {report.description}
+                      </p>
+                    </div>
+                    <Download className="h-5 w-5 text-muted-foreground" />
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </>
+      )}
     </MainLayout>
   );
 };
