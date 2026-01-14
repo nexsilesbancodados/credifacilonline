@@ -127,6 +127,7 @@ export type Database = {
           capital: number
           client_id: string
           created_at: string
+          daily_type: string | null
           first_due_date: string
           frequency: string
           id: string
@@ -145,6 +146,7 @@ export type Database = {
           capital: number
           client_id: string
           created_at?: string
+          daily_type?: string | null
           first_due_date: string
           frequency?: string
           id?: string
@@ -163,6 +165,7 @@ export type Database = {
           capital?: number
           client_id?: string
           created_at?: string
+          daily_type?: string | null
           first_due_date?: string
           frequency?: string
           id?: string
