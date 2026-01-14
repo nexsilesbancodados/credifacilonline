@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, Mail, Lock, User, Phone, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Signup = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -45,15 +47,24 @@ const Signup = () => {
 
     setIsLoading(true);
 
-    // Simulate signup - replace with actual auth
-    setTimeout(() => {
-      setIsLoading(false);
+    const { error } = await signUp(formData.email, formData.password, formData.name);
+
+    setIsLoading(false);
+
+    if (error) {
       toast({
-        title: "Conta criada com sucesso!",
-        description: "Bem-vindo ao CreditWise Elite.",
+        title: "Erro ao criar conta",
+        description: error.message,
+        variant: "destructive",
       });
-      navigate("/");
-    }, 1500);
+      return;
+    }
+
+    toast({
+      title: "Conta criada com sucesso!",
+      description: "Bem-vindo ao CreditWise Elite.",
+    });
+    navigate("/");
   };
 
   return (
@@ -133,7 +144,6 @@ const Signup = () => {
                     className="pl-10"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    required
                   />
                 </div>
               </div>

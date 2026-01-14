@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -28,7 +30,27 @@ const menuItems = [
 
 export function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, signOut } = useAuth();
+  const { toast } = useToast();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut();
+    toast({
+      title: "Logout realizado",
+      description: "Você foi desconectado com sucesso.",
+    });
+    navigate("/login");
+  };
+
+  // Get user initials from profile name
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    const names = name.trim().split(" ");
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+  };
 
   return (
     <motion.aside
@@ -138,20 +160,27 @@ export function Sidebar() {
           {!isCollapsed ? (
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold">
-                JD
+                {getInitials(profile?.name || "")}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">João Da Silva</p>
-                <p className="text-xs text-muted-foreground">Operador</p>
+                <p className="font-medium text-sm truncate">{profile?.name || "Usuário"}</p>
+                <p className="text-xs text-muted-foreground capitalize">{profile?.role || "Operador"}</p>
               </div>
-              <button className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
+              <button 
+                onClick={handleLogout}
+                className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+              >
                 <LogOut className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <div className="h-10 w-10 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold">
-              JD
-            </div>
+            <button 
+              onClick={handleLogout}
+              className="h-10 w-10 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold hover:opacity-80 transition-opacity"
+              title="Sair"
+            >
+              {getInitials(profile?.name || "")}
+            </button>
           )}
         </div>
       </div>

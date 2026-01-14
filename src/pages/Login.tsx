@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, Mail, Lock, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const { signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -18,19 +21,33 @@ const Login = () => {
     password: "",
   });
 
+  // Get the redirect path from location state, or default to "/"
+  const from = location.state?.from?.pathname || "/";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login - replace with actual auth
-    setTimeout(() => {
-      setIsLoading(false);
+    const { error } = await signIn(formData.email, formData.password);
+
+    setIsLoading(false);
+
+    if (error) {
       toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo ao CreditWise Elite.",
+        title: "Erro ao entrar",
+        description: error.message === "Invalid login credentials" 
+          ? "Email ou senha incorretos." 
+          : error.message,
+        variant: "destructive",
       });
-      navigate("/");
-    }, 1500);
+      return;
+    }
+
+    toast({
+      title: "Login realizado com sucesso!",
+      description: "Bem-vindo ao CreditWise Elite.",
+    });
+    navigate(from, { replace: true });
   };
 
   return (

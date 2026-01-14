@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, ArrowLeft, TrendingUp, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ForgotPassword = () => {
   const { toast } = useToast();
@@ -18,15 +19,26 @@ const ForgotPassword = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate password reset - replace with actual auth
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsSubmitted(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
       toast({
-        title: "Email enviado!",
-        description: "Verifique sua caixa de entrada para redefinir sua senha.",
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
       });
-    }, 1500);
+      return;
+    }
+
+    setIsSubmitted(true);
+    toast({
+      title: "Email enviado!",
+      description: "Verifique sua caixa de entrada para redefinir sua senha.",
+    });
   };
 
   return (
