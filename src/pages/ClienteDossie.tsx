@@ -28,6 +28,7 @@ import { ActivityHistory } from "@/components/client/ActivityHistory";
 import { RenegotiationDialog } from "@/components/client/RenegotiationDialog";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { AIMessageDialog } from "@/components/client/AIMessageDialog";
+import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
 
 // Mock data for demonstration
 const mockClient = {
@@ -141,6 +142,7 @@ const ClienteDossie = () => {
                 <h1 className="font-display text-2xl font-bold text-foreground">
                   {client.name}
                 </h1>
+                <ClientScoreBadge clientId={id || "1"} size="md" />
                 <span
                   className={cn(
                     "rounded-full border px-3 py-1 text-xs font-medium",

@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useClientScore } from "@/hooks/useClientScore";
 
-interface ClientScoreBadgeProps {
-  score: number;
-  rating: "A" | "B" | "C" | "D" | "E";
+export interface ClientScoreBadgeProps {
+  clientId: string;
   showScore?: boolean;
   size?: "sm" | "md" | "lg";
 }
@@ -44,11 +44,18 @@ const sizeConfig = {
 };
 
 export function ClientScoreBadge({ 
-  score, 
-  rating, 
+  clientId,
   showScore = false,
   size = "md" 
 }: ClientScoreBadgeProps) {
+  const { score, rating, isLoading } = useClientScore(clientId);
+  
+  if (isLoading) {
+    return (
+      <div className={cn("rounded-full bg-secondary animate-pulse", sizeConfig[size])} />
+    );
+  }
+
   const config = ratingConfig[rating];
   const sizeClass = sizeConfig[size];
 
@@ -63,6 +70,7 @@ export function ClientScoreBadge({
           sizeClass,
           "text-white"
         )}
+        title={`Score: ${score}/100 - ${config.label}`}
       >
         {rating}
       </motion.div>
