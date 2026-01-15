@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { PushNotificationSettings } from "@/components/notifications/PushNotificationSettings";
 import {
   User,
   Building2,
@@ -275,45 +276,47 @@ const Configuracoes = () => {
           </TabsContent>
 
           {/* Notifications Tab */}
-          <TabsContent value="notifications">
+          <TabsContent value="notifications" className="space-y-6">
+            {/* Push Notifications Card */}
+            <PushNotificationSettings />
+
+            {/* Email Notifications Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
             >
               <Card className="border-border/50 bg-card/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="w-5 h-5 text-primary" />
-                    Preferências de Notificação
+                    Notificações por Email
                   </CardTitle>
                   <CardDescription>
-                    Escolha como deseja receber notificações
+                    Configure alertas por email
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Notificações por Email</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Pagamentos recebidos</p>
-                          <p className="text-sm text-muted-foreground">Receba um email quando um pagamento for registrado</p>
-                        </div>
-                        <Switch
-                          checked={notifications.emailPayments}
-                          onCheckedChange={(checked) => setNotifications({ ...notifications, emailPayments: checked })}
-                        />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Pagamentos recebidos</p>
+                        <p className="text-sm text-muted-foreground">Receba um email quando um pagamento for registrado</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Parcelas atrasadas</p>
-                          <p className="text-sm text-muted-foreground">Receba alertas sobre parcelas vencidas</p>
-                        </div>
-                        <Switch
-                          checked={notifications.emailOverdue}
-                          onCheckedChange={(checked) => setNotifications({ ...notifications, emailOverdue: checked })}
-                        />
+                      <Switch
+                        checked={notifications.emailPayments}
+                        onCheckedChange={(checked) => setNotifications({ ...notifications, emailPayments: checked })}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Parcelas atrasadas</p>
+                        <p className="text-sm text-muted-foreground">Receba alertas sobre parcelas vencidas</p>
                       </div>
+                      <Switch
+                        checked={notifications.emailOverdue}
+                        onCheckedChange={(checked) => setNotifications({ ...notifications, emailOverdue: checked })}
+                      />
                     </div>
                   </div>
 
