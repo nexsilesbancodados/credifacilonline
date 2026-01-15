@@ -80,7 +80,7 @@ export function Sidebar() {
         isCollapsed ? "w-20" : "w-64"
       )}
       style={{
-        background: "linear-gradient(180deg, hsl(38, 22%, 7%) 0%, hsl(38, 22%, 5%) 100%)",
+        background: "hsl(0, 0%, 3%)",
       }}
     >
       {/* Border gradient right */}
