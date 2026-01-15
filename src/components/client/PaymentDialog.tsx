@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, DollarSign, Calendar, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, DollarSign, Calendar, CheckCircle2, AlertCircle, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { calculateFine } from "@/lib/calculateFine";
+import { generatePaymentReceipt } from "@/lib/generateReceipt";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Installment {
   id: string;
@@ -29,26 +32,37 @@ interface PaymentDialogProps {
 export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onConfirm }: PaymentDialogProps) => {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [showPrintOption, setShowPrintOption] = useState(false);
+  const { profile } = useAuth();
 
   // Normalize installment data (support both formats)
   const normalizedInstallment = installment ? {
     id: installment.id,
     number: installment.installment_number || installment.number || 1,
+    totalInstallments: (installment as any).total_installments || 12,
     dueDate: installment.due_date || installment.dueDate || "",
     amount: installment.amount_due || installment.amount || 0,
     status: installment.status,
     fine: installment.fine || 0,
   } : null;
 
+  // Calculate fine automatically if overdue
+  const calculatedFine = normalizedInstallment 
+    ? calculateFine(normalizedInstallment.amount, normalizedInstallment.dueDate)
+    : { totalFine: 0, daysOverdue: 0 };
+  
+  const actualFine = normalizedInstallment?.fine || calculatedFine.totalFine;
+
   const resolvedClientName = clientName || installment?.clients?.name || "Cliente";
-  const totalDue = normalizedInstallment ? normalizedInstallment.amount + normalizedInstallment.fine : 0;
+  const totalDue = normalizedInstallment ? normalizedInstallment.amount + actualFine : 0;
 
   const [amountPaid, setAmountPaid] = useState(totalDue);
 
   // Reset amount when installment changes
   useEffect(() => {
     if (normalizedInstallment) {
-      setAmountPaid(normalizedInstallment.amount + normalizedInstallment.fine);
+      const fine = normalizedInstallment.fine || calculatedFine.totalFine;
+      setAmountPaid(normalizedInstallment.amount + fine);
     }
   }, [installment]);
 
@@ -61,7 +75,33 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
     if (onConfirm) {
       onConfirm(amountPaid);
     }
+    setShowPrintOption(true);
+  };
+
+  const handlePrintReceipt = () => {
+    if (!normalizedInstallment) return;
+    
+    generatePaymentReceipt({
+      clientName: resolvedClientName,
+      clientCpf: (installment as any)?.clients?.cpf || "000.000.000-00",
+      installmentNumber: normalizedInstallment.number,
+      totalInstallments: normalizedInstallment.totalInstallments,
+      dueDate: normalizedInstallment.dueDate,
+      paymentDate,
+      amountDue: normalizedInstallment.amount,
+      amountPaid,
+      fine: actualFine,
+      paymentMethod,
+      operatorName: profile?.name,
+    });
+    
     onOpenChange(false);
+    setShowPrintOption(false);
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+    setShowPrintOption(false);
   };
 
   return (
@@ -120,11 +160,13 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(normalizedInstallment.amount)}
                   </span>
                 </div>
-                {normalizedInstallment.fine > 0 && (
+                {actualFine > 0 && (
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-destructive">Multa/Juros</span>
+                    <span className="text-sm text-destructive">
+                      Multa/Juros {calculatedFine.daysOverdue > 0 && `(${calculatedFine.daysOverdue} dias)`}
+                    </span>
                     <span className="font-display font-semibold text-destructive">
-                      + {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(normalizedInstallment.fine)}
+                      + {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(actualFine)}
                     </span>
                   </div>
                 )}
@@ -135,6 +177,37 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
                   </span>
                 </div>
               </div>
+
+              {/* Print option after confirmation */}
+              {showPrintOption ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-center gap-3 p-6 rounded-xl bg-success/10 border border-success/30">
+                    <CheckCircle2 className="h-8 w-8 text-success" />
+                    <div>
+                      <p className="font-medium text-foreground">Pagamento Registrado!</p>
+                      <p className="text-sm text-muted-foreground">Deseja imprimir o comprovante?</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleClose}
+                      className="flex-1 rounded-xl border border-border bg-secondary px-4 py-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
+                    >
+                      Fechar
+                    </button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handlePrintReceipt}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Imprimir Recibo
+                    </motion.button>
+                  </div>
+                </div>
+              ) : (
+                <>
 
               {/* Form */}
               <div className="space-y-4 mb-6">
@@ -225,6 +298,8 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
                   Confirmar Pagamento
                 </motion.button>
               </div>
+              </>
+              )}
             </>
           )}
 
