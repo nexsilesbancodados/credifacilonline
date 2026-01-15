@@ -38,18 +38,29 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Global Search Modal */}
       <GlobalSearch isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} />
       
-      {/* Mobile menu button */}
+      {/* Mobile header - Fixed at top */}
       {isMobile && (
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="fixed top-4 left-4 z-50 flex h-10 w-10 items-center justify-center rounded-xl bg-card border border-border shadow-lg lg:hidden"
-        >
-          {isMobileMenuOpen ? (
-            <X className="h-5 w-5 text-foreground" />
-          ) : (
-            <Menu className="h-5 w-5 text-foreground" />
-          )}
-        </button>
+        <header className="fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between px-4 bg-card/95 backdrop-blur-md border-b border-border lg:hidden">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+          >
+            {isMobileMenuOpen ? (
+              <X className="h-5 w-5 text-foreground" />
+            ) : (
+              <Menu className="h-5 w-5 text-foreground" />
+            )}
+          </button>
+          
+          <span className="font-display font-bold text-gradient-gold">CreditWise</span>
+          
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+          >
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </header>
       )}
       
       {/* Search button - Desktop */}
@@ -94,7 +105,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         className={cn(
           "flex-1 p-4 sm:p-6 lg:p-8 transition-all",
           !isMobile && "ml-64",
-          isMobile && "ml-0 pt-16"
+          isMobile && "ml-0 pt-14"
         )}
       >
         {/* Background glow effects */}
