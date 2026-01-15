@@ -225,12 +225,56 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          cnpj: string | null
+          company_name: string | null
+          created_at: string | null
+          default_daily_interest: number | null
+          default_fine_percentage: number | null
+          default_frequency: string | null
+          id: string
+          logo_url: string | null
+          operator_id: string
+          theme: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cnpj?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          default_daily_interest?: number | null
+          default_fine_percentage?: number | null
+          default_frequency?: string | null
+          id?: string
+          logo_url?: string | null
+          operator_id: string
+          theme?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cnpj?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          default_daily_interest?: number | null
+          default_fine_percentage?: number | null
+          default_frequency?: string | null
+          id?: string
+          logo_url?: string | null
+          operator_id?: string
+          theme?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contracts: {
         Row: {
           capital: number
           client_id: string
           created_at: string
+          daily_interest_rate: number | null
           daily_type: string | null
+          fine_percentage: number | null
           first_due_date: string
           frequency: string
           id: string
@@ -249,7 +293,9 @@ export type Database = {
           capital: number
           client_id: string
           created_at?: string
+          daily_interest_rate?: number | null
           daily_type?: string | null
+          fine_percentage?: number | null
           first_due_date: string
           frequency?: string
           id?: string
@@ -268,7 +314,9 @@ export type Database = {
           capital?: number
           client_id?: string
           created_at?: string
+          daily_interest_rate?: number | null
           daily_type?: string | null
+          fine_percentage?: number | null
           first_due_date?: string
           frequency?: string
           id?: string

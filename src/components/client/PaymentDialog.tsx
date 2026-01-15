@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, DollarSign, Calendar, CheckCircle2, AlertCircle, Printer, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { calculateFine } from "@/lib/calculateFine";
+import { calculateFine, FineConfig, DEFAULT_FINE_CONFIG } from "@/lib/calculateFine";
 import { generatePaymentReceipt } from "@/lib/generateReceipt";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useActivityLogger } from "@/hooks/useActivityLogger";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 interface Installment {
   id: string;
@@ -48,6 +49,14 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { logActivity } = useActivityLogger();
+  const { settings: companySettings } = useCompanySettings();
+
+  // Build fine config from company settings
+  const fineConfig: FineConfig = {
+    baseFinePercent: companySettings?.default_fine_percentage ?? DEFAULT_FINE_CONFIG.baseFinePercent,
+    dailyInterestPercent: companySettings?.default_daily_interest ?? DEFAULT_FINE_CONFIG.dailyInterestPercent,
+    maxFinePercent: 20,
+  };
 
   // Normalize installment data (support both formats)
   const normalizedInstallment = installment ? {
@@ -68,10 +77,10 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
     ? normalizedInstallment.amount - normalizedInstallment.amountPaid
     : 0;
 
-  // Calculate fine automatically if overdue
+  // Calculate fine automatically if overdue using company settings
   const calculatedFine = normalizedInstallment 
-    ? calculateFine(remainingAmount, normalizedInstallment.dueDate)
-    : { totalFine: 0, daysOverdue: 0 };
+    ? calculateFine(remainingAmount, normalizedInstallment.dueDate, fineConfig)
+    : { totalFine: 0, daysOverdue: 0, baseFine: 0, dailyInterest: 0 };
   
   const actualFine = normalizedInstallment?.fine || calculatedFine.totalFine;
 
@@ -86,7 +95,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
   useEffect(() => {
     if (normalizedInstallment) {
       const remaining = normalizedInstallment.amount - normalizedInstallment.amountPaid;
-      const fine = normalizedInstallment.fine || calculateFine(remaining, normalizedInstallment.dueDate).totalFine;
+      const fine = normalizedInstallment.fine || calculateFine(remaining, normalizedInstallment.dueDate, fineConfig).totalFine;
       setAmountPaid(remaining + fine);
     }
   }, [installment]);
