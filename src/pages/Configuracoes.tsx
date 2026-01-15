@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,8 @@ import { MessageTemplates } from "@/components/templates/MessageTemplates";
 import { ExportData } from "@/components/backup/ExportData";
 import { ImportData } from "@/components/backup/ImportData";
 import { CompanySettingsForm } from "@/components/settings/CompanySettingsForm";
+import { WhatsAppSettings } from "@/components/settings/WhatsAppSettings";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import {
   User,
   Building2,
@@ -28,10 +30,13 @@ import {
   Ruler,
   FileText,
   Database,
+  MessageSquare,
+  Loader2,
 } from "lucide-react";
 
 const Configuracoes = () => {
   const { toast } = useToast();
+  const { settings, isLoading: isLoadingSettings, updateSettings, isUpdating } = useCompanySettings();
   const [isLoading, setIsLoading] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
 
@@ -54,7 +59,7 @@ const Configuracoes = () => {
     weeklyReport: true,
   });
 
-  // N8N settings
+  // N8N settings - now persisted
   const [n8nSettings, setN8nSettings] = useState({
     webhookUrl: "",
     activeEvents: {
@@ -65,7 +70,7 @@ const Configuracoes = () => {
     },
   });
 
-  // AI Agent settings
+  // AI Agent settings - now persisted
   const [aiAgent, setAiAgent] = useState({
     isActive: false,
     startTime: "09:00",
@@ -79,6 +84,33 @@ const Configuracoes = () => {
     },
   });
 
+  // Sync N8N and AI Agent settings with database
+  useEffect(() => {
+    if (settings) {
+      setN8nSettings({
+        webhookUrl: settings.n8n_webhook_url || "",
+        activeEvents: settings.n8n_active_events || {
+          newContract: true,
+          payment: true,
+          overdue: false,
+          renegotiation: true,
+        },
+      });
+      setAiAgent({
+        isActive: settings.ai_agent_active || false,
+        startTime: settings.ai_agent_start_time || "09:00",
+        endTime: settings.ai_agent_end_time || "18:00",
+        triggers: settings.ai_agent_triggers || {
+          day1: true,
+          day3: true,
+          day7: true,
+          day15: false,
+          day30: false,
+        },
+      });
+    }
+  }, [settings]);
+
   const handleSave = (section: string) => {
     setIsLoading(true);
     setTimeout(() => {
@@ -88,6 +120,22 @@ const Configuracoes = () => {
         description: `As configurações de ${section} foram atualizadas com sucesso.`,
       });
     }, 1000);
+  };
+
+  const handleSaveN8N = () => {
+    updateSettings({
+      n8n_webhook_url: n8nSettings.webhookUrl || null,
+      n8n_active_events: n8nSettings.activeEvents,
+    });
+  };
+
+  const handleSaveAIAgent = () => {
+    updateSettings({
+      ai_agent_active: aiAgent.isActive,
+      ai_agent_start_time: aiAgent.startTime,
+      ai_agent_end_time: aiAgent.endTime,
+      ai_agent_triggers: aiAgent.triggers,
+    });
   };
 
   return (
@@ -127,6 +175,10 @@ const Configuracoes = () => {
               <Database className="w-4 h-4" />
               Backup
             </TabsTrigger>
+            <TabsTrigger value="whatsapp" className="gap-2">
+              <MessageSquare className="w-4 h-4" />
+              WhatsApp
+            </TabsTrigger>
             <TabsTrigger value="n8n" className="gap-2">
               <Webhook className="w-4 h-4" />
               N8N
@@ -136,6 +188,11 @@ const Configuracoes = () => {
               Agente IA
             </TabsTrigger>
           </TabsList>
+
+          {/* WhatsApp Tab */}
+          <TabsContent value="whatsapp">
+            <WhatsAppSettings />
+          </TabsContent>
 
           {/* Profile Tab */}
           <TabsContent value="profile">
@@ -643,11 +700,15 @@ POST /functions/v1/n8n-webhook
 
                   <div className="flex justify-end pt-4">
                     <Button
-                      onClick={() => handleSave("Agente IA")}
-                      disabled={isLoading}
+                      onClick={handleSaveAIAgent}
+                      disabled={isUpdating}
                       className="bg-primary hover:bg-primary/90"
                     >
-                      <Save className="w-4 h-4 mr-2" />
+                      {isUpdating ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
                       Salvar configurações
                     </Button>
                   </div>

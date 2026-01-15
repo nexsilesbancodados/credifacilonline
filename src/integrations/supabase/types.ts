@@ -274,6 +274,10 @@ export type Database = {
       }
       company_settings: {
         Row: {
+          ai_agent_active: boolean | null
+          ai_agent_end_time: string | null
+          ai_agent_start_time: string | null
+          ai_agent_triggers: Json | null
           cnpj: string | null
           company_name: string | null
           created_at: string | null
@@ -282,11 +286,20 @@ export type Database = {
           default_frequency: string | null
           id: string
           logo_url: string | null
+          n8n_active_events: Json | null
+          n8n_webhook_url: string | null
           operator_id: string
           theme: string | null
           updated_at: string | null
+          whatsapp_api_token: string | null
+          whatsapp_display_phone: string | null
+          whatsapp_phone_number_id: string | null
         }
         Insert: {
+          ai_agent_active?: boolean | null
+          ai_agent_end_time?: string | null
+          ai_agent_start_time?: string | null
+          ai_agent_triggers?: Json | null
           cnpj?: string | null
           company_name?: string | null
           created_at?: string | null
@@ -295,11 +308,20 @@ export type Database = {
           default_frequency?: string | null
           id?: string
           logo_url?: string | null
+          n8n_active_events?: Json | null
+          n8n_webhook_url?: string | null
           operator_id: string
           theme?: string | null
           updated_at?: string | null
+          whatsapp_api_token?: string | null
+          whatsapp_display_phone?: string | null
+          whatsapp_phone_number_id?: string | null
         }
         Update: {
+          ai_agent_active?: boolean | null
+          ai_agent_end_time?: string | null
+          ai_agent_start_time?: string | null
+          ai_agent_triggers?: Json | null
           cnpj?: string | null
           company_name?: string | null
           created_at?: string | null
@@ -308,9 +330,14 @@ export type Database = {
           default_frequency?: string | null
           id?: string
           logo_url?: string | null
+          n8n_active_events?: Json | null
+          n8n_webhook_url?: string | null
           operator_id?: string
           theme?: string | null
           updated_at?: string | null
+          whatsapp_api_token?: string | null
+          whatsapp_display_phone?: string | null
+          whatsapp_phone_number_id?: string | null
         }
         Relationships: []
       }
