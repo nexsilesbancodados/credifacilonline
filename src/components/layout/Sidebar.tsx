@@ -17,6 +17,7 @@ import {
   Moon,
   Upload,
   Shield,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -49,6 +50,7 @@ const baseMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/", permission: null },
   { icon: Users, label: "Clientes", path: "/clientes", permission: "canViewClients" as const },
   { icon: FileText, label: "Contratos", path: "/contratos", permission: "canViewContracts" as const },
+  { icon: Calculator, label: "Simulador", path: "/simulador", permission: null },
   { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca", permission: "canViewPayments" as const },
   { icon: Wallet, label: "Tesouraria", path: "/tesouraria", permission: "canViewTreasury" as const },
   { icon: BarChart3, label: "Análises", path: "/analises", permission: "canViewReports" as const },
