@@ -22,23 +22,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const whatsappToken = Deno.env.get("WHATSAPP_API_TOKEN");
-    const phoneNumberId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
-
-    // Check if WhatsApp is configured
-    if (!whatsappToken || !phoneNumberId) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: "WhatsApp API not configured",
-          message: "Configure WHATSAPP_API_TOKEN e WHATSAPP_PHONE_NUMBER_ID nas secrets",
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
-    }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     const body = await req.json();
@@ -48,6 +31,46 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "messages array is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!user_id) {
+      return new Response(
+        JSON.stringify({ error: "user_id is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch user-specific WhatsApp credentials from company_settings
+    const { data: settings, error: settingsError } = await supabase
+      .from("company_settings")
+      .select("whatsapp_api_token, whatsapp_phone_number_id")
+      .eq("operator_id", user_id)
+      .maybeSingle();
+
+    if (settingsError) {
+      console.error("Error fetching settings:", settingsError);
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch WhatsApp settings" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const whatsappToken = settings?.whatsapp_api_token;
+    const phoneNumberId = settings?.whatsapp_phone_number_id;
+
+    // Check if WhatsApp is configured for this user
+    if (!whatsappToken || !phoneNumberId) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "WhatsApp não configurado",
+          message: "Configure suas credenciais do WhatsApp em Configurações > WhatsApp",
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
       );
     }
 
