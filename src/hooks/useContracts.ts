@@ -87,6 +87,8 @@ function getNextDueDate(currentDate: Date, frequency: string, dailyType?: string
       return nextDate;
     case "semanal":
       return addWeeks(currentDate, 1);
+    case "quinzenal":
+      return addDays(currentDate, 15);
     case "mensal":
     default:
       return addMonths(currentDate, 1);

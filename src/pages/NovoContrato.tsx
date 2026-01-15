@@ -127,6 +127,7 @@ const NovoContrato = () => {
   const frequencies = [
     { value: "diario", label: "Diário" },
     { value: "semanal", label: "Semanal" },
+    { value: "quinzenal", label: "Quinzenal" },
     { value: "mensal", label: "Mensal" },
   ];
 
