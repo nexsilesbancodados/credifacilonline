@@ -36,6 +36,7 @@ import { BulkPaymentDialog } from "@/components/client/BulkPaymentDialog";
 import { AIMessageDialog } from "@/components/client/AIMessageDialog";
 import { EditClientDialog } from "@/components/client/EditClientDialog";
 import { ManageInstallmentsDialog } from "@/components/client/ManageInstallmentsDialog";
+import { DeleteClientDialog } from "@/components/client/DeleteClientDialog";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
 import { DocumentUpload } from "@/components/documents/DocumentUpload";
 import { DocumentList } from "@/components/documents/DocumentList";
@@ -59,6 +60,7 @@ const ClienteDossie = () => {
   const [isAIMessageOpen, setIsAIMessageOpen] = useState(false);
   const [isEditClientOpen, setIsEditClientOpen] = useState(false);
   const [isManageInstallmentsOpen, setIsManageInstallmentsOpen] = useState(false);
+  const [isDeleteClientOpen, setIsDeleteClientOpen] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
 
@@ -318,6 +320,15 @@ const ClienteDossie = () => {
             >
               <Settings className="h-4 w-4" />
               Parcelas
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsDeleteClientOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
+            >
+              <Trash2 className="h-4 w-4" />
+              Excluir
             </motion.button>
           </div>
         </div>
@@ -596,6 +607,13 @@ const ClienteDossie = () => {
         installments={clientInstallments}
         clientName={client.name}
         contractId={activeContract?.id || ""}
+      />
+
+      <DeleteClientDialog
+        open={isDeleteClientOpen}
+        onOpenChange={setIsDeleteClientOpen}
+        clientId={client.id}
+        clientName={client.name}
       />
     </MainLayout>
   );
