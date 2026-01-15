@@ -28,6 +28,7 @@ const statusStyles = {
 const frequencyLabels = {
   diario: "Diário",
   semanal: "Semanal",
+  quinzenal: "Quinzenal",
   mensal: "Mensal",
 };
 
