@@ -4,15 +4,34 @@ import { useState } from "react";
 import {
   Wallet,
   TrendingUp,
-  TrendingDown,
   Plus,
   Minus,
   Filter,
   Download,
   ArrowUpRight,
   ArrowDownRight,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTreasury, CreateTransactionData } from "@/hooks/useTreasury";
+import { format, parseISO, isToday } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type TransactionCategory =
   | "Investimento"
@@ -21,69 +40,13 @@ type TransactionCategory =
   | "Sangria"
   | "Pessoal"
   | "Marketing"
-  | "Infraestrutura";
+  | "Infraestrutura"
+  | "Recebimento"
+  | "Empréstimo"
+  | "Legal"
+  | "Outros";
 
-interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  category: TransactionCategory;
-  amount: number;
-  type: "income" | "expense";
-}
-
-const mockTransactions: Transaction[] = [
-  {
-    id: "1",
-    date: "14/01/2025",
-    description: "Pagamento - Maria Santos (Parcela 4/12)",
-    category: "Dividendos",
-    amount: 1250.0,
-    type: "income",
-  },
-  {
-    id: "2",
-    date: "14/01/2025",
-    description: "Novo empréstimo - Carlos Oliveira",
-    category: "Investimento",
-    amount: 8000.0,
-    type: "expense",
-  },
-  {
-    id: "3",
-    date: "13/01/2025",
-    description: "Aporte de capital",
-    category: "Aporte",
-    amount: 15000.0,
-    type: "income",
-  },
-  {
-    id: "4",
-    date: "12/01/2025",
-    description: "Pagamento - Ana Paula (Parcela 6/24)",
-    category: "Dividendos",
-    amount: 2100.0,
-    type: "income",
-  },
-  {
-    id: "5",
-    date: "12/01/2025",
-    description: "Retirada para despesas pessoais",
-    category: "Sangria",
-    amount: 3000.0,
-    type: "expense",
-  },
-  {
-    id: "6",
-    date: "11/01/2025",
-    description: "Novo empréstimo - Fernanda Costa",
-    category: "Investimento",
-    amount: 12000.0,
-    type: "expense",
-  },
-];
-
-const categoryColors: Record<TransactionCategory, string> = {
+const categoryColors: Record<string, string> = {
   Investimento: "bg-blue-500/20 text-blue-400",
   Dividendos: "bg-success/20 text-success",
   Aporte: "bg-primary/20 text-primary",
@@ -91,24 +54,68 @@ const categoryColors: Record<TransactionCategory, string> = {
   Pessoal: "bg-purple-500/20 text-purple-400",
   Marketing: "bg-pink-500/20 text-pink-400",
   Infraestrutura: "bg-cyan-500/20 text-cyan-400",
+  Recebimento: "bg-success/20 text-success",
+  Empréstimo: "bg-blue-500/20 text-blue-400",
+  Legal: "bg-orange-500/20 text-orange-400",
+  Outros: "bg-gray-500/20 text-gray-400",
 };
 
+const incomeCategories: TransactionCategory[] = ["Aporte", "Recebimento", "Dividendos", "Outros"];
+const expenseCategories: TransactionCategory[] = ["Sangria", "Empréstimo", "Investimento", "Pessoal", "Marketing", "Infraestrutura", "Legal", "Outros"];
+
 const Tesouraria = () => {
-  const [showAddModal, setShowAddModal] = useState<"aporte" | "sangria" | null>(
-    null
-  );
+  const [showAddModal, setShowAddModal] = useState<"aporte" | "sangria" | null>(null);
+  const [formData, setFormData] = useState({
+    description: "",
+    amount: "",
+    category: "",
+    date: format(new Date(), "yyyy-MM-dd"),
+  });
 
-  const cashInHand = 45780.0;
-  const cashOnStreet = 284750.0;
-  const totalProfit = 42380.0;
+  const { 
+    transactions, 
+    summary, 
+    capitalOnStreet, 
+    isLoading, 
+    createTransaction, 
+    deleteTransaction,
+    isCreating 
+  } = useTreasury();
 
-  const todayIncome = mockTransactions
-    .filter((t) => t.type === "income" && t.date === "14/01/2025")
-    .reduce((acc, t) => acc + t.amount, 0);
+  const todayIncome = transactions
+    .filter((t) => t.type === "entrada" && isToday(parseISO(t.date)))
+    .reduce((acc, t) => acc + Number(t.amount), 0);
 
-  const todayExpense = mockTransactions
-    .filter((t) => t.type === "expense" && t.date === "14/01/2025")
-    .reduce((acc, t) => acc + t.amount, 0);
+  const todayExpense = transactions
+    .filter((t) => t.type === "saida" && isToday(parseISO(t.date)))
+    .reduce((acc, t) => acc + Number(t.amount), 0);
+
+  const handleSubmit = () => {
+    if (!formData.description || !formData.amount || !formData.category) return;
+
+    const data: CreateTransactionData = {
+      description: formData.description,
+      amount: parseFloat(formData.amount),
+      category: formData.category,
+      type: showAddModal === "aporte" ? "entrada" : "saida",
+      date: formData.date,
+    };
+
+    createTransaction(data);
+    setShowAddModal(null);
+    setFormData({
+      description: "",
+      amount: "",
+      category: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+    });
+  };
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(value);
 
   return (
     <MainLayout>
@@ -162,17 +169,14 @@ const Tesouraria = () => {
         >
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-muted-foreground">
-              Dinheiro em Caixa
+              Saldo em Caixa
             </p>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
               <Wallet className="h-5 w-5 text-primary" />
             </div>
           </div>
           <p className="mt-3 font-display text-3xl font-bold text-foreground">
-            {new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(cashInHand)}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(summary.balance)}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Disponível para uso
@@ -194,10 +198,7 @@ const Tesouraria = () => {
             </div>
           </div>
           <p className="mt-3 font-display text-3xl font-bold text-foreground">
-            {new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(cashOnStreet)}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(capitalOnStreet)}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">Capital emprestado</p>
         </motion.div>
@@ -217,10 +218,7 @@ const Tesouraria = () => {
             </div>
           </div>
           <p className="mt-3 font-display text-3xl font-bold text-success">
-            {new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(todayIncome)}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(todayIncome)}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Recebimentos do dia
@@ -242,10 +240,7 @@ const Tesouraria = () => {
             </div>
           </div>
           <p className="mt-3 font-display text-3xl font-bold text-destructive">
-            {new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(todayExpense)}
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(todayExpense)}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Empréstimos e saques
@@ -277,67 +272,157 @@ const Tesouraria = () => {
         </div>
 
         <div className="divide-y divide-border/50">
-          {mockTransactions.map((transaction, index) => (
-            <motion.div
-              key={transaction.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 + index * 0.05 }}
-              className="flex items-center justify-between p-5 hover:bg-secondary/20 transition-colors"
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-xl",
-                    transaction.type === "income"
-                      ? "bg-success/20"
-                      : "bg-destructive/20"
-                  )}
-                >
-                  {transaction.type === "income" ? (
-                    <ArrowUpRight className="h-5 w-5 text-success" />
-                  ) : (
-                    <ArrowDownRight className="h-5 w-5 text-destructive" />
-                  )}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Wallet className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <p className="text-muted-foreground">Nenhuma transação encontrada</p>
+              <p className="text-sm text-muted-foreground/70">
+                Clique em "Aporte" ou "Sangria" para adicionar uma transação
+              </p>
+            </div>
+          ) : (
+            transactions.map((transaction, index) => (
+              <motion.div
+                key={transaction.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + index * 0.03 }}
+                className="flex items-center justify-between p-5 hover:bg-secondary/20 transition-colors group"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-xl",
+                      transaction.type === "entrada"
+                        ? "bg-success/20"
+                        : "bg-destructive/20"
+                    )}
+                  >
+                    {transaction.type === "entrada" ? (
+                      <ArrowUpRight className="h-5 w-5 text-success" />
+                    ) : (
+                      <ArrowDownRight className="h-5 w-5 text-destructive" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {transaction.description}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(parseISO(transaction.date), "dd/MM/yyyy")}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-foreground">
-                    {transaction.description}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {transaction.date}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-4">
-                <span
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium",
-                    categoryColors[transaction.category]
-                  )}
-                >
-                  {transaction.category}
-                </span>
-                <p
-                  className={cn(
-                    "font-display text-lg font-bold",
-                    transaction.type === "income"
-                      ? "text-success"
-                      : "text-destructive"
-                  )}
-                >
-                  {transaction.type === "income" ? "+" : "-"}
-                  {new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  }).format(transaction.amount)}
-                </p>
-              </div>
-            </motion.div>
-          ))}
+                <div className="flex items-center gap-4">
+                  <span
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium",
+                      categoryColors[transaction.category] || categoryColors.Outros
+                    )}
+                  >
+                    {transaction.category}
+                  </span>
+                  <p
+                    className={cn(
+                      "font-display text-lg font-bold min-w-[120px] text-right",
+                      transaction.type === "entrada"
+                        ? "text-success"
+                        : "text-destructive"
+                    )}
+                  >
+                    {transaction.type === "entrada" ? "+" : "-"}
+                    {formatCurrency(Number(transaction.amount))}
+                  </p>
+                  <button
+                    onClick={() => deleteTransaction(transaction.id)}
+                    className="opacity-0 group-hover:opacity-100 p-2 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </motion.div>
+            ))
+          )}
         </div>
       </motion.div>
+
+      {/* Add Transaction Modal */}
+      <Dialog open={showAddModal !== null} onOpenChange={() => setShowAddModal(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {showAddModal === "aporte" ? "Registrar Aporte" : "Registrar Sangria"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="description">Descrição</Label>
+              <Input
+                id="description"
+                placeholder="Ex: Aporte de capital inicial"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Valor (R$)</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="category">Categoria</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => setFormData({ ...formData, category: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(showAddModal === "aporte" ? incomeCategories : expenseCategories).map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="date">Data</Label>
+              <Input
+                id="date"
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowAddModal(null)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={isCreating || !formData.description || !formData.amount || !formData.category}
+              className={showAddModal === "aporte" ? "bg-success hover:bg-success/90" : "bg-destructive hover:bg-destructive/90"}
+            >
+              {isCreating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirmar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 };
