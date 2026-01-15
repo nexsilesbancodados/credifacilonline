@@ -32,6 +32,7 @@ const menuItems = [
   { icon: Wallet, label: "Tesouraria", path: "/tesouraria" },
   { icon: BarChart3, label: "Análises", path: "/analises" },
   { icon: History, label: "Histórico", path: "/historico" },
+  { icon: History, label: "Auditoria", path: "/auditoria" },
   { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];
 

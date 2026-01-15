@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { PushNotificationSettings } from "@/components/notifications/PushNotificationSettings";
+import { CollectionRules } from "@/components/settings/CollectionRules";
+import { MessageTemplates } from "@/components/templates/MessageTemplates";
+import { ExportData } from "@/components/backup/ExportData";
 import {
   User,
   Building2,
@@ -20,11 +23,15 @@ import {
   Shield,
   Save,
   Clock,
+  Ruler,
+  FileText,
+  Database,
 } from "lucide-react";
 
 const Configuracoes = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
 
   // Profile settings
   const [profile, setProfile] = useState({
@@ -93,7 +100,7 @@ const Configuracoes = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1">
+          <TabsList className="bg-muted/50 p-1 flex-wrap h-auto">
             <TabsTrigger value="profile" className="gap-2">
               <User className="w-4 h-4" />
               Perfil
@@ -105,6 +112,18 @@ const Configuracoes = () => {
             <TabsTrigger value="notifications" className="gap-2">
               <Bell className="w-4 h-4" />
               Notificações
+            </TabsTrigger>
+            <TabsTrigger value="collection-rules" className="gap-2">
+              <Ruler className="w-4 h-4" />
+              Régua
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="gap-2">
+              <FileText className="w-4 h-4" />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger value="backup" className="gap-2">
+              <Database className="w-4 h-4" />
+              Backup
             </TabsTrigger>
             <TabsTrigger value="n8n" className="gap-2">
               <Webhook className="w-4 h-4" />
@@ -360,6 +379,53 @@ const Configuracoes = () => {
                   </div>
                 </CardContent>
               </Card>
+            </motion.div>
+          </TabsContent>
+
+          {/* Collection Rules Tab */}
+          <TabsContent value="collection-rules">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <CollectionRules />
+            </motion.div>
+          </TabsContent>
+
+          {/* Templates Tab */}
+          <TabsContent value="templates">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Card className="border-border/50 bg-card/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    Modelos de Mensagem
+                  </CardTitle>
+                  <CardDescription>
+                    Crie e gerencie templates de mensagens para cobrança
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button onClick={() => setIsTemplatesOpen(true)}>
+                    <FileText className="w-4 h-4 mr-2" />
+                    Gerenciar Templates
+                  </Button>
+                </CardContent>
+              </Card>
+              <MessageTemplates open={isTemplatesOpen} onOpenChange={setIsTemplatesOpen} />
+            </motion.div>
+          </TabsContent>
+
+          {/* Backup Tab */}
+          <TabsContent value="backup">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <ExportData />
             </motion.div>
           </TabsContent>
 
