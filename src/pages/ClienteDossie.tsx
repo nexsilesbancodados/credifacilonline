@@ -149,6 +149,8 @@ const ClienteDossie = () => {
       status: inst.status as "Pago" | "Pendente" | "Atrasado" | "Agendado",
       paymentDate: inst.payment_date,
       fine: Number(inst.fine) || 0,
+      client_id: inst.client_id,
+      contract_id: inst.contract_id,
     }));
   }, [clientInstallments]);
 
@@ -606,6 +608,7 @@ const ClienteDossie = () => {
         onOpenChange={setIsPaymentOpen}
         installment={selectedInstallment}
         clientName={client.name}
+        clientId={client.id}
       />
 
       <BulkPaymentDialog

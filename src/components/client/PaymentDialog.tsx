@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, DollarSign, Calendar, CheckCircle2, AlertCircle, Printer } from "lucide-react";
+import { X, DollarSign, Calendar, CheckCircle2, AlertCircle, Printer, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { calculateFine } from "@/lib/calculateFine";
 import { generatePaymentReceipt } from "@/lib/generateReceipt";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { useActivityLogger } from "@/hooks/useActivityLogger";
 
 interface Installment {
   id: string;
@@ -14,10 +18,15 @@ interface Installment {
   dueDate?: string;
   amount_due?: number;
   amount?: number;
+  amount_paid?: number;
+  amountPaid?: number;
   status: string;
   fine?: number;
+  client_id?: string;
+  contract_id?: string;
   clients?: {
     name?: string;
+    cpf?: string;
   };
 }
 
@@ -26,14 +35,19 @@ interface PaymentDialogProps {
   onOpenChange: (open: boolean) => void;
   installment: Installment | null;
   clientName?: string;
+  clientId?: string;
   onConfirm?: (amountPaid: number) => void;
 }
 
-export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onConfirm }: PaymentDialogProps) => {
+export const PaymentDialog = ({ open, onOpenChange, installment, clientName, clientId, onConfirm }: PaymentDialogProps) => {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [showPrintOption, setShowPrintOption] = useState(false);
-  const { profile } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { logActivity } = useActivityLogger();
 
   // Normalize installment data (support both formats)
   const normalizedInstallment = installment ? {
@@ -42,27 +56,38 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
     totalInstallments: (installment as any).total_installments || 12,
     dueDate: installment.due_date || installment.dueDate || "",
     amount: installment.amount_due || installment.amount || 0,
+    amountPaid: installment.amount_paid || installment.amountPaid || 0,
     status: installment.status,
     fine: installment.fine || 0,
+    clientId: installment.client_id || clientId,
+    contractId: installment.contract_id,
   } : null;
+
+  // Calculate remaining amount (total - already paid)
+  const remainingAmount = normalizedInstallment 
+    ? normalizedInstallment.amount - normalizedInstallment.amountPaid
+    : 0;
 
   // Calculate fine automatically if overdue
   const calculatedFine = normalizedInstallment 
-    ? calculateFine(normalizedInstallment.amount, normalizedInstallment.dueDate)
+    ? calculateFine(remainingAmount, normalizedInstallment.dueDate)
     : { totalFine: 0, daysOverdue: 0 };
   
   const actualFine = normalizedInstallment?.fine || calculatedFine.totalFine;
 
   const resolvedClientName = clientName || installment?.clients?.name || "Cliente";
-  const totalDue = normalizedInstallment ? normalizedInstallment.amount + actualFine : 0;
+  
+  // Total due is remaining amount + fine
+  const totalDue = remainingAmount + actualFine;
 
   const [amountPaid, setAmountPaid] = useState(totalDue);
 
   // Reset amount when installment changes
   useEffect(() => {
     if (normalizedInstallment) {
-      const fine = normalizedInstallment.fine || calculatedFine.totalFine;
-      setAmountPaid(normalizedInstallment.amount + fine);
+      const remaining = normalizedInstallment.amount - normalizedInstallment.amountPaid;
+      const fine = normalizedInstallment.fine || calculateFine(remaining, normalizedInstallment.dueDate).totalFine;
+      setAmountPaid(remaining + fine);
     }
   }, [installment]);
 
@@ -71,11 +96,88 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
   const isPartialPayment = amountPaid < totalDue;
   const isOverPayment = amountPaid > totalDue;
 
-  const handleConfirm = () => {
-    if (onConfirm) {
-      onConfirm(amountPaid);
+  const handleConfirm = async () => {
+    if (!normalizedInstallment || !user) return;
+
+    setIsProcessing(true);
+
+    try {
+      // Calculate new total paid
+      const newTotalPaid = normalizedInstallment.amountPaid + amountPaid;
+      const isFullyPaid = newTotalPaid >= normalizedInstallment.amount;
+
+      // Update installment
+      const { error: updateError } = await supabase
+        .from("installments")
+        .update({
+          amount_paid: newTotalPaid,
+          status: isFullyPaid ? "Pago" : normalizedInstallment.status,
+          payment_date: isFullyPaid ? paymentDate : null,
+          fine: actualFine,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", normalizedInstallment.id);
+
+      if (updateError) throw updateError;
+
+      // Register treasury transaction
+      const { error: treasuryError } = await supabase
+        .from("treasury_transactions")
+        .insert({
+          operator_id: user.id,
+          type: "entrada",
+          category: "recebimento",
+          amount: amountPaid,
+          description: `Pagamento parcela ${normalizedInstallment.number} - ${resolvedClientName}`,
+          reference_type: "installment",
+          reference_id: normalizedInstallment.id,
+          date: paymentDate,
+        });
+
+      if (treasuryError) throw treasuryError;
+
+      // Log activity
+      await logActivity({
+        type: "payment_received",
+        description: `Pagamento de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountPaid)} - Parcela ${normalizedInstallment.number}`,
+        clientId: normalizedInstallment.clientId,
+        contractId: normalizedInstallment.contractId,
+        metadata: { 
+          amount: amountPaid, 
+          installment_number: normalizedInstallment.number,
+          payment_method: paymentMethod,
+          is_partial: !isFullyPaid,
+        },
+      });
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ["installments"] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["treasury"] });
+      queryClient.invalidateQueries({ queryKey: ["activity_log"] });
+
+      toast({
+        title: isFullyPaid ? "Pagamento registrado!" : "Pagamento parcial registrado!",
+        description: isFullyPaid 
+          ? `Parcela ${normalizedInstallment.number} quitada com sucesso.`
+          : `Pago ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountPaid)}. Resta ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(normalizedInstallment.amount - newTotalPaid)}.`,
+      });
+
+      if (onConfirm) {
+        onConfirm(amountPaid);
+      }
+
+      setShowPrintOption(true);
+    } catch (error: any) {
+      console.error("Error processing payment:", error);
+      toast({
+        title: "Erro ao registrar pagamento",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
     }
-    setShowPrintOption(true);
   };
 
   const handlePrintReceipt = () => {
@@ -89,7 +191,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
       dueDate: normalizedInstallment.dueDate,
       paymentDate,
       amountDue: normalizedInstallment.amount,
-      amountPaid,
+      amountPaid: normalizedInstallment.amountPaid + amountPaid,
       fine: actualFine,
       paymentMethod,
       operatorName: profile?.name,
@@ -160,6 +262,14 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(normalizedInstallment.amount)}
                   </span>
                 </div>
+                {normalizedInstallment.amountPaid > 0 && (
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-success">Já Pago</span>
+                    <span className="font-display font-semibold text-success">
+                      - {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(normalizedInstallment.amountPaid)}
+                    </span>
+                  </div>
+                )}
                 {actualFine > 0 && (
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-destructive">
@@ -171,7 +281,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                  <span className="text-sm font-medium text-foreground">Total a Pagar</span>
+                  <span className="text-sm font-medium text-foreground">Restante a Pagar</span>
                   <span className="font-display text-lg font-bold text-primary">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalDue)}
                   </span>
@@ -208,97 +318,102 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, onC
                 </div>
               ) : (
                 <>
+                  {/* Form */}
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
+                        Data do Pagamento
+                      </label>
+                      <input
+                        type="date"
+                        value={paymentDate}
+                        onChange={(e) => setPaymentDate(e.target.value)}
+                        className="w-full h-11 rounded-xl border border-border bg-secondary/50 px-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
 
-              {/* Form */}
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Data do Pagamento
-                  </label>
-                  <input
-                    type="date"
-                    value={paymentDate}
-                    onChange={(e) => setPaymentDate(e.target.value)}
-                    className="w-full h-11 rounded-xl border border-border bg-secondary/50 px-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
+                        Valor a Pagar
+                      </label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          type="number"
+                          value={amountPaid}
+                          onChange={(e) => setAmountPaid(Number(e.target.value))}
+                          step={0.01}
+                          className="w-full h-11 rounded-xl border border-border bg-secondary/50 pl-10 pr-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                      {isPartialPayment && (
+                        <p className="mt-1 text-xs text-warning flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Pagamento parcial - restará{" "}
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalDue - amountPaid)}
+                        </p>
+                      )}
+                      {isOverPayment && (
+                        <p className="mt-1 text-xs text-success flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Pagamento excedente - abater do próximo vencimento
+                        </p>
+                      )}
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Valor Recebido
-                  </label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                      type="number"
-                      value={amountPaid}
-                      onChange={(e) => setAmountPaid(Number(e.target.value))}
-                      step={0.01}
-                      className="w-full h-11 rounded-xl border border-border bg-secondary/50 pl-10 pr-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
+                        Forma de Pagamento
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { value: "pix", label: "PIX" },
+                          { value: "dinheiro", label: "Dinheiro" },
+                          { value: "transferencia", label: "TED/DOC" },
+                        ].map((method) => (
+                          <button
+                            key={method.value}
+                            type="button"
+                            onClick={() => setPaymentMethod(method.value)}
+                            className={cn(
+                              "rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                              paymentMethod === method.value
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                            )}
+                          >
+                            {method.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  {isPartialPayment && (
-                    <p className="mt-1 text-xs text-warning flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Pagamento parcial - restará{" "}
-                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalDue - amountPaid)}
-                    </p>
-                  )}
-                  {isOverPayment && (
-                    <p className="mt-1 text-xs text-success flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Pagamento excedente - abater do próximo vencimento
-                    </p>
-                  )}
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Forma de Pagamento
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { value: "pix", label: "PIX" },
-                      { value: "dinheiro", label: "Dinheiro" },
-                      { value: "transferencia", label: "TED/DOC" },
-                    ].map((method) => (
-                      <button
-                        key={method.value}
-                        type="button"
-                        onClick={() => setPaymentMethod(method.value)}
-                        className={cn(
-                          "rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                          paymentMethod === method.value
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        )}
-                      >
-                        {method.label}
-                      </button>
-                    ))}
+                  {/* Actions */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => onOpenChange(false)}
+                      disabled={isProcessing}
+                      className="flex-1 rounded-xl border border-border bg-secondary px-4 py-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleConfirm}
+                      disabled={isProcessing || amountPaid <= 0}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-success px-4 py-3 text-sm font-medium text-success-foreground hover:bg-success/90 transition-colors disabled:opacity-50"
+                    >
+                      {isProcessing ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4" />
+                      )}
+                      {isProcessing ? "Processando..." : "Confirmar Pagamento"}
+                    </motion.button>
                   </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => onOpenChange(false)}
-                  className="flex-1 rounded-xl border border-border bg-secondary px-4 py-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleConfirm}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-success px-4 py-3 text-sm font-medium text-success-foreground hover:bg-success/90 transition-colors"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  Confirmar Pagamento
-                </motion.button>
-              </div>
-              </>
+                </>
               )}
             </>
           )}
