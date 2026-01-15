@@ -24,7 +24,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+export const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { queryClient } from "@/App";
 
 interface Profile {
   id: string;
@@ -113,6 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Clear all React Query cache to prevent data leakage between users
+    queryClient.clear();
+    
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
