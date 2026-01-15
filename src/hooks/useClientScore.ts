@@ -17,17 +17,27 @@ interface ScoreFactor {
   description: string;
 }
 
-interface UseClientScoreParams {
-  clientId: string;
-}
+export function useClientScore(clientId: string): ClientScore & { isLoading: boolean } {
+  const { installments, isLoading: installmentsLoading } = useInstallments(clientId);
+  const { contracts, isLoading: contractsLoading } = useContracts(clientId);
+  
+  const isLoading = installmentsLoading || contractsLoading;
 
-export function useClientScore({ clientId }: UseClientScoreParams): ClientScore | null {
-  const { installments } = useInstallments(clientId);
-  const { contracts } = useContracts(clientId);
-
-  return useMemo(() => {
+  const scoreData = useMemo(() => {
     if (!installments || installments.length === 0) {
-      return null;
+      // Return default score for new clients
+      return {
+        score: 50,
+        rating: "C" as const,
+        ratingLabel: "Regular",
+        color: "hsl(38, 92%, 50%)",
+        factors: [{
+          name: "Novo Cliente",
+          impact: "neutral" as const,
+          weight: 100,
+          description: "Sem histórico de pagamentos",
+        }],
+      };
     }
 
     const factors: ScoreFactor[] = [];
@@ -170,6 +180,8 @@ export function useClientScore({ clientId }: UseClientScoreParams): ClientScore 
       factors,
     };
   }, [installments, contracts]);
+
+  return { ...scoreData, isLoading };
 }
 
 // Simple score calculation for list views

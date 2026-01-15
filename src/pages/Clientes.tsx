@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { useClients, Client } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
 
 type Status = "Todos" | "Ativo" | "Atraso" | "Quitado";
 type ViewMode = "grid" | "list";
@@ -491,14 +492,17 @@ const Clientes = () => {
                   </div>
                 </div>
                 {!selectionMode && (
-                  <span
-                    className={cn(
-                      "rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                      statusStyles[client.status]
-                    )}
-                  >
-                    {client.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <ClientScoreBadge clientId={client.id} size="sm" />
+                    <span
+                      className={cn(
+                        "rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                        statusStyles[client.status]
+                      )}
+                    >
+                      {client.status}
+                    </span>
+                  </div>
                 )}
               </div>
 
@@ -577,6 +581,9 @@ const Clientes = () => {
                   CPF
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
+                  Score
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
                   Status
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
@@ -626,6 +633,9 @@ const Clientes = () => {
                   </td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">
                     {client.cpf}
+                  </td>
+                  <td className="px-6 py-4">
+                    <ClientScoreBadge clientId={client.id} size="sm" />
                   </td>
                   <td className="px-6 py-4">
                     <span
