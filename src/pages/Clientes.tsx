@@ -18,6 +18,8 @@ import {
   MessageCircle,
   Send,
   X,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients, Client } from "@/hooks/useClients";
@@ -52,6 +54,7 @@ const Clientes = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<Status>("Todos");
+  const [showArchived, setShowArchived] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   
   // Selection state
@@ -72,8 +75,13 @@ const Clientes = () => {
       client.cpf.includes(searchQuery);
     const matchesFilter =
       activeFilter === "Todos" || client.status === activeFilter;
-    return matchesSearch && matchesFilter;
+    const matchesArchived = showArchived 
+      ? !!client.archived_at 
+      : !client.archived_at;
+    return matchesSearch && matchesFilter && matchesArchived;
   });
+
+  const archivedCount = clients.filter(c => !!c.archived_at).length;
 
   const toggleSelection = (clientId: string) => {
     const newSelection = new Set(selectedClients);
@@ -392,6 +400,26 @@ const Clientes = () => {
               </button>
             ))}
           </div>
+
+          {/* Archive Toggle */}
+          {archivedCount > 0 && (
+            <button
+              onClick={() => setShowArchived(!showArchived)}
+              className={cn(
+                "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all",
+                showArchived
+                  ? "bg-warning/20 text-warning border border-warning/30"
+                  : "bg-secondary/50 text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {showArchived ? (
+                <ArchiveRestore className="h-4 w-4" />
+              ) : (
+                <Archive className="h-4 w-4" />
+              )}
+              {showArchived ? "Ver Ativos" : `Arquivados (${archivedCount})`}
+            </button>
+          )}
         </div>
 
         {/* View Toggle */}

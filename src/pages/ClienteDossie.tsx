@@ -25,6 +25,8 @@ import {
   Banknote,
   Settings,
   Trash2,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
@@ -37,6 +39,7 @@ import { AIMessageDialog } from "@/components/client/AIMessageDialog";
 import { EditClientDialog } from "@/components/client/EditClientDialog";
 import { ManageInstallmentsDialog } from "@/components/client/ManageInstallmentsDialog";
 import { DeleteClientDialog } from "@/components/client/DeleteClientDialog";
+import { ArchiveClientDialog } from "@/components/client/ArchiveClientDialog";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
 import { DocumentUpload } from "@/components/documents/DocumentUpload";
 import { DocumentList } from "@/components/documents/DocumentList";
@@ -61,6 +64,7 @@ const ClienteDossie = () => {
   const [isEditClientOpen, setIsEditClientOpen] = useState(false);
   const [isManageInstallmentsOpen, setIsManageInstallmentsOpen] = useState(false);
   const [isDeleteClientOpen, setIsDeleteClientOpen] = useState(false);
+  const [isArchiveClientOpen, setIsArchiveClientOpen] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
 
@@ -320,6 +324,29 @@ const ClienteDossie = () => {
             >
               <Settings className="h-4 w-4" />
               Parcelas
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsArchiveClientOpen(true)}
+              className={cn(
+                "flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors",
+                client.archived_at
+                  ? "border-success/50 bg-success/10 text-success hover:bg-success/20"
+                  : "border-warning/50 bg-warning/10 text-warning hover:bg-warning/20"
+              )}
+            >
+              {client.archived_at ? (
+                <>
+                  <ArchiveRestore className="h-4 w-4" />
+                  Restaurar
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4" />
+                  Arquivar
+                </>
+              )}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -614,6 +641,14 @@ const ClienteDossie = () => {
         onOpenChange={setIsDeleteClientOpen}
         clientId={client.id}
         clientName={client.name}
+      />
+
+      <ArchiveClientDialog
+        open={isArchiveClientOpen}
+        onOpenChange={setIsArchiveClientOpen}
+        clientId={client.id}
+        clientName={client.name}
+        isArchived={!!client.archived_at}
       />
     </MainLayout>
   );
