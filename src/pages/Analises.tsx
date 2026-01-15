@@ -1,10 +1,6 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
 import {
-  TrendingUp,
-  Target,
-  PieChart,
-  BarChart3,
   Download,
   FileText,
   Loader2,
@@ -30,6 +26,8 @@ import { format, subMonths, startOfMonth, endOfMonth, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale";
 import { useMemo, useState } from "react";
 import { ExportReports } from "@/components/reports/ExportReports";
+import { AnalyticsCards } from "@/components/dashboard/AnalyticsCards";
+import { useAnalyticsStats } from "@/hooks/useAnalyticsStats";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -80,6 +78,7 @@ const Analises = () => {
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
   const { clients, isLoading: isLoadingClients } = useClients();
+  const analyticsStats = useAnalyticsStats();
 
   const isLoading = isLoadingContracts || isLoadingInstallments || isLoadingTreasury || isLoadingClients;
 
@@ -155,39 +154,6 @@ const Analises = () => {
     })).filter(item => item.value > 0);
   }, [contracts]);
 
-  // Calculate KPIs
-  const kpis = useMemo(() => {
-    const totalCapital = contracts?.reduce((sum, c) => sum + Number(c.capital), 0) || 0;
-    const totalProfit = contracts?.reduce((sum, c) => sum + Number(c.total_profit), 0) || 0;
-    const avgRate = contracts?.length
-      ? contracts.reduce((sum, c) => sum + Number(c.interest_rate), 0) / contracts.length
-      : 0;
-    const avgTicket = contracts?.length ? totalCapital / contracts.length : 0;
-    const roi = totalCapital > 0 ? (totalProfit / totalCapital) * 100 : 0;
-
-    // Growth calculation (compare last 2 months)
-    const thisMonth = subMonths(new Date(), 0);
-    const lastMonth = subMonths(new Date(), 1);
-    const thisMonthContracts = contracts?.filter((c) => {
-      const cDate = parseISO(c.created_at);
-      return cDate >= startOfMonth(thisMonth);
-    }).length || 0;
-    const lastMonthContracts = contracts?.filter((c) => {
-      const cDate = parseISO(c.created_at);
-      return cDate >= startOfMonth(lastMonth) && cDate < startOfMonth(thisMonth);
-    }).length || 0;
-    const growth = lastMonthContracts > 0 
-      ? ((thisMonthContracts - lastMonthContracts) / lastMonthContracts) * 100 
-      : 0;
-
-    return {
-      roi: roi.toFixed(1),
-      avgRate: avgRate.toFixed(1),
-      avgTicket: new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(avgTicket),
-      growth: (growth >= 0 ? "+" : "") + growth.toFixed(0),
-    };
-  }, [contracts]);
-
   // Risk vs Return data (based on actual clients)
   const riskReturnData = useMemo(() => {
     if (!clients || !contracts) return [];
@@ -246,37 +212,11 @@ const Analises = () => {
 
       {!isLoading && (
         <>
-          {/* KPI Cards */}
-          <div className="grid gap-6 md:grid-cols-4 mb-8">
-            {[
-              { label: "ROI Médio", value: `${kpis.roi}%`, icon: TrendingUp, color: "success" },
-              { label: "Taxa Média", value: `${kpis.avgRate}%`, icon: Target, color: "primary" },
-              { label: "Ticket Médio", value: kpis.avgTicket, icon: PieChart, color: "warning" },
-              { label: "Crescimento", value: `${kpis.growth}%`, icon: BarChart3, color: "success" },
-            ].map((kpi, index) => {
-              const Icon = kpi.icon;
-              return (
-                <motion.div
-                  key={kpi.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5"
-                >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-muted-foreground">{kpi.label}</p>
-                    <Icon className={`h-5 w-5 text-${kpi.color}`} />
-                  </div>
-                  <p className="mt-2 font-display text-2xl font-bold text-foreground">
-                    {kpi.value}
-                  </p>
-                </motion.div>
-              );
-            })}
-          </div>
+          {/* Full Analytics Cards */}
+          <AnalyticsCards stats={analyticsStats} variant="full" />
 
           {/* Charts Grid */}
-          <div className="grid gap-6 lg:grid-cols-2 mb-8">
+          <div className="grid gap-6 lg:grid-cols-2 mt-8">
             {/* Monthly Performance Chart */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -393,7 +333,7 @@ const Analises = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6 mb-8"
+              className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6 mt-6"
             >
               <h3 className="font-display text-lg font-semibold text-foreground mb-6">
                 Análise de Risco vs. Retorno
@@ -456,7 +396,7 @@ const Analises = () => {
                       activeDot={{
                         fill: "hsl(45, 90%, 50%)",
                         strokeWidth: 2,
-                        stroke: "hsl(38, 22%, 8%)",
+                        stroke: "hsl(38, 25%, 8%)",
                         r: 8,
                       }}
                     />
@@ -471,32 +411,30 @@ const Analises = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
+            className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6 mt-6"
           >
-            <h3 className="font-display text-lg font-semibold text-foreground mb-6">
+            <h3 className="font-display text-lg font-semibold text-foreground mb-4">
               Central de Relatórios
             </h3>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-3">
               {reports.map((report) => {
                 const Icon = report.icon;
                 return (
-                  <motion.button
+                  <button
                     key={report.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center gap-4 rounded-xl border border-border/50 bg-secondary/30 p-4 text-left transition-colors hover:border-primary/30 hover:bg-secondary/50"
+                    onClick={() => setIsExportOpen(true)}
+                    className="flex items-center gap-3 rounded-xl border border-border/50 bg-secondary/30 p-4 text-left transition-all hover:bg-secondary/50 hover:border-primary/30"
                   >
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20">
-                      <Icon className="h-6 w-6 text-primary" />
+                    <div className="rounded-lg bg-primary/10 p-2">
+                      <Icon className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="flex-1">
+                    <div>
                       <p className="font-medium text-foreground">{report.name}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {report.description}
                       </p>
                     </div>
-                    <Download className="h-5 w-5 text-muted-foreground" />
-                  </motion.button>
+                  </button>
                 );
               })}
             </div>
