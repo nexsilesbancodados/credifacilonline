@@ -11,6 +11,7 @@ import {
   Sparkles,
   ChevronRight,
   Loader2,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendingInstallments, useInstallments } from "@/hooks/useContracts";
@@ -18,6 +19,7 @@ import { format, isToday, isBefore, isAfter, addDays, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 
 type TabType = "overdue" | "today" | "upcoming";
 
@@ -44,6 +46,7 @@ const tabs = [
 
 const MesaCobranca = () => {
   const [activeTab, setActiveTab] = useState<TabType>("overdue");
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const { data: pendingInstallments, isLoading } = usePendingInstallments();
   const { payInstallment, isPaying } = useInstallments();
   const navigate = useNavigate();
@@ -131,7 +134,7 @@ const MesaCobranca = () => {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">
               Mesa de Cobrança
@@ -140,17 +143,22 @@ const MesaCobranca = () => {
               Gerencie todas as parcelas pendentes
             </p>
           </div>
-
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-5 py-3 font-medium text-primary transition-colors hover:bg-primary/20"
+            onClick={() => setIsNotificationCenterOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-gradient-gold px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold"
           >
-            <Sparkles className="h-5 w-5" />
-            Agente IA
+            <Bell className="h-4 w-4" />
+            Notificações WhatsApp
           </motion.button>
         </div>
       </motion.div>
+
+      <NotificationCenter
+        open={isNotificationCenterOpen}
+        onOpenChange={setIsNotificationCenterOpen}
+      />
 
       {/* Tabs */}
       <motion.div
