@@ -16,6 +16,7 @@ import {
   Sun,
   Moon,
   Upload,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -23,17 +24,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { ExcelImport } from "@/components/imports/ExcelImport";
+import { usePermissions } from "@/hooks/usePermissions";
 
-const menuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Users, label: "Clientes", path: "/clientes" },
-  { icon: FileText, label: "Contratos", path: "/contratos" },
-  { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca" },
-  { icon: Wallet, label: "Tesouraria", path: "/tesouraria" },
-  { icon: BarChart3, label: "Análises", path: "/analises" },
-  { icon: History, label: "Histórico", path: "/historico" },
-  { icon: History, label: "Auditoria", path: "/auditoria" },
-  { icon: Settings, label: "Configurações", path: "/configuracoes" },
+const baseMenuItems = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/", permission: null },
+  { icon: Users, label: "Clientes", path: "/clientes", permission: "canViewClients" as const },
+  { icon: FileText, label: "Contratos", path: "/contratos", permission: "canViewContracts" as const },
+  { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca", permission: "canViewPayments" as const },
+  { icon: Wallet, label: "Tesouraria", path: "/tesouraria", permission: "canViewTreasury" as const },
+  { icon: BarChart3, label: "Análises", path: "/analises", permission: "canViewReports" as const },
+  { icon: History, label: "Histórico", path: "/historico", permission: null },
+  { icon: Shield, label: "Auditoria", path: "/auditoria", permission: "canViewAuditLog" as const },
+  { icon: Settings, label: "Configurações", path: "/configuracoes", permission: "canViewSettings" as const },
 ];
 
 export function Sidebar() {
@@ -42,7 +44,13 @@ export function Sidebar() {
   const { profile, signOut } = useAuth();
   const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
+  const { hasPermission } = usePermissions();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Filter menu items based on permissions
+  const menuItems = baseMenuItems.filter(item => 
+    item.permission === null || hasPermission(item.permission)
+  );
   const [showImport, setShowImport] = useState(false);
 
   const handleLogout = async () => {
