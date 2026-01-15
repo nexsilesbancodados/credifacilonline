@@ -73,7 +73,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       {!isMobile && (
         <button
           onClick={() => setSearchOpen(true)}
-          className="fixed top-4 right-6 z-50 flex items-center gap-2 h-10 px-4 rounded-xl bg-card border border-border shadow-lg hover:border-primary/50 transition-colors"
+          className="fixed top-4 right-6 z-30 flex items-center gap-2 h-10 px-4 rounded-xl bg-card border border-border shadow-lg hover:border-primary/50 transition-colors"
         >
           <Search className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">Buscar...</span>
