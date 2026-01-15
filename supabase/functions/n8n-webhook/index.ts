@@ -209,10 +209,94 @@ serve(async (req) => {
       );
     }
 
+    // Action: get_client_info - Consulta dados do cliente pelo WhatsApp (para Agente IA)
+    if (action === "get_client_info") {
+      const { whatsapp } = body;
+      
+      if (!whatsapp) {
+        return new Response(
+          JSON.stringify({ success: false, message: "WhatsApp não informado" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Limpar número (pegar últimos 11 dígitos)
+      const cleanPhone = whatsapp.replace(/\D/g, "").slice(-11);
+
+      // Buscar cliente pelo WhatsApp
+      const { data: clients, error } = await supabase
+        .from("clients")
+        .select("id, name, status, whatsapp")
+        .or(`whatsapp.ilike.%${cleanPhone},whatsapp.ilike.%${cleanPhone.slice(-9)}`)
+        .limit(1);
+
+      if (error) throw error;
+
+      const client = clients?.[0];
+
+      if (!client) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: "Cliente não encontrado com este número" 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Buscar parcelas pendentes
+      const { data: installments } = await supabase
+        .from("installments")
+        .select("id, installment_number, total_installments, amount_due, due_date, status, fine")
+        .eq("client_id", client.id)
+        .in("status", ["Pendente", "Atrasado"])
+        .order("due_date", { ascending: true });
+
+      const pendingInstallments = installments || [];
+      const totalPending = pendingInstallments.reduce(
+        (sum, i) => sum + (i.amount_due || 0) + (i.fine || 0), 0
+      );
+
+      // Formatar valores para o agente
+      const formattedTotal = new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      }).format(totalPending);
+
+      const nextDueDate = pendingInstallments[0]?.due_date 
+        ? new Date(pendingInstallments[0].due_date).toLocaleDateString("pt-BR")
+        : null;
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          client: {
+            name: client.name,
+            status: client.status
+          },
+          resumo: `${client.name} possui ${pendingInstallments.length} parcela(s) pendente(s) totalizando ${formattedTotal}${nextDueDate ? `. Próximo vencimento: ${nextDueDate}` : ""}.`,
+          pending_count: pendingInstallments.length,
+          total_pending_amount: totalPending,
+          total_pending_formatted: formattedTotal,
+          next_due_date: pendingInstallments[0]?.due_date || null,
+          installments: pendingInstallments.map(i => ({
+            number: `${i.installment_number}/${i.total_installments}`,
+            amount: i.amount_due,
+            fine: i.fine || 0,
+            total: (i.amount_due || 0) + (i.fine || 0),
+            due_date: i.due_date,
+            due_date_formatted: new Date(i.due_date).toLocaleDateString("pt-BR"),
+            status: i.status
+          }))
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ 
         error: "Invalid action",
-        available_actions: ["get_pending_clients", "generate_messages", "log_sent"],
+        available_actions: ["get_pending_clients", "generate_messages", "log_sent", "get_client_info"],
       }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
