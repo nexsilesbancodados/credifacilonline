@@ -13,11 +13,16 @@ import {
   ChevronRight,
   Sparkles,
   History,
+  Sun,
+  Moon,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/hooks/useTheme";
+import { ExcelImport } from "@/components/imports/ExcelImport";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -35,7 +40,9 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const handleLogout = async () => {
     await signOut();
@@ -153,8 +160,29 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* User section */}
-      <div className="absolute bottom-0 left-0 right-0 p-4">
+      {/* Bottom Section */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
+        {/* Quick Actions */}
+        {!isCollapsed && (
+          <div className="flex gap-2">
+            <button
+              onClick={toggleTheme}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-secondary/50 p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              title={theme === "dark" ? "Tema claro" : "Tema escuro"}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-secondary/50 p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              title="Importar Excel"
+            >
+              <Upload className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {/* User Section */}
         <div className={cn(
           "rounded-xl bg-secondary/30 p-3 backdrop-blur-sm",
           isCollapsed && "flex items-center justify-center"
@@ -176,16 +204,26 @@ export function Sidebar() {
               </button>
             </div>
           ) : (
-            <button 
-              onClick={handleLogout}
-              className="h-10 w-10 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold hover:opacity-80 transition-opacity"
-              title="Sair"
-            >
-              {getInitials(profile?.name || "")}
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={toggleTheme}
+                className="h-8 w-8 rounded-lg bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="h-10 w-10 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold hover:opacity-80 transition-opacity"
+                title="Sair"
+              >
+                {getInitials(profile?.name || "")}
+              </button>
+            </div>
           )}
         </div>
       </div>
+
+      <ExcelImport open={showImport} onOpenChange={setShowImport} />
     </motion.aside>
   );
 }

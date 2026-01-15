@@ -4,6 +4,7 @@ import {
   Download,
   FileText,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   BarChart,
@@ -28,6 +29,8 @@ import { useMemo, useState } from "react";
 import { ExportReports } from "@/components/reports/ExportReports";
 import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
 import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
+import { DelinquencyChart } from "@/components/dashboard/DelinquencyChart";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -221,8 +224,19 @@ const Analises = () => {
           {/* Full Analytics Cards */}
           <AnalyticsCards stats={analyticsStats} variant="full" />
 
-          {/* Charts Grid */}
-          <div className="grid gap-6 lg:grid-cols-2 mt-8">
+          {/* Tabs for different analysis views */}
+          <Tabs defaultValue="performance" className="mt-8">
+            <TabsList className="bg-secondary/50">
+              <TabsTrigger value="performance">Performance</TabsTrigger>
+              <TabsTrigger value="delinquency" className="gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Inadimplência
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="performance" className="mt-6">
+              {/* Charts Grid */}
+              <div className="grid gap-6 lg:grid-cols-2">
             {/* Monthly Performance Chart */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -332,8 +346,12 @@ const Analises = () => {
               </div>
             </motion.div>
           </div>
+            </TabsContent>
 
-          {/* Risk vs Return Chart */}
+            <TabsContent value="delinquency" className="mt-6">
+              <DelinquencyChart />
+            </TabsContent>
+          </Tabs>
           {riskReturnData.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
