@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { PushNotificationSettings } from "@/components/notifications/PushNotificationSettings";
@@ -16,23 +15,22 @@ import { MessageTemplates } from "@/components/templates/MessageTemplates";
 import { ExportData } from "@/components/backup/ExportData";
 import { ImportData } from "@/components/backup/ImportData";
 import { CompanySettingsForm } from "@/components/settings/CompanySettingsForm";
-import { WhatsAppSettings } from "@/components/settings/WhatsAppSettings";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import {
   User,
   Building2,
   Bell,
   Webhook,
-  Bot,
   Shield,
   Save,
-  Clock,
   Ruler,
   FileText,
   Database,
-  MessageSquare,
   Loader2,
+  CheckCircle,
+  Copy,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const Configuracoes = () => {
   const { toast } = useToast();
@@ -59,55 +57,13 @@ const Configuracoes = () => {
     weeklyReport: true,
   });
 
-  // N8N settings - now persisted
-  const [n8nSettings, setN8nSettings] = useState({
-    webhookUrl: "",
-    activeEvents: {
-      newContract: true,
-      payment: true,
-      overdue: false,
-      renegotiation: true,
-    },
-  });
+  // Webhook URL for n8n
+  const [webhookUrl, setWebhookUrl] = useState("");
 
-  // AI Agent settings - now persisted
-  const [aiAgent, setAiAgent] = useState({
-    isActive: false,
-    startTime: "09:00",
-    endTime: "18:00",
-    triggers: {
-      day1: true,
-      day3: true,
-      day7: true,
-      day15: false,
-      day30: false,
-    },
-  });
-
-  // Sync N8N and AI Agent settings with database
+  // Sync webhook URL with settings
   useEffect(() => {
-    if (settings) {
-      setN8nSettings({
-        webhookUrl: settings.n8n_webhook_url || "",
-        activeEvents: settings.n8n_active_events || {
-          newContract: true,
-          payment: true,
-          overdue: false,
-          renegotiation: true,
-        },
-      });
-      setAiAgent({
-        isActive: settings.ai_agent_active || false,
-        startTime: settings.ai_agent_start_time || "09:00",
-        endTime: settings.ai_agent_end_time || "18:00",
-        triggers: settings.ai_agent_triggers || {
-          day1: true,
-          day3: true,
-          day7: true,
-          day15: false,
-          day30: false,
-        },
-      });
+    if (settings?.n8n_webhook_url) {
+      setWebhookUrl(settings.n8n_webhook_url);
     }
   }, [settings]);
 
@@ -122,21 +78,18 @@ const Configuracoes = () => {
     }, 1000);
   };
 
-  const handleSaveN8N = () => {
+  const handleSaveWebhook = () => {
     updateSettings({
-      n8n_webhook_url: n8nSettings.webhookUrl || null,
-      n8n_active_events: n8nSettings.activeEvents,
+      n8n_webhook_url: webhookUrl || null,
     });
   };
 
-  const handleSaveAIAgent = () => {
-    updateSettings({
-      ai_agent_active: aiAgent.isActive,
-      ai_agent_start_time: aiAgent.startTime,
-      ai_agent_end_time: aiAgent.endTime,
-      ai_agent_triggers: aiAgent.triggers,
-    });
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copiado!" });
   };
+
+  const apiEndpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/n8n-webhook`;
 
   return (
     <MainLayout>
@@ -175,24 +128,11 @@ const Configuracoes = () => {
               <Database className="w-4 h-4" />
               Backup
             </TabsTrigger>
-            <TabsTrigger value="whatsapp" className="gap-2">
-              <MessageSquare className="w-4 h-4" />
-              WhatsApp
-            </TabsTrigger>
-            <TabsTrigger value="n8n" className="gap-2">
+            <TabsTrigger value="integrations" className="gap-2">
               <Webhook className="w-4 h-4" />
-              N8N
-            </TabsTrigger>
-            <TabsTrigger value="ai-agent" className="gap-2">
-              <Bot className="w-4 h-4" />
-              Agente IA
+              Integrações
             </TabsTrigger>
           </TabsList>
-
-          {/* WhatsApp Tab */}
-          <TabsContent value="whatsapp">
-            <WhatsAppSettings />
-          </TabsContent>
 
           {/* Profile Tab */}
           <TabsContent value="profile">
@@ -414,293 +354,87 @@ const Configuracoes = () => {
             </motion.div>
           </TabsContent>
 
-          {/* N8N Tab */}
-          <TabsContent value="n8n">
+          {/* Integrations Tab (n8n + Evolution API) */}
+          <TabsContent value="integrations">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
-              {/* Webhook Endpoint Card */}
+              {/* Status Card */}
+              <Card className={`border-2 ${webhookUrl ? "border-green-500/30 bg-green-500/5" : "border-amber-500/30 bg-amber-500/5"}`}>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <CheckCircle className={`w-8 h-8 ${webhookUrl ? "text-green-500" : "text-amber-500"}`} />
+                    <div>
+                      <h3 className="font-semibold">
+                        {webhookUrl ? "Integração Configurada" : "Integração Não Configurada"}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {webhookUrl 
+                          ? "n8n está conectado para automações"
+                          : "Configure o webhook do n8n abaixo"}
+                      </p>
+                    </div>
+                    <Badge variant={webhookUrl ? "default" : "secondary"} className="ml-auto">
+                      {webhookUrl ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Webhook Configuration */}
               <Card className="border-border/50 bg-card/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Webhook className="w-5 h-5 text-primary" />
-                    Endpoint de Cobrança Automática
+                    Integração n8n + Evolution API
                   </CardTitle>
                   <CardDescription>
-                    Use este endpoint no n8n para disparar cobranças automaticamente
+                    Configure o webhook para automações de cobrança via WhatsApp
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* API Endpoint (read-only) */}
                   <div className="space-y-2">
-                    <Label>URL do Webhook (use no n8n)</Label>
+                    <Label>Endpoint da API (use no n8n)</Label>
                     <div className="flex gap-2">
                       <Input
                         readOnly
-                        value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/n8n-webhook`}
-                        className="font-mono text-xs"
+                        value={apiEndpoint}
+                        className="font-mono text-xs bg-secondary/30"
                       />
                       <Button
                         variant="outline"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/n8n-webhook`);
-                          toast({ title: "URL copiada!" });
-                        }}
+                        size="icon"
+                        onClick={() => copyToClipboard(apiEndpoint)}
                       >
-                        Copiar
+                        <Copy className="w-4 h-4" />
                       </Button>
                     </div>
-                  </div>
-
-                  <div className="rounded-xl bg-secondary/50 p-4 space-y-3">
-                    <h4 className="font-semibold text-sm">📋 Ações Disponíveis</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="p-2 rounded-lg bg-background/50">
-                        <code className="text-primary">get_pending_clients</code>
-                        <p className="text-muted-foreground text-xs mt-1">
-                          Lista todos os clientes com parcelas pendentes/atrasadas
-                        </p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-background/50">
-                        <code className="text-primary">generate_messages</code>
-                        <p className="text-muted-foreground text-xs mt-1">
-                          Gera mensagens de cobrança para clientes selecionados
-                        </p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-background/50">
-                        <code className="text-primary">log_sent</code>
-                        <p className="text-muted-foreground text-xs mt-1">
-                          Registra que mensagens foram enviadas
-                        </p>
-                      </div>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Use este endpoint nas requisições HTTP do seu workflow n8n
+                    </p>
                   </div>
 
                   <Separator />
 
-                  <div className="space-y-4">
-                    <h4 className="font-semibold flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Limite de Mensagens
-                    </h4>
-                    <div className="p-4 rounded-xl border border-warning/30 bg-warning/10">
-                      <p className="text-sm font-medium text-warning-foreground">
-                        ⚠️ Máximo de 20 mensagens por hora
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Configure seu workflow n8n com um delay de 3 minutos entre cada mensagem para respeitar este limite.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* n8n Workflow Instructions */}
-              <Card className="border-border/50 bg-card/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bot className="w-5 h-5 text-primary" />
-                    Como Configurar no n8n
-                  </CardTitle>
-                  <CardDescription>
-                    Siga estes passos para criar um workflow de cobrança automática
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</div>
-                      <div>
-                        <p className="font-medium text-sm">Crie um Schedule Trigger</p>
-                        <p className="text-xs text-muted-foreground">Configure para rodar diariamente (ex: 9h da manhã)</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</div>
-                      <div>
-                        <p className="font-medium text-sm">Adicione HTTP Request para buscar clientes</p>
-                        <p className="text-xs text-muted-foreground">POST para o webhook com {"{"}"action": "get_pending_clients"{"}"}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</div>
-                      <div>
-                        <p className="font-medium text-sm">Filtre clientes (máx. 20)</p>
-                        <p className="text-xs text-muted-foreground">Use um nó Limit para limitar a 20 clientes por execução</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">4</div>
-                      <div>
-                        <p className="font-medium text-sm">Gere as mensagens</p>
-                        <p className="text-xs text-muted-foreground">POST com {"{"}"action": "generate_messages", "client_ids": [...], "tone": "amigavel"{"}"}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
-                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">5</div>
-                      <div>
-                        <p className="font-medium text-sm">Envie via WhatsApp</p>
-                        <p className="text-xs text-muted-foreground">Use Evolution API, Z-API ou WhatsApp Business API com delay de 3 min entre cada</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
+                  {/* User's n8n Webhook URL (optional) */}
                   <div className="space-y-2">
-                    <Label>Exemplo de Payload</Label>
-                    <pre className="p-3 rounded-lg bg-secondary/50 text-xs font-mono overflow-x-auto">
-{`// 1. Buscar clientes pendentes
-POST /functions/v1/n8n-webhook
-{
-  "action": "get_pending_clients"
-}
-
-// 2. Gerar mensagens para cobrança
-POST /functions/v1/n8n-webhook
-{
-  "action": "generate_messages",
-  "client_ids": ["uuid1", "uuid2"],
-  "tone": "amigavel"  // amigavel, formal, urgente
-}
-
-// 3. Mensagem customizada (opcional)
-{
-  "action": "generate_messages",
-  "client_ids": ["uuid1"],
-  "custom_message": "Olá {nome}, sua parcela de {valor} vence em {vencimento}"
-}`}
-                    </pre>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Rate Limiting Card */}
-              <Card className="border-primary/30 bg-primary/5">
-                <CardContent className="pt-6">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20">
-                      <Clock className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Rate Limit: 20 mensagens/hora</h4>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Para respeitar o limite de 20 mensagens por hora, configure seu workflow n8n da seguinte forma:
-                      </p>
-                      <ul className="mt-2 space-y-1 text-sm text-muted-foreground list-disc list-inside">
-                        <li>Use um nó <strong>Limit</strong> para processar apenas 20 clientes por execução</li>
-                        <li>Adicione um nó <strong>Wait</strong> de 3 minutos entre cada envio</li>
-                        <li>Ou agende o workflow para rodar a cada hora com 20 clientes diferentes</li>
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-
-          {/* AI Agent Tab */}
-          <TabsContent value="ai-agent">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="border-border/50 bg-card/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bot className="w-5 h-5 text-primary" />
-                    Agente de Cobrança IA
-                  </CardTitle>
-                  <CardDescription>
-                    Configure o agente autônomo para cobranças automáticas
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-primary/10 border border-primary/20">
-                    <div>
-                      <p className="font-semibold text-primary">Status do Agente</p>
-                      <p className="text-sm text-muted-foreground">
-                        {aiAgent.isActive ? "O agente está ativo e funcionando" : "O agente está desativado"}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={aiAgent.isActive}
-                      onCheckedChange={(checked) => setAiAgent({ ...aiAgent, isActive: checked })}
+                    <Label>URL do Webhook n8n (opcional)</Label>
+                    <Input
+                      placeholder="https://seu-n8n.com/webhook/xxx"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
                     />
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-5 h-5 text-primary" />
-                      <h3 className="font-semibold">Horário de Funcionamento</h3>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Início</Label>
-                        <Input
-                          type="time"
-                          value={aiAgent.startTime}
-                          onChange={(e) => setAiAgent({ ...aiAgent, startTime: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Fim</Label>
-                        <Input
-                          type="time"
-                          value={aiAgent.endTime}
-                          onChange={(e) => setAiAgent({ ...aiAgent, endTime: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      O agente só enviará mensagens dentro deste horário
+                    <p className="text-xs text-muted-foreground">
+                      Cole aqui a URL do webhook do seu workflow n8n para referência
                     </p>
                   </div>
 
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Gatilhos de Cobrança</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Selecione quando o agente deve enviar mensagens de cobrança
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {[
-                        { key: "day1", label: "1 dia de atraso" },
-                        { key: "day3", label: "3 dias de atraso" },
-                        { key: "day7", label: "7 dias de atraso" },
-                        { key: "day15", label: "15 dias de atraso" },
-                        { key: "day30", label: "30 dias de atraso" },
-                      ].map((trigger) => (
-                        <div
-                          key={trigger.key}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                            aiAgent.triggers[trigger.key as keyof typeof aiAgent.triggers]
-                              ? "border-primary bg-primary/10"
-                              : "border-border hover:border-primary/50"
-                          }`}
-                          onClick={() =>
-                            setAiAgent({
-                              ...aiAgent,
-                              triggers: {
-                                ...aiAgent.triggers,
-                                [trigger.key]: !aiAgent.triggers[trigger.key as keyof typeof aiAgent.triggers],
-                              },
-                            })
-                          }
-                        >
-                          <p className="font-medium text-center">{trigger.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-4">
+                  <div className="flex justify-end">
                     <Button
-                      onClick={handleSaveAIAgent}
+                      onClick={handleSaveWebhook}
                       disabled={isUpdating}
                       className="bg-primary hover:bg-primary/90"
                     >
@@ -709,9 +443,88 @@ POST /functions/v1/n8n-webhook
                       ) : (
                         <Save className="w-4 h-4 mr-2" />
                       )}
-                      Salvar configurações
+                      Salvar
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Available Actions */}
+              <Card className="border-border/50 bg-card/50">
+                <CardHeader>
+                  <CardTitle>Ações Disponíveis</CardTitle>
+                  <CardDescription>
+                    Use estas ações no n8n para automatizar cobranças
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3">
+                    <div className="p-3 rounded-lg bg-secondary/30 border border-border/50">
+                      <code className="text-primary font-mono text-sm">get_pending_clients</code>
+                      <p className="text-muted-foreground text-sm mt-1">
+                        Lista todos os clientes com parcelas pendentes ou atrasadas
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/30 border border-border/50">
+                      <code className="text-primary font-mono text-sm">generate_messages</code>
+                      <p className="text-muted-foreground text-sm mt-1">
+                        Gera mensagens de cobrança personalizadas para os clientes
+                      </p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-secondary/30 border border-border/50">
+                      <code className="text-primary font-mono text-sm">log_sent</code>
+                      <p className="text-muted-foreground text-sm mt-1">
+                        Registra que as mensagens foram enviadas
+                      </p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Example Payload */}
+                  <div className="space-y-2">
+                    <Label>Exemplo de Payload</Label>
+                    <pre className="p-4 rounded-lg bg-secondary/50 text-xs font-mono overflow-x-auto">
+{`// Headers necessários
+{
+  "Content-Type": "application/json",
+  "apikey": "sua_anon_key",
+  "Authorization": "Bearer sua_anon_key"
+}
+
+// 1. Buscar clientes pendentes
+POST ${apiEndpoint}
+{ "action": "get_pending_clients" }
+
+// 2. Gerar mensagens
+POST ${apiEndpoint}
+{
+  "action": "generate_messages",
+  "client_ids": ["uuid1", "uuid2"],
+  "tone": "amigavel"  // amigavel, formal, urgente
+}
+
+// 3. Registrar envios
+POST ${apiEndpoint}
+{ "action": "log_sent", "client_ids": ["uuid1"] }`}
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quick Setup Guide */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-6">
+                  <h4 className="font-semibold mb-4">🚀 Fluxo Rápido no n8n</h4>
+                  <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
+                    <li><strong>Schedule Trigger</strong> → Configure horário (ex: 9h)</li>
+                    <li><strong>HTTP Request</strong> → <code className="text-primary">get_pending_clients</code></li>
+                    <li><strong>Limit</strong> → Máximo 20 clientes por execução</li>
+                    <li><strong>HTTP Request</strong> → <code className="text-primary">generate_messages</code></li>
+                    <li><strong>Split In Batches</strong> → Processar 1 por vez</li>
+                    <li><strong>Evolution API Node</strong> → Enviar WhatsApp</li>
+                    <li><strong>Wait</strong> → 3 minutos entre cada envio</li>
+                  </ol>
                 </CardContent>
               </Card>
             </motion.div>
