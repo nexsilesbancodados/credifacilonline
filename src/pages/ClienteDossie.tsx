@@ -1,6 +1,6 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Phone,
@@ -23,6 +23,8 @@ import {
   Loader2,
   FolderOpen,
   Banknote,
+  Settings,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
@@ -32,12 +34,15 @@ import { RenegotiationDialog } from "@/components/client/RenegotiationDialog";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { BulkPaymentDialog } from "@/components/client/BulkPaymentDialog";
 import { AIMessageDialog } from "@/components/client/AIMessageDialog";
+import { EditClientDialog } from "@/components/client/EditClientDialog";
+import { ManageInstallmentsDialog } from "@/components/client/ManageInstallmentsDialog";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
 import { DocumentUpload } from "@/components/documents/DocumentUpload";
 import { DocumentList } from "@/components/documents/DocumentList";
-import { useClients } from "@/hooks/useClients";
+import { useClients, Client } from "@/hooks/useClients";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useActivityHistory } from "@/hooks/useActivityHistory";
+import { useToast } from "@/hooks/use-toast";
 
 const statusStyles = {
   Ativo: "bg-success/20 text-success border-success/30",
@@ -52,11 +57,16 @@ const ClienteDossie = () => {
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isBulkPaymentOpen, setIsBulkPaymentOpen] = useState(false);
   const [isAIMessageOpen, setIsAIMessageOpen] = useState(false);
+  const [isEditClientOpen, setIsEditClientOpen] = useState(false);
+  const [isManageInstallmentsOpen, setIsManageInstallmentsOpen] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
 
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
   // Fetch real data
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { clients, isLoading: isLoadingClients, deleteClient } = useClients();
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { data: activityData, isLoading: isLoadingActivity } = useActivityHistory("all", "", 1, 50);
@@ -262,7 +272,7 @@ const ClienteDossie = () => {
               className="flex items-center gap-2 rounded-xl bg-success px-4 py-2.5 text-sm font-medium text-success-foreground transition-colors hover:bg-success/90"
             >
               <DollarSign className="h-4 w-4" />
-              Registrar Pagamento
+              Pagamento
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -271,7 +281,7 @@ const ClienteDossie = () => {
               className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               <Banknote className="h-4 w-4" />
-              Pagamento Parcial
+              Parcial
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -289,7 +299,25 @@ const ClienteDossie = () => {
               className="flex items-center gap-2 rounded-xl bg-gradient-gold px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold"
             >
               <Sparkles className="h-4 w-4" />
-              Gerar Cobrança IA
+              IA
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsEditClientOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            >
+              <Edit className="h-4 w-4" />
+              Editar
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsManageInstallmentsOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            >
+              <Settings className="h-4 w-4" />
+              Parcelas
             </motion.button>
           </div>
         </div>
@@ -554,6 +582,20 @@ const ClienteDossie = () => {
         open={isAIMessageOpen} 
         onOpenChange={setIsAIMessageOpen}
         client={clientForDialogs}
+      />
+
+      <EditClientDialog
+        open={isEditClientOpen}
+        onOpenChange={setIsEditClientOpen}
+        client={client as Client}
+      />
+
+      <ManageInstallmentsDialog
+        open={isManageInstallmentsOpen}
+        onOpenChange={setIsManageInstallmentsOpen}
+        installments={clientInstallments}
+        clientName={client.name}
+        contractId={activeContract?.id || ""}
       />
     </MainLayout>
   );
