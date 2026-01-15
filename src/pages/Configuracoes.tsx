@@ -15,6 +15,7 @@ import { CollectionRules } from "@/components/settings/CollectionRules";
 import { MessageTemplates } from "@/components/templates/MessageTemplates";
 import { ExportData } from "@/components/backup/ExportData";
 import { ImportData } from "@/components/backup/ImportData";
+import { CompanySettingsForm } from "@/components/settings/CompanySettingsForm";
 import {
   User,
   Building2,
@@ -216,83 +217,7 @@ const Configuracoes = () => {
 
           {/* Company Tab */}
           <TabsContent value="company">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="border-border/50 bg-card/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-primary" />
-                    Dados da Empresa
-                  </CardTitle>
-                  <CardDescription>
-                    Configure as informações da sua empresa
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="company">Razão Social</Label>
-                      <Input
-                        id="company"
-                        value={profile.company}
-                        onChange={(e) => setProfile({ ...profile, company: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cnpj">CNPJ</Label>
-                      <Input
-                        id="cnpj"
-                        value={profile.cnpj}
-                        onChange={(e) => setProfile({ ...profile, cnpj: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <Separator className="my-6" />
-
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Configurações Padrão de Contratos</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Taxa de Juros Padrão (%)</Label>
-                        <Input type="number" defaultValue="10" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Multa por Atraso (%)</Label>
-                        <Input type="number" defaultValue="2" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Frequência Padrão</Label>
-                        <Select defaultValue="mensal">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="diario">Diário</SelectItem>
-                            <SelectItem value="semanal">Semanal</SelectItem>
-                            <SelectItem value="quinzenal">Quinzenal</SelectItem>
-                            <SelectItem value="mensal">Mensal</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-4">
-                    <Button
-                      onClick={() => handleSave("empresa")}
-                      disabled={isLoading}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Salvar alterações
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <CompanySettingsForm />
           </TabsContent>
 
           {/* Notifications Tab */}

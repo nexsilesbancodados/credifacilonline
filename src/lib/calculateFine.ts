@@ -7,13 +7,13 @@ interface FineCalculation {
   daysOverdue: number;    // Days overdue
 }
 
-interface FineConfig {
+export interface FineConfig {
   baseFinePercent: number;    // e.g., 2 for 2%
   dailyInterestPercent: number; // e.g., 0.033 for 1% per month (1/30)
   maxFinePercent?: number;    // Optional cap on total fine
 }
 
-const DEFAULT_CONFIG: FineConfig = {
+export const DEFAULT_FINE_CONFIG: FineConfig = {
   baseFinePercent: 2,
   dailyInterestPercent: 0.033, // ~1% per month
   maxFinePercent: 20, // Max 20% of the amount
@@ -25,7 +25,7 @@ const DEFAULT_CONFIG: FineConfig = {
 export function calculateFine(
   amountDue: number,
   dueDate: string | Date,
-  config: FineConfig = DEFAULT_CONFIG
+  config: FineConfig = DEFAULT_FINE_CONFIG
 ): FineCalculation {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
