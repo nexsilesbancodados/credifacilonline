@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   Users,
@@ -25,6 +25,25 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { ExcelImport } from "@/components/imports/ExcelImport";
 import { usePermissions } from "@/hooks/usePermissions";
+
+// Animation variants for menu items
+const menuItemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    x: 0,
+    transition: {
+      delay: i * 0.05,
+      duration: 0.3,
+      ease: [0.4, 0, 0.2, 1] as const,
+    },
+  }),
+};
+
+const sidebarVariants = {
+  expanded: { width: 256 },
+  collapsed: { width: 80 },
+};
 
 const baseMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/", permission: null },
@@ -73,14 +92,22 @@ export function Sidebar() {
   return (
     <motion.aside
       initial={{ x: -100, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      animate={{ 
+        x: 0, 
+        opacity: 1,
+        width: isCollapsed ? 80 : 256,
+      }}
+      transition={{ 
+        x: { duration: 0.5, ease: "easeOut" },
+        opacity: { duration: 0.5, ease: "easeOut" },
+        width: { duration: 0.3, ease: "easeInOut" },
+      }}
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen transition-all duration-300",
+        "fixed left-0 top-0 z-40 h-screen",
         isCollapsed ? "w-20" : "w-64"
       )}
       style={{
-        background: "hsl(0, 0%, 3%)",
+        background: "hsl(var(--sidebar-background))",
       }}
     >
       {/* Border gradient right */}
@@ -124,48 +151,82 @@ export function Sidebar() {
       {/* Navigation - Scrollable area */}
       <nav className="mt-6 px-3 overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 280px)' }}>
         <ul className="space-y-1 pb-4">
-          {menuItems.map((item, index) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
+          <AnimatePresence mode="wait">
+            {menuItems.map((item, index) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
 
-            return (
-              <motion.li
-                key={item.path}
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: index * 0.05 + 0.2 }}
-              >
-                <Link
-                  to={item.path}
-                  className={cn(
-                    "group relative flex items-center gap-3 rounded-xl px-3 py-3 font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-                  )}
+              return (
+                <motion.li
+                  key={item.path}
+                  custom={index}
+                  initial="hidden"
+                  animate="visible"
+                  variants={menuItemVariants}
+                  whileHover={{ scale: 1.02, x: 4 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  {isActive && (
+                  <Link
+                    to={item.path}
+                    className={cn(
+                      "group relative flex items-center gap-3 rounded-xl px-3 py-3 font-medium transition-all duration-200",
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                    )}
+                  >
+                    <AnimatePresence>
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeTab"
+                          initial={{ opacity: 0, scaleY: 0 }}
+                          animate={{ opacity: 1, scaleY: 1 }}
+                          exit={{ opacity: 0, scaleY: 0 }}
+                          className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary"
+                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
+                    </AnimatePresence>
                     <motion.div
-                      layoutId="activeTab"
-                      className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                  <Icon className={cn(
-                    "h-5 w-5 transition-transform",
-                    isActive && "text-primary",
-                    "group-hover:scale-110"
-                  )} />
-                  {!isCollapsed && (
-                    <span className="text-sm">{item.label}</span>
-                  )}
-                  {isActive && !isCollapsed && (
-                    <div className="absolute right-3 h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                  )}
-                </Link>
-              </motion.li>
-            );
-          })}
+                      whileHover={{ rotate: [0, -10, 10, 0] }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Icon className={cn(
+                        "h-5 w-5 transition-colors",
+                        isActive && "text-primary"
+                      )} />
+                    </motion.div>
+                    <AnimatePresence mode="wait">
+                      {!isCollapsed && (
+                        <motion.span
+                          initial={{ opacity: 0, width: 0 }}
+                          animate={{ opacity: 1, width: "auto" }}
+                          exit={{ opacity: 0, width: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="text-sm whitespace-nowrap overflow-hidden"
+                        >
+                          {item.label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                    {isActive && !isCollapsed && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute right-3 h-1.5 w-1.5 rounded-full bg-primary"
+                      >
+                        <motion.div
+                          animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          className="h-full w-full rounded-full bg-primary"
+                        />
+                      </motion.div>
+                    )}
+                  </Link>
+                </motion.li>
+              );
+            })}
+          </AnimatePresence>
         </ul>
       </nav>
 

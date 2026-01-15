@@ -1,10 +1,12 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search, Command } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlobalSearch, useGlobalSearch } from "@/components/search/GlobalSearch";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useDashboardRealtime } from "@/hooks/useRealtimeSubscription";
+import { useLocation } from "react-router-dom";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -14,9 +16,13 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const { isOpen: isSearchOpen, setIsOpen: setSearchOpen } = useGlobalSearch();
+  const location = useLocation();
   
   // Enable keyboard shortcuts
   useKeyboardShortcuts();
+  
+  // Enable realtime subscriptions for dashboard updates
+  useDashboardRealtime();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -31,7 +37,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   // Close mobile menu on route change
   useEffect(() => {
     setIsMobileMenuOpen(false);
-  }, []);
+  }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen">
@@ -78,24 +84,41 @@ export function MainLayout({ children }: MainLayoutProps) {
       )}
 
       {/* Mobile overlay */}
-      {isMobile && isMobileMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={() => setIsMobileMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
-        />
-      )}
+      <AnimatePresence>
+        {isMobile && isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 z-40 bg-background/80 backdrop-blur-md lg:hidden"
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar */}
-      <div className={cn(
-        "lg:block",
-        isMobile && !isMobileMenuOpen && "hidden",
-        isMobile && isMobileMenuOpen && "block"
-      )}>
-        <Sidebar />
-      </div>
+      {/* Sidebar - Mobile with animation */}
+      <AnimatePresence mode="wait">
+        {(!isMobile || isMobileMenuOpen) && (
+          <motion.div
+            initial={isMobile ? { x: -280, opacity: 0 } : false}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -280, opacity: 0 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 300, 
+              damping: 30,
+              opacity: { duration: 0.2 }
+            }}
+            className={cn(
+              "fixed lg:relative z-50 lg:z-auto",
+              isMobile && "shadow-2xl"
+            )}
+          >
+            <Sidebar />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main content */}
       <motion.main
