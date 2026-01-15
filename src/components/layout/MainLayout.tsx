@@ -127,8 +127,8 @@ export function MainLayout({ children }: MainLayoutProps) {
         transition={{ duration: 0.3 }}
         className={cn(
           "flex-1 p-4 sm:p-6 lg:p-8 transition-all",
-          !isMobile && "ml-64",
-          isMobile && "ml-0 pt-14"
+          !isMobile && "ml-64 pt-16",
+          isMobile && "ml-0 pt-18"
         )}
       >
         {/* Background glow effects */}
