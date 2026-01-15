@@ -112,9 +112,9 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="mt-6 px-3">
-        <ul className="space-y-1">
+      {/* Navigation - Scrollable area */}
+      <nav className="mt-6 px-3 overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+        <ul className="space-y-1 pb-4">
           {menuItems.map((item, index) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
