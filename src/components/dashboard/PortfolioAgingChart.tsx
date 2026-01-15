@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useContracts } from "@/hooks/useContracts";
+import { useInstallments } from "@/hooks/useContracts";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Clock, AlertTriangle, TrendingDown } from "lucide-react";
 import { differenceInDays } from "date-fns";
@@ -16,12 +16,12 @@ interface AgingBucket {
 }
 
 export function PortfolioAgingChart() {
-  const { installments = [] } = useContracts();
+  const { installments = [] } = useInstallments();
 
   const agingData = useMemo(() => {
     const overdueInstallments = installments.filter(
-      inst => inst.status === 'overdue' || 
-      (inst.status === 'pending' && new Date(inst.due_date) < new Date())
+      inst => inst.status === 'Atrasado' || 
+      (inst.status === 'Pendente' && new Date(inst.due_date) < new Date())
     );
 
     const buckets: Record<string, { count: number; amount: number }> = {
@@ -33,7 +33,7 @@ export function PortfolioAgingChart() {
 
     overdueInstallments.forEach(inst => {
       const daysOverdue = differenceInDays(new Date(), new Date(inst.due_date));
-      const amount = inst.amount + (inst.fine_amount || 0);
+      const amount = inst.amount_due + (inst.fine || 0);
 
       if (daysOverdue <= 30) {
         buckets['0-30'].count++;

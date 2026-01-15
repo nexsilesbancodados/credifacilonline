@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useContracts } from "@/hooks/useContracts";
+import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useClients } from "@/hooks/useClients";
 import {
   TrendingUp,
@@ -60,7 +60,8 @@ function MetricCard({ title, value, subtitle, icon, trend, trendValue, color = '
 }
 
 export function PerformanceMetrics() {
-  const { contracts = [], installments = [] } = useContracts();
+  const { contracts = [] } = useContracts();
+  const { installments = [] } = useInstallments();
   const { clients = [] } = useClients();
 
   const metrics = useMemo(() => {
@@ -68,27 +69,27 @@ export function PerformanceMetrics() {
     const lastMonth = subMonths(now, 1);
     const twoMonthsAgo = subMonths(now, 2);
 
-    // ROI Calculation
-    const totalLent = contracts.reduce((sum, c) => sum + c.principal_amount, 0);
+    // ROI Calculation - use 'capital' instead of 'principal_amount'
+    const totalLent = contracts.reduce((sum, c) => sum + c.capital, 0);
     const totalReceived = installments
-      .filter(i => i.status === 'paid')
-      .reduce((sum, i) => sum + i.amount + (i.fine_amount || 0), 0);
+      .filter(i => i.status === 'Pago')
+      .reduce((sum, i) => sum + i.amount_due + (i.fine || 0), 0);
     const expectedInterest = contracts.reduce((sum, c) => {
-      const totalExpected = c.installment_amount * c.total_installments;
-      return sum + (totalExpected - c.principal_amount);
+      const totalExpected = c.installment_value * c.installments;
+      return sum + (totalExpected - c.capital);
     }, 0);
     const roi = totalLent > 0 ? ((totalReceived - totalLent) / totalLent) * 100 : 0;
 
     // Average Ticket
-    const activeContracts = contracts.filter(c => c.status === 'active');
+    const activeContracts = contracts.filter(c => c.status === 'Ativo');
     const averageTicket = activeContracts.length > 0 
-      ? activeContracts.reduce((sum, c) => sum + c.principal_amount, 0) / activeContracts.length 
+      ? activeContracts.reduce((sum, c) => sum + c.capital, 0) / activeContracts.length 
       : 0;
 
     // Average Days Overdue
     const overdueInstallments = installments.filter(
-      i => i.status === 'overdue' || 
-      (i.status === 'pending' && new Date(i.due_date) < now)
+      i => i.status === 'Atrasado' || 
+      (i.status === 'Pendente' && new Date(i.due_date) < now)
     );
     const totalDaysOverdue = overdueInstallments.reduce((sum, i) => {
       return sum + differenceInDays(now, new Date(i.due_date));
@@ -99,7 +100,7 @@ export function PerformanceMetrics() {
 
     // Recovery Rate
     const paidThisMonth = installments.filter(
-      i => i.status === 'paid' && i.paid_at && isAfter(new Date(i.paid_at), lastMonth)
+      i => i.status === 'Pago' && i.payment_date && isAfter(new Date(i.payment_date), lastMonth)
     );
     const overdueLastMonth = installments.filter(
       i => new Date(i.due_date) < lastMonth && new Date(i.due_date) > twoMonthsAgo
@@ -111,13 +112,13 @@ export function PerformanceMetrics() {
       : 0;
 
     // Active Clients Ratio
-    const activeClients = clients.filter(c => c.status === 'active').length;
+    const activeClients = clients.filter(c => c.status === 'Ativo').length;
     const clientsRatio = clients.length > 0 
       ? (activeClients / clients.length) * 100 
       : 0;
 
-    // Default Rate (Inadimplência)
-    const defaultedContracts = contracts.filter(c => c.status === 'defaulted').length;
+    // Default Rate (Inadimplência) - uses 'Atraso' status
+    const defaultedContracts = contracts.filter(c => c.status === 'Atraso').length;
     const defaultRate = contracts.length > 0 
       ? (defaultedContracts / contracts.length) * 100 
       : 0;
@@ -125,10 +126,10 @@ export function PerformanceMetrics() {
     // Collections Efficiency
     const totalDue = installments
       .filter(i => new Date(i.due_date) <= now)
-      .reduce((sum, i) => sum + i.amount, 0);
+      .reduce((sum, i) => sum + i.amount_due, 0);
     const totalPaid = installments
-      .filter(i => i.status === 'paid' && new Date(i.due_date) <= now)
-      .reduce((sum, i) => sum + i.amount, 0);
+      .filter(i => i.status === 'Pago' && new Date(i.due_date) <= now)
+      .reduce((sum, i) => sum + i.amount_due, 0);
     const collectionEfficiency = totalDue > 0 ? (totalPaid / totalDue) * 100 : 100;
 
     return {
