@@ -9,6 +9,7 @@ interface Installment {
   number: number;
   dueDate: string;
   amount: number;
+  amountPaid?: number;
   status: InstallmentStatus;
   paymentDate: string | null;
   fine: number;
@@ -116,6 +117,16 @@ export const InstallmentSchedule = ({ installments, onPayment }: InstallmentSche
                 <p className="font-display font-semibold text-foreground">
                   {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installment.amount)}
                 </p>
+                {(installment.amountPaid ?? 0) > 0 && installment.status !== "Pago" && (
+                  <p className="text-xs text-success">
+                    Pago: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installment.amountPaid || 0)}
+                  </p>
+                )}
+                {(installment.amountPaid ?? 0) > 0 && installment.status !== "Pago" && (
+                  <p className="text-xs text-warning">
+                    Resta: {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installment.amount - (installment.amountPaid || 0))}
+                  </p>
+                )}
                 {installment.fine > 0 && (
                   <p className="text-xs text-destructive">
                     + {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installment.fine)} multa
