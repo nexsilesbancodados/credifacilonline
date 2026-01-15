@@ -122,6 +122,106 @@ export type Database = {
         }
         Relationships: []
       }
+      collection_logs: {
+        Row: {
+          channel: string
+          client_id: string | null
+          delivered_at: string | null
+          id: string
+          installment_id: string | null
+          message_sent: string
+          read_at: string | null
+          rule_id: string | null
+          sent_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          client_id?: string | null
+          delivered_at?: string | null
+          id?: string
+          installment_id?: string | null
+          message_sent: string
+          read_at?: string | null
+          rule_id?: string | null
+          sent_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          client_id?: string | null
+          delivered_at?: string | null
+          id?: string
+          installment_id?: string | null
+          message_sent?: string
+          read_at?: string | null
+          rule_id?: string | null
+          sent_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_logs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_logs_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "collection_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collection_rules: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          message_template: string
+          name: string
+          tone: string
+          trigger_days: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message_template: string
+          name: string
+          tone?: string
+          trigger_days: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          message_template?: string
+          name?: string
+          tone?: string
+          trigger_days?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contracts: {
         Row: {
           capital: number
@@ -191,6 +291,63 @@ export type Database = {
           {
             foreignKeyName: "contracts_renegotiated_from_id_fkey"
             columns: ["renegotiated_from_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_files: {
+        Row: {
+          client_id: string | null
+          contract_id: string | null
+          created_at: string
+          description: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          mime_type: string | null
+          user_id: string
+        }
+        Insert: {
+          client_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          mime_type?: string | null
+          user_id: string
+        }
+        Update: {
+          client_id?: string | null
+          contract_id?: string | null
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          mime_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_files_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_files_contract_id_fkey"
+            columns: ["contract_id"]
             isOneToOne: false
             referencedRelation: "contracts"
             referencedColumns: ["id"]
