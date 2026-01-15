@@ -64,6 +64,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          archived_at: string | null
           avatar_url: string | null
           cep: string | null
           city: string | null
@@ -83,6 +84,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          archived_at?: string | null
           avatar_url?: string | null
           cep?: string | null
           city?: string | null
@@ -102,6 +104,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          archived_at?: string | null
           avatar_url?: string | null
           cep?: string | null
           city?: string | null
