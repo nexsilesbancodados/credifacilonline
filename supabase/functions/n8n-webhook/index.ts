@@ -662,6 +662,77 @@ serve(async (req) => {
       );
     }
 
+    // Action: send_whatsapp - Envia mensagem via Evolution API
+    if (action === "send_whatsapp") {
+      const { phone, message } = body;
+      
+      if (!phone || !message) {
+        return new Response(
+          JSON.stringify({ success: false, message: "phone e message são obrigatórios" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const evolutionUrl = "https://credifacil-evolution-api.uqxoid.easypanel.host";
+      const evolutionInstance = "credifacil";
+      const evolutionApiKey = "BB8F1AB90F66-48A6-897C-B092EBFCEA82";
+
+      // Limpar telefone e garantir formato correto
+      const cleanPhone = phone.replace(/\D/g, "");
+      const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+
+      try {
+        const evoResponse = await fetch(
+          `${evolutionUrl}/message/sendText/${evolutionInstance}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: evolutionApiKey,
+            },
+            body: JSON.stringify({
+              number: formattedPhone,
+              text: message,
+            }),
+          }
+        );
+
+        const evoData = await evoResponse.json();
+
+        if (!evoResponse.ok) {
+          console.error("Evolution API error:", evoData);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              message: "Erro ao enviar mensagem via Evolution API",
+              error: evoData
+            }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Mensagem enviada com sucesso",
+            phone: formattedPhone,
+            evolution_response: evoData
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (evoError) {
+        console.error("Evolution API fetch error:", evoError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: "Erro de conexão com Evolution API",
+            error: evoError instanceof Error ? evoError.message : "Unknown error"
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         error: "Invalid action",
@@ -674,7 +745,8 @@ serve(async (req) => {
           "get_renegotiation_options",
           "escalate_to_human",
           "get_pending_by_tier",
-          "get_conversation_history"
+          "get_conversation_history",
+          "send_whatsapp"
         ],
       }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
