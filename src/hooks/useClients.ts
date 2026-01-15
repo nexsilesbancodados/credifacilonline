@@ -22,6 +22,7 @@ export interface Client {
   created_at: string;
   updated_at: string;
   archived_at: string | null;
+  collector_id: string | null;
 }
 
 export interface CreateClientData {
@@ -52,8 +53,7 @@ export function useClients() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      // Cast to include archived_at
-      return data as (Client & { archived_at: string | null })[];
+      return data as Client[];
     },
     enabled: !!user,
   });
