@@ -4,6 +4,7 @@ import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { PortfolioHealthChart } from "@/components/dashboard/PortfolioHealthChart";
 import { OverdueList } from "@/components/dashboard/OverdueList";
 import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
+import { GoalsDashboard } from "@/components/dashboard/GoalsDashboard";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Sparkles, Loader2 } from "lucide-react";
@@ -72,6 +73,11 @@ const Dashboard = () => {
             <PortfolioHealthChart 
               data={dashboardStats?.clientsByStatus || { ativo: 0, atraso: 0, quitado: 0 }}
             />
+          </div>
+
+          {/* Goals Dashboard */}
+          <div className="mt-8">
+            <GoalsDashboard />
           </div>
 
           {/* Overdue List */}
