@@ -44,15 +44,15 @@ const NovoContrato = () => {
     city: "",
     state: "",
     // Contract data
-    capital: 10000,
-    interestRate: 10,
-    installments: 12,
-    installmentValue: 0,
+    capital: "" as unknown as number,
+    interestRate: "" as unknown as number,
+    installments: "" as unknown as number,
+    installmentValue: "" as unknown as number,
     frequency: "mensal",
     dailyType: "seg-seg", // seg-seg, seg-sex, seg-sab
     startDate: "",
     firstDueDate: "",
-    paidInstallments: 0,
+    paidInstallments: "" as unknown as number,
   });
 
   // CEP lookup function
@@ -237,11 +237,12 @@ const NovoContrato = () => {
                 </label>
                 <input
                   type="number"
-                  value={formData.capital}
+                  value={formData.capital === 0 ? "" : formData.capital}
                   onChange={(e) =>
-                    setFormData({ ...formData, capital: Number(e.target.value) })
+                    setFormData({ ...formData, capital: e.target.value === "" ? "" as unknown as number : Number(e.target.value) })
                   }
-                  className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="0"
+                  className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
 
@@ -252,14 +253,15 @@ const NovoContrato = () => {
                   </label>
                   <input
                     type="number"
-                    value={formData.interestRate}
+                    value={formData.interestRate === 0 ? "" : formData.interestRate}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        interestRate: Number(e.target.value),
+                        interestRate: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
                       })
                     }
-                    className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="0"
+                    className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               ) : (
@@ -269,14 +271,15 @@ const NovoContrato = () => {
                   </label>
                   <input
                     type="number"
-                    value={formData.installmentValue}
+                    value={formData.installmentValue === 0 ? "" : formData.installmentValue}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        installmentValue: Number(e.target.value),
+                        installmentValue: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
                       })
                     }
-                    className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="0"
+                    className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               )}
@@ -287,14 +290,15 @@ const NovoContrato = () => {
                 </label>
                 <input
                   type="number"
-                  value={formData.installments}
+                  value={formData.installments === 0 ? "" : formData.installments}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      installments: Number(e.target.value),
+                      installments: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
                     })
                   }
-                  className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="0"
+                  className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
@@ -608,16 +612,17 @@ const NovoContrato = () => {
                 </label>
                 <input
                   type="number"
-                  value={formData.paidInstallments}
+                  value={formData.paidInstallments === 0 ? "" : formData.paidInstallments}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      paidInstallments: Number(e.target.value),
+                      paidInstallments: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
                     })
                   }
                   min={0}
-                  max={formData.installments - 1}
-                  className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  max={formData.installments ? Number(formData.installments) - 1 : undefined}
+                  placeholder="0"
+                  className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
             </div>
