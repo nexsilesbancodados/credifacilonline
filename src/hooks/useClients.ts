@@ -52,7 +52,8 @@ export function useClients() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Client[];
+      // Cast to include archived_at
+      return data as (Client & { archived_at: string | null })[];
     },
     enabled: !!user,
   });

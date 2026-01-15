@@ -14,7 +14,7 @@ import {
   Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { usePendingInstallments, useInstallments } from "@/hooks/useContracts";
+import { usePendingInstallments } from "@/hooks/useContracts";
 import { format, isToday, isBefore, isAfter, addDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -49,7 +49,6 @@ const MesaCobranca = () => {
   const [activeTab, setActiveTab] = useState<TabType>("overdue");
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const { data: pendingInstallments, isLoading } = usePendingInstallments();
-  const { payInstallment, isPaying } = useInstallments();
   const navigate = useNavigate();
   const [paymentDialog, setPaymentDialog] = useState<{
     open: boolean;
@@ -108,13 +107,8 @@ const MesaCobranca = () => {
     setPaymentDialog({ open: true, installment });
   };
 
-  const confirmPayment = (amountPaid: number) => {
-    if (paymentDialog.installment) {
-      payInstallment({
-        installmentId: paymentDialog.installment.id,
-        amountPaid,
-        clientId: paymentDialog.installment.client_id,
-      });
+  const handlePaymentClose = (open: boolean) => {
+    if (!open) {
       setPaymentDialog({ open: false, installment: null });
     }
   };
@@ -320,7 +314,7 @@ const MesaCobranca = () => {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handlePayment(item)}
-                        disabled={isPaying}
+                        disabled={paymentDialog.open}
                         className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/20 text-success hover:bg-success/30 transition-colors disabled:opacity-50"
                         title="Registrar pagamento"
                       >
@@ -403,9 +397,10 @@ const MesaCobranca = () => {
       {/* Payment Dialog */}
       <PaymentDialog
         open={paymentDialog.open}
-        onOpenChange={(open) => setPaymentDialog({ open, installment: null })}
+        onOpenChange={handlePaymentClose}
         installment={paymentDialog.installment}
-        onConfirm={confirmPayment}
+        clientName={paymentDialog.installment?.clients?.name}
+        clientId={paymentDialog.installment?.client_id}
       />
     </MainLayout>
   );

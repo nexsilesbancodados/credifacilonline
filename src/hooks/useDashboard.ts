@@ -36,10 +36,11 @@ export function useDashboardStats() {
 
       if (contractsError) throw contractsError;
 
-      // Get all clients
+      // Get all clients (excluding archived)
       const { data: clients, error: clientsError } = await supabase
         .from("clients")
-        .select("status");
+        .select("status, archived_at")
+        .is("archived_at", null);
 
       if (clientsError) throw clientsError;
 
