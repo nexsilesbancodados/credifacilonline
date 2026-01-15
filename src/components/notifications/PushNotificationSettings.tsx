@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { 
   Bell, 
   BellOff, 
@@ -17,7 +18,10 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  Send
+  Send,
+  Volume2,
+  VolumeX,
+  Play
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,6 +40,8 @@ export function PushNotificationSettings() {
     showNotification,
     checkDueInstallments,
   } = usePushNotifications();
+
+  const { testSound } = useNotificationSound();
 
   const handleEnable = async () => {
     setIsEnabling(true);
@@ -72,6 +78,7 @@ export function PushNotificationSettings() {
       await showNotification("🔔 Teste de Notificação", {
         body: "As notificações estão funcionando corretamente!",
         tag: "test",
+        soundType: 'alert',
       });
       toast({
         title: "Notificação enviada!",
@@ -88,6 +95,10 @@ export function PushNotificationSettings() {
       title: "Verificação concluída",
       description: "Vencimentos verificados. Notificações enviadas se necessário.",
     });
+  };
+
+  const handleTestSound = (type: 'alert' | 'warning' | 'urgent' | 'success') => {
+    testSound(type);
   };
 
   if (!isSupported) {
@@ -219,6 +230,80 @@ export function PushNotificationSettings() {
           {/* Preferences (only show when enabled) */}
           {preferences.enabled && permission === 'granted' && (
             <>
+              <Separator />
+
+              {/* Sound Settings */}
+              <div className="space-y-4">
+                <h4 className="font-semibold flex items-center gap-2">
+                  {preferences.soundEnabled ? (
+                    <Volume2 className="w-4 h-4 text-primary" />
+                  ) : (
+                    <VolumeX className="w-4 h-4 text-muted-foreground" />
+                  )}
+                  Som das Notificações
+                </h4>
+                
+                <div className="flex items-center justify-between p-3 rounded-lg bg-background/50">
+                  <div className="flex items-center gap-3">
+                    <Volume2 className="w-4 h-4 text-primary" />
+                    <div>
+                      <p className="font-medium text-sm">Ativar Sons</p>
+                      <p className="text-xs text-muted-foreground">
+                        Toca um som ao receber notificações
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={preferences.soundEnabled}
+                    onCheckedChange={(checked) => updatePreferences({ soundEnabled: checked })}
+                  />
+                </div>
+
+                {preferences.soundEnabled && (
+                  <div className="p-3 rounded-lg bg-background/50 space-y-3">
+                    <p className="text-sm font-medium">Testar Sons:</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleTestSound('alert')}
+                        className="gap-1"
+                      >
+                        <Play className="w-3 h-3" />
+                        Alerta
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleTestSound('warning')}
+                        className="gap-1"
+                      >
+                        <Play className="w-3 h-3" />
+                        Aviso
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleTestSound('urgent')}
+                        className="gap-1"
+                      >
+                        <Play className="w-3 h-3" />
+                        Urgente
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleTestSound('success')}
+                        className="gap-1"
+                      >
+                        <Play className="w-3 h-3" />
+                        Sucesso
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Separator />
               
               <div className="space-y-4">

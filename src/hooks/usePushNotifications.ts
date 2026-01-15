@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotificationSound } from './useNotificationSound';
 
 interface NotificationPreferences {
   enabled: boolean;
@@ -8,6 +9,7 @@ interface NotificationPreferences {
   dueTomorrow: boolean;
   overdue: boolean;
   payments: boolean;
+  soundEnabled: boolean;
 }
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -16,10 +18,12 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   dueTomorrow: true,
   overdue: true,
   payments: true,
+  soundEnabled: true,
 };
 
 export function usePushNotifications() {
   const { user } = useAuth();
+  const { playSound } = useNotificationSound();
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
@@ -76,7 +80,7 @@ export function usePushNotifications() {
     }
   }, [isSupported, registerServiceWorker]);
 
-  // Show a local notification
+  // Show a local notification with optional sound
   const showNotification = useCallback(async (
     title: string,
     options?: {
@@ -84,11 +88,17 @@ export function usePushNotifications() {
       tag?: string;
       data?: Record<string, unknown>;
       requireInteraction?: boolean;
+      soundType?: 'alert' | 'success' | 'warning' | 'urgent';
     }
   ) => {
     if (permission !== 'granted') return false;
 
     try {
+      // Play sound if enabled
+      if (preferences.soundEnabled) {
+        playSound(options?.soundType || 'alert');
+      }
+
       const registration = await navigator.serviceWorker.ready;
       await registration.showNotification(title, {
         body: options?.body,
@@ -103,7 +113,7 @@ export function usePushNotifications() {
       console.error('Error showing notification:', error);
       return false;
     }
-  }, [permission]);
+  }, [permission, preferences.soundEnabled, playSound]);
 
   // Check for due installments and show notifications
   const checkDueInstallments = useCallback(async () => {
@@ -135,6 +145,7 @@ export function usePushNotifications() {
             tag: 'due-today',
             data: { type: 'due_today' },
             requireInteraction: true,
+            soundType: 'warning',
           });
         }
       }
@@ -153,6 +164,7 @@ export function usePushNotifications() {
             body: `${dueTomorrow.length} parcela(s) vencem amanhã`,
             tag: 'due-tomorrow',
             data: { type: 'due_tomorrow' },
+            soundType: 'alert',
           });
         }
       }
@@ -172,6 +184,7 @@ export function usePushNotifications() {
             tag: 'overdue',
             data: { type: 'overdue' },
             requireInteraction: true,
+            soundType: 'urgent',
           });
         }
       }
