@@ -65,19 +65,38 @@ const CobradorExterno = () => {
       }
 
       try {
-        // Fetch collector by token (public query using service role would be needed in production)
-        // For now, we'll use a function-based approach
-        const { data: collectorResult, error: collectorError } = await supabase
-          .from("collectors")
-          .select("id, name, is_active, operator_id")
-          .eq("access_token", token)
-          .single();
+        // Create a custom fetch function with the token header
+        const fetchWithToken = async (table: string, query: string) => {
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/${table}?${query}`,
+            {
+              headers: {
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                "x-collector-token": token,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+          if (!response.ok) {
+            throw new Error(`Failed to fetch ${table}`);
+          }
+          return response.json();
+        };
 
-        if (collectorError || !collectorResult) {
+        // Fetch collector by token
+        const collectors = await fetchWithToken(
+          "collectors",
+          `access_token=eq.${token}&select=id,name,is_active,operator_id`
+        );
+
+        if (!collectors || collectors.length === 0) {
           setError("Cobrador não encontrado ou link inválido");
           setIsLoading(false);
           return;
         }
+
+        const collectorResult = collectors[0];
 
         if (!collectorResult.is_active) {
           setError("Este cobrador está desativado");
@@ -86,25 +105,18 @@ const CobradorExterno = () => {
         }
 
         // Fetch clients assigned to this collector
-        const { data: clientsData, error: clientsError } = await supabase
-          .from("clients")
-          .select("id, name, whatsapp, street, number, neighborhood, city, state, cep")
-          .eq("collector_id", collectorResult.id)
-          .is("archived_at", null);
-
-        if (clientsError) throw clientsError;
+        const clientsData = await fetchWithToken(
+          "clients",
+          `collector_id=eq.${collectorResult.id}&archived_at=is.null&select=id,name,whatsapp,street,number,neighborhood,city,state,cep`
+        );
 
         const clientsWithInstallments: ClientData[] = [];
 
         for (const client of clientsData || []) {
-          const { data: installmentsData, error: installmentsError } = await supabase
-            .from("installments")
-            .select("id, amount_due, due_date, status, installment_number, total_installments")
-            .eq("client_id", client.id)
-            .in("status", ["Pendente", "Atrasado"])
-            .order("due_date", { ascending: true });
-
-          if (installmentsError) throw installmentsError;
+          const installmentsData = await fetchWithToken(
+            "installments",
+            `client_id=eq.${client.id}&status=in.(Pendente,Atrasado)&order=due_date.asc&select=id,amount_due,due_date,status,installment_number,total_installments`
+          );
 
           if (installmentsData && installmentsData.length > 0) {
             clientsWithInstallments.push({
