@@ -129,6 +129,7 @@ const ClienteDossie = () => {
       number: inst.installment_number,
       dueDate: inst.due_date,
       amount: Number(inst.amount_due),
+      amountPaid: Number(inst.amount_paid) || 0,
       status: inst.status as "Pago" | "Pendente" | "Atrasado" | "Agendado",
       paymentDate: inst.payment_date,
       fine: Number(inst.fine) || 0,
