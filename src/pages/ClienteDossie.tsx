@@ -22,6 +22,7 @@ import {
   Download,
   Loader2,
   FolderOpen,
+  Banknote,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
@@ -29,6 +30,7 @@ import { InstallmentSchedule } from "@/components/client/InstallmentSchedule";
 import { ActivityHistory } from "@/components/client/ActivityHistory";
 import { RenegotiationDialog } from "@/components/client/RenegotiationDialog";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
+import { BulkPaymentDialog } from "@/components/client/BulkPaymentDialog";
 import { AIMessageDialog } from "@/components/client/AIMessageDialog";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
 import { DocumentUpload } from "@/components/documents/DocumentUpload";
@@ -48,6 +50,7 @@ const ClienteDossie = () => {
   const [activeTab, setActiveTab] = useState<"parcelas" | "historico" | "documentos">("parcelas");
   const [isRenegotiationOpen, setIsRenegotiationOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isBulkPaymentOpen, setIsBulkPaymentOpen] = useState(false);
   const [isAIMessageOpen, setIsAIMessageOpen] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
@@ -259,6 +262,15 @@ const ClienteDossie = () => {
             >
               <DollarSign className="h-4 w-4" />
               Registrar Pagamento
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsBulkPaymentOpen(true)}
+              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <Banknote className="h-4 w-4" />
+              Pagamento Parcial
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -527,6 +539,14 @@ const ClienteDossie = () => {
         onOpenChange={setIsPaymentOpen}
         installment={selectedInstallment}
         clientName={client.name}
+      />
+
+      <BulkPaymentDialog
+        open={isBulkPaymentOpen}
+        onOpenChange={setIsBulkPaymentOpen}
+        installments={clientInstallments}
+        clientName={client.name}
+        clientId={client.id}
       />
       
       <AIMessageDialog 
