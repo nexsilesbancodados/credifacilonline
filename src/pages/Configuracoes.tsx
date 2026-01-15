@@ -14,6 +14,7 @@ import { PushNotificationSettings } from "@/components/notifications/PushNotific
 import { CollectionRules } from "@/components/settings/CollectionRules";
 import { MessageTemplates } from "@/components/templates/MessageTemplates";
 import { ExportData } from "@/components/backup/ExportData";
+import { ImportData } from "@/components/backup/ImportData";
 import {
   User,
   Building2,
@@ -424,8 +425,10 @@ const Configuracoes = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
             >
               <ExportData />
+              <ImportData />
             </motion.div>
           </TabsContent>
 
