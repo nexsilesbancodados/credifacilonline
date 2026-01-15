@@ -1,19 +1,21 @@
+import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { PortfolioHealthChart } from "@/components/dashboard/PortfolioHealthChart";
 import { OverdueList } from "@/components/dashboard/OverdueList";
-import { AnalyticsCards } from "@/components/dashboard/AnalyticsCards";
+import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
-import { useAnalyticsStats } from "@/hooks/useAnalyticsStats";
+import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
+  const [period, setPeriod] = useState<PeriodFilter>("all");
   const { profile } = useAuth();
   const { data: dashboardStats, isLoading: isLoadingDashboard } = useDashboardStats();
-  const analyticsStats = useAnalyticsStats();
+  const analyticsStats = useAnalyticsStats(period);
 
   const isLoading = isLoadingDashboard || analyticsStats.isLoading;
 
@@ -49,7 +51,11 @@ const Dashboard = () => {
         </div>
       </motion.div>
 
-      {/* KPI Cards */}
+      {/* Period Filter & KPI Cards */}
+      <div className="mb-6">
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </div>
+
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />

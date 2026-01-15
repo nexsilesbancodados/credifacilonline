@@ -26,8 +26,8 @@ import { format, subMonths, startOfMonth, endOfMonth, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale";
 import { useMemo, useState } from "react";
 import { ExportReports } from "@/components/reports/ExportReports";
-import { AnalyticsCards } from "@/components/dashboard/AnalyticsCards";
-import { useAnalyticsStats } from "@/hooks/useAnalyticsStats";
+import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
+import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -74,11 +74,12 @@ const reports = [
 
 const Analises = () => {
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [period, setPeriod] = useState<PeriodFilter>("all");
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
   const { clients, isLoading: isLoadingClients } = useClients();
-  const analyticsStats = useAnalyticsStats();
+  const analyticsStats = useAnalyticsStats(period);
 
   const isLoading = isLoadingContracts || isLoadingInstallments || isLoadingTreasury || isLoadingClients;
 
@@ -212,6 +213,11 @@ const Analises = () => {
 
       {!isLoading && (
         <>
+          {/* Period Filter */}
+          <div className="mb-6">
+            <PeriodSelector value={period} onChange={setPeriod} />
+          </div>
+
           {/* Full Analytics Cards */}
           <AnalyticsCards stats={analyticsStats} variant="full" />
 
