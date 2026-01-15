@@ -5,6 +5,8 @@ import { PortfolioHealthChart } from "@/components/dashboard/PortfolioHealthChar
 import { OverdueList } from "@/components/dashboard/OverdueList";
 import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
 import { GoalsDashboard } from "@/components/dashboard/GoalsDashboard";
+import { ForecastChart } from "@/components/dashboard/ForecastChart";
+import { OnboardingTour, useOnboardingTour } from "@/components/tour/OnboardingTour";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Sparkles, Loader2 } from "lucide-react";
@@ -17,6 +19,7 @@ const Dashboard = () => {
   const { profile } = useAuth();
   const { data: dashboardStats, isLoading: isLoadingDashboard } = useDashboardStats();
   const analyticsStats = useAnalyticsStats(period);
+  const { isOpen: isTourOpen, setIsOpen: setTourOpen } = useOnboardingTour();
 
   const isLoading = isLoadingDashboard || analyticsStats.isLoading;
 
@@ -75,6 +78,11 @@ const Dashboard = () => {
             />
           </div>
 
+          {/* Forecast Chart */}
+          <div className="mt-8">
+            <ForecastChart />
+          </div>
+
           {/* Goals Dashboard */}
           <div className="mt-8">
             <GoalsDashboard />
@@ -86,6 +94,13 @@ const Dashboard = () => {
           </div>
         </>
       )}
+      
+      {/* Onboarding Tour */}
+      <OnboardingTour 
+        isOpen={isTourOpen} 
+        onClose={() => setTourOpen(false)} 
+        onComplete={() => setTourOpen(false)} 
+      />
     </MainLayout>
   );
 };

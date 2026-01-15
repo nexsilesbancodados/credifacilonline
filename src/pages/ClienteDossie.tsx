@@ -20,78 +20,22 @@ import {
   User,
   Edit,
   Download,
+  Loader2,
+  FolderOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { InstallmentSchedule } from "@/components/client/InstallmentSchedule";
 import { ActivityHistory } from "@/components/client/ActivityHistory";
 import { RenegotiationDialog } from "@/components/client/RenegotiationDialog";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { AIMessageDialog } from "@/components/client/AIMessageDialog";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
-
-// Mock data for demonstration
-const mockClient = {
-  id: "1",
-  name: "Maria Santos",
-  cpf: "123.456.789-00",
-  email: "maria@email.com",
-  whatsApp: "(11) 98765-4321",
-  phone: "(11) 98765-4321",
-  avatar: "MS",
-  status: "Ativo" as const,
-  createdAt: "2024-01-15",
-  address: {
-    street: "Rua das Flores",
-    number: "123",
-    complement: "Apto 45",
-    neighborhood: "Centro",
-    city: "São Paulo",
-    state: "SP",
-    cep: "01234-567",
-  },
-  financialSummary: {
-    totalLoan: 15000,
-    totalProfit: 3000,
-    totalAmount: 18000,
-    paidAmount: 7500,
-    pendingAmount: 10500,
-    installmentValue: 1500,
-    totalInstallments: 12,
-    paidInstallments: 5,
-    interestRate: 10,
-  },
-  contract: {
-    id: "CTR-001",
-    startDate: "2024-01-15",
-    frequency: "mensal",
-    firstDueDate: "2024-02-15",
-  },
-};
-
-const mockInstallments = [
-  { id: "1", number: 1, dueDate: "2024-02-15", amount: 1500, status: "Pago" as const, paymentDate: "2024-02-14", fine: 0 },
-  { id: "2", number: 2, dueDate: "2024-03-15", amount: 1500, status: "Pago" as const, paymentDate: "2024-03-15", fine: 0 },
-  { id: "3", number: 3, dueDate: "2024-04-15", amount: 1500, status: "Pago" as const, paymentDate: "2024-04-16", fine: 15 },
-  { id: "4", number: 4, dueDate: "2024-05-15", amount: 1500, status: "Pago" as const, paymentDate: "2024-05-14", fine: 0 },
-  { id: "5", number: 5, dueDate: "2024-06-15", amount: 1500, status: "Pago" as const, paymentDate: "2024-06-15", fine: 0 },
-  { id: "6", number: 6, dueDate: "2024-07-15", amount: 1500, status: "Atrasado" as const, paymentDate: null, fine: 150 },
-  { id: "7", number: 7, dueDate: "2024-08-15", amount: 1500, status: "Pendente" as const, paymentDate: null, fine: 0 },
-  { id: "8", number: 8, dueDate: "2024-09-15", amount: 1500, status: "Agendado" as const, paymentDate: null, fine: 0 },
-  { id: "9", number: 9, dueDate: "2024-10-15", amount: 1500, status: "Agendado" as const, paymentDate: null, fine: 0 },
-  { id: "10", number: 10, dueDate: "2024-11-15", amount: 1500, status: "Agendado" as const, paymentDate: null, fine: 0 },
-  { id: "11", number: 11, dueDate: "2024-12-15", amount: 1500, status: "Agendado" as const, paymentDate: null, fine: 0 },
-  { id: "12", number: 12, dueDate: "2025-01-15", amount: 1500, status: "Agendado" as const, paymentDate: null, fine: 0 },
-];
-
-const mockActivities = [
-  { id: "1", type: "payment" as const, date: "2024-06-15", description: "Pagamento da parcela 5 recebido", amount: 1500 },
-  { id: "2", type: "message" as const, date: "2024-06-20", description: "Mensagem de cobrança enviada via WhatsApp" },
-  { id: "3", type: "call" as const, date: "2024-06-25", description: "Ligação de cobrança realizada" },
-  { id: "4", type: "payment" as const, date: "2024-05-14", description: "Pagamento da parcela 4 recebido", amount: 1500 },
-  { id: "5", type: "renegotiation" as const, date: "2024-03-10", description: "Proposta de renegociação rejeitada" },
-  { id: "6", type: "contract" as const, date: "2024-01-15", description: "Contrato criado - 12 parcelas de R$ 1.500,00", amount: 18000 },
-];
+import { DocumentUpload } from "@/components/documents/DocumentUpload";
+import { DocumentList } from "@/components/documents/DocumentList";
+import { useClients } from "@/hooks/useClients";
+import { useContracts, useInstallments } from "@/hooks/useContracts";
+import { useActivityHistory } from "@/hooks/useActivityHistory";
 
 const statusStyles = {
   Ativo: "bg-success/20 text-success border-success/30",
@@ -101,18 +45,168 @@ const statusStyles = {
 
 const ClienteDossie = () => {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState<"parcelas" | "historico">("parcelas");
+  const [activeTab, setActiveTab] = useState<"parcelas" | "historico" | "documentos">("parcelas");
   const [isRenegotiationOpen, setIsRenegotiationOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [isAIMessageOpen, setIsAIMessageOpen] = useState(false);
-  const [selectedInstallment, setSelectedInstallment] = useState<typeof mockInstallments[0] | null>(null);
+  const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
+  const [refreshDocuments, setRefreshDocuments] = useState(0);
 
-  const client = mockClient; // In real app, fetch by id
-  const progress = Math.round((client.financialSummary.paidInstallments / client.financialSummary.totalInstallments) * 100);
+  // Fetch real data
+  const { clients, isLoading: isLoadingClients } = useClients();
+  const { contracts, isLoading: isLoadingContracts } = useContracts();
+  const { installments, isLoading: isLoadingInstallments } = useInstallments();
+  const { data: activityData, isLoading: isLoadingActivity } = useActivityHistory("all", "", 1, 50);
 
-  const handlePayment = (installment: typeof mockInstallments[0]) => {
+  const isLoading = isLoadingClients || isLoadingContracts || isLoadingInstallments;
+
+  // Find client by ID
+  const client = useMemo(() => {
+    return clients.find(c => c.id === id);
+  }, [clients, id]);
+
+  // Get client contracts
+  const clientContracts = useMemo(() => {
+    if (!client) return [];
+    return contracts.filter(c => c.client_id === client.id);
+  }, [contracts, client]);
+
+  // Get active contract
+  const activeContract = useMemo(() => {
+    return clientContracts.find(c => c.status === "Ativo" || c.status === "Atraso") || clientContracts[0];
+  }, [clientContracts]);
+
+  // Get client installments
+  const clientInstallments = useMemo(() => {
+    if (!activeContract) return [];
+    return installments
+      .filter(i => i.contract_id === activeContract.id)
+      .sort((a, b) => a.installment_number - b.installment_number);
+  }, [installments, activeContract]);
+
+  // Calculate financial summary
+  const financialSummary = useMemo(() => {
+    if (!activeContract || clientInstallments.length === 0) {
+      return {
+        totalLoan: 0,
+        totalProfit: 0,
+        totalAmount: 0,
+        paidAmount: 0,
+        pendingAmount: 0,
+        installmentValue: 0,
+        totalInstallments: 0,
+        paidInstallments: 0,
+        interestRate: 0,
+      };
+    }
+
+    const paidInstallments = clientInstallments.filter(i => i.status === "Pago");
+    const pendingInstallments = clientInstallments.filter(i => i.status !== "Pago");
+
+    const paidAmount = paidInstallments.reduce((sum, i) => sum + (Number(i.amount_paid) || Number(i.amount_due)), 0);
+    const pendingAmount = pendingInstallments.reduce((sum, i) => sum + Number(i.amount_due), 0);
+
+    return {
+      totalLoan: Number(activeContract.capital),
+      totalProfit: Number(activeContract.total_profit),
+      totalAmount: Number(activeContract.total_amount),
+      paidAmount,
+      pendingAmount,
+      installmentValue: Number(activeContract.installment_value),
+      totalInstallments: activeContract.installments,
+      paidInstallments: paidInstallments.length,
+      interestRate: Number(activeContract.interest_rate),
+    };
+  }, [activeContract, clientInstallments]);
+
+  // Map installments to UI format
+  const mappedInstallments = useMemo(() => {
+    return clientInstallments.map(inst => ({
+      id: inst.id,
+      number: inst.installment_number,
+      dueDate: inst.due_date,
+      amount: Number(inst.amount_due),
+      status: inst.status as "Pago" | "Pendente" | "Atrasado" | "Agendado",
+      paymentDate: inst.payment_date,
+      fine: Number(inst.fine) || 0,
+    }));
+  }, [clientInstallments]);
+
+  // Map activities
+  const activities = useMemo(() => {
+    if (!activityData?.activities) return [];
+    return activityData.activities
+      .filter(a => a.client_id === id)
+      .slice(0, 20)
+      .map(a => ({
+        id: a.id,
+        type: a.type as "payment" | "message" | "call" | "renegotiation" | "contract",
+        date: a.created_at,
+        description: a.description,
+        amount: a.metadata?.amount as number | undefined,
+      }));
+  }, [activityData, id]);
+
+  const progress = financialSummary.totalInstallments > 0 
+    ? Math.round((financialSummary.paidInstallments / financialSummary.totalInstallments) * 100) 
+    : 0;
+
+  const handlePayment = (installment: any) => {
     setSelectedInstallment(installment);
     setIsPaymentOpen(true);
+  };
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  if (!client) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center py-24">
+          <User className="h-16 w-16 text-muted-foreground mb-4" />
+          <h2 className="text-xl font-semibold text-foreground mb-2">Cliente não encontrado</h2>
+          <p className="text-muted-foreground mb-4">O cliente solicitado não foi encontrado.</p>
+          <Link to="/clientes" className="text-primary hover:underline">
+            Voltar para Clientes
+          </Link>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const clientForDialogs = {
+    id: client.id,
+    name: client.name,
+    cpf: client.cpf,
+    email: client.email || "",
+    whatsApp: client.whatsapp || "",
+    phone: client.whatsapp || "",
+    avatar: client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase(),
+    status: client.status as "Ativo" | "Atraso" | "Quitado",
+    createdAt: client.created_at,
+    address: {
+      street: client.street || "",
+      number: client.number || "",
+      complement: client.complement || "",
+      neighborhood: client.neighborhood || "",
+      city: client.city || "",
+      state: client.state || "",
+      cep: client.cep || "",
+    },
+    financialSummary,
+    contract: activeContract ? {
+      id: activeContract.id.slice(0, 8),
+      startDate: activeContract.start_date,
+      frequency: activeContract.frequency,
+      firstDueDate: activeContract.first_due_date,
+    } : undefined,
   };
 
   return (
@@ -135,18 +229,18 @@ const ClienteDossie = () => {
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-gold font-display text-xl font-bold text-primary-foreground">
-              {client.avatar}
+              {clientForDialogs.avatar}
             </div>
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="font-display text-2xl font-bold text-foreground">
                   {client.name}
                 </h1>
-                <ClientScoreBadge clientId={id || "1"} size="md" />
+                <ClientScoreBadge clientId={id || ""} size="md" />
                 <span
                   className={cn(
                     "rounded-full border px-3 py-1 text-xs font-medium",
-                    statusStyles[client.status]
+                    statusStyles[client.status as keyof typeof statusStyles] || statusStyles.Ativo
                   )}
                 >
                   {client.status}
@@ -206,19 +300,19 @@ const ClienteDossie = () => {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
                   <Phone className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <span className="text-foreground">{client.phone}</span>
+                <span className="text-foreground">{client.whatsapp || "Não informado"}</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
                   <MessageCircle className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <span className="text-foreground">{client.whatsApp}</span>
+                <span className="text-foreground">{client.whatsapp || "Não informado"}</span>
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
                   <Mail className="h-4 w-4 text-muted-foreground" />
                 </div>
-                <span className="text-foreground">{client.email}</span>
+                <span className="text-foreground">{client.email || "Não informado"}</span>
               </div>
             </div>
           </div>
@@ -233,47 +327,55 @@ const ClienteDossie = () => {
                 <MapPin className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="text-foreground">
-                <p>{client.address.street}, {client.address.number}</p>
-                {client.address.complement && <p>{client.address.complement}</p>}
-                <p>{client.address.neighborhood}</p>
-                <p>{client.address.city} - {client.address.state}</p>
-                <p className="text-muted-foreground">CEP: {client.address.cep}</p>
+                {client.street ? (
+                  <>
+                    <p>{client.street}, {client.number}</p>
+                    {client.complement && <p>{client.complement}</p>}
+                    <p>{client.neighborhood}</p>
+                    <p>{client.city} - {client.state}</p>
+                    <p className="text-muted-foreground">CEP: {client.cep}</p>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">Endereço não informado</p>
+                )}
               </div>
             </div>
           </div>
 
           {/* Contract Info */}
-          <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5">
-            <h3 className="mb-4 font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Dados do Contrato
-            </h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Nº Contrato</span>
-                <span className="font-medium text-foreground">{client.contract.id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Data Início</span>
-                <span className="font-medium text-foreground">
-                  {new Date(client.contract.startDate).toLocaleDateString("pt-BR")}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Frequência</span>
-                <span className="font-medium text-foreground capitalize">{client.contract.frequency}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Taxa de Juros</span>
-                <span className="font-medium text-primary">{client.financialSummary.interestRate}% a.m.</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Cliente desde</span>
-                <span className="font-medium text-foreground">
-                  {new Date(client.createdAt).toLocaleDateString("pt-BR")}
-                </span>
+          {activeContract && (
+            <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5">
+              <h3 className="mb-4 font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Dados do Contrato
+              </h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Nº Contrato</span>
+                  <span className="font-medium text-foreground">{activeContract.id.slice(0, 8)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Data Início</span>
+                  <span className="font-medium text-foreground">
+                    {new Date(activeContract.start_date).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Frequência</span>
+                  <span className="font-medium text-foreground capitalize">{activeContract.frequency}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Taxa de Juros</span>
+                  <span className="font-medium text-primary">{activeContract.interest_rate}% a.m.</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cliente desde</span>
+                  <span className="font-medium text-foreground">
+                    {new Date(client.created_at).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </motion.div>
 
         {/* Right Column - Financial Summary & Tabs */}
@@ -296,7 +398,7 @@ const ClienteDossie = () => {
                   <span className="text-xs text-muted-foreground">Capital</span>
                 </div>
                 <p className="font-display text-lg font-bold text-foreground">
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.totalLoan)}
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.totalLoan)}
                 </p>
               </div>
               
@@ -306,7 +408,7 @@ const ClienteDossie = () => {
                   <span className="text-xs text-muted-foreground">Lucro</span>
                 </div>
                 <p className="font-display text-lg font-bold text-success">
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.totalProfit)}
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.totalProfit)}
                 </p>
               </div>
               
@@ -316,7 +418,7 @@ const ClienteDossie = () => {
                   <span className="text-xs text-muted-foreground">Pago</span>
                 </div>
                 <p className="font-display text-lg font-bold text-primary">
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.paidAmount)}
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.paidAmount)}
                 </p>
               </div>
               
@@ -326,7 +428,7 @@ const ClienteDossie = () => {
                   <span className="text-xs text-muted-foreground">Pendente</span>
                 </div>
                 <p className="font-display text-lg font-bold text-destructive">
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(client.financialSummary.pendingAmount)}
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.pendingAmount)}
                 </p>
               </div>
             </div>
@@ -336,7 +438,7 @@ const ClienteDossie = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Progresso do Contrato</span>
                 <span className="font-medium text-foreground">
-                  {client.financialSummary.paidInstallments} de {client.financialSummary.totalInstallments} parcelas
+                  {financialSummary.paidInstallments} de {financialSummary.totalInstallments} parcelas
                 </span>
               </div>
               <div className="relative h-3 w-full overflow-hidden rounded-full bg-secondary">
@@ -364,7 +466,7 @@ const ClienteDossie = () => {
                 )}
               >
                 <Calendar className="h-4 w-4" />
-                Cronograma de Parcelas
+                Parcelas
               </button>
               <button
                 onClick={() => setActiveTab("historico")}
@@ -376,18 +478,37 @@ const ClienteDossie = () => {
                 )}
               >
                 <FileText className="h-4 w-4" />
-                Histórico de Atividades
+                Histórico
+              </button>
+              <button
+                onClick={() => setActiveTab("documentos")}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium transition-all",
+                  activeTab === "documentos"
+                    ? "bg-primary/10 text-primary border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
+                )}
+              >
+                <FolderOpen className="h-4 w-4" />
+                Documentos
               </button>
             </div>
 
             <div className="p-4">
-              {activeTab === "parcelas" ? (
+              {activeTab === "parcelas" && (
                 <InstallmentSchedule 
-                  installments={mockInstallments} 
+                  installments={mappedInstallments} 
                   onPayment={handlePayment}
                 />
-              ) : (
-                <ActivityHistory activities={mockActivities} />
+              )}
+              {activeTab === "historico" && (
+                <ActivityHistory activities={activities} />
+              )}
+              {activeTab === "documentos" && (
+                <div className="space-y-4">
+                  <DocumentUpload clientId={id} />
+                  <DocumentList clientId={id} />
+                </div>
               )}
             </div>
           </div>
@@ -398,7 +519,7 @@ const ClienteDossie = () => {
       <RenegotiationDialog 
         open={isRenegotiationOpen} 
         onOpenChange={setIsRenegotiationOpen}
-        client={client}
+        client={clientForDialogs}
       />
       
       <PaymentDialog 
@@ -411,7 +532,7 @@ const ClienteDossie = () => {
       <AIMessageDialog 
         open={isAIMessageOpen} 
         onOpenChange={setIsAIMessageOpen}
-        client={client}
+        client={clientForDialogs}
       />
     </MainLayout>
   );

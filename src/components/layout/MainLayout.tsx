@@ -1,8 +1,10 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Search, Command } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { GlobalSearch, useGlobalSearch } from "@/components/search/GlobalSearch";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -11,6 +13,10 @@ interface MainLayoutProps {
 export function MainLayout({ children }: MainLayoutProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const { isOpen: isSearchOpen, setIsOpen: setSearchOpen } = useGlobalSearch();
+  
+  // Enable keyboard shortcuts
+  useKeyboardShortcuts();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -29,6 +35,9 @@ export function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="flex min-h-screen">
+      {/* Global Search Modal */}
+      <GlobalSearch isOpen={isSearchOpen} onClose={() => setSearchOpen(false)} />
+      
       {/* Mobile menu button */}
       {isMobile && (
         <button
@@ -40,6 +49,20 @@ export function MainLayout({ children }: MainLayoutProps) {
           ) : (
             <Menu className="h-5 w-5 text-foreground" />
           )}
+        </button>
+      )}
+      
+      {/* Search button - Desktop */}
+      {!isMobile && (
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="fixed top-4 right-6 z-50 flex items-center gap-2 h-10 px-4 rounded-xl bg-card border border-border shadow-lg hover:border-primary/50 transition-colors"
+        >
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Buscar...</span>
+          <kbd className="ml-2 flex items-center gap-0.5 rounded border border-border bg-secondary px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+            <Command className="h-3 w-3" />K
+          </kbd>
         </button>
       )}
 

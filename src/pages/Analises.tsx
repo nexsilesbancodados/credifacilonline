@@ -30,6 +30,9 @@ import { ExportReports } from "@/components/reports/ExportReports";
 import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
 import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
 import { DelinquencyChart } from "@/components/dashboard/DelinquencyChart";
+import { PortfolioAgingChart } from "@/components/dashboard/PortfolioAgingChart";
+import { PerformanceMetrics } from "@/components/dashboard/PerformanceMetrics";
+import { ScoreDistributionChart } from "@/components/dashboard/ScoreDistributionChart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -232,6 +235,8 @@ const Analises = () => {
                 <AlertTriangle className="h-4 w-4" />
                 Inadimplência
               </TabsTrigger>
+              <TabsTrigger value="aging">Aging</TabsTrigger>
+              <TabsTrigger value="score">Score</TabsTrigger>
             </TabsList>
 
             <TabsContent value="performance" className="mt-6">
@@ -350,6 +355,15 @@ const Analises = () => {
 
             <TabsContent value="delinquency" className="mt-6">
               <DelinquencyChart />
+            </TabsContent>
+            
+            <TabsContent value="aging" className="mt-6 space-y-6">
+              <PortfolioAgingChart />
+              <PerformanceMetrics />
+            </TabsContent>
+            
+            <TabsContent value="score" className="mt-6">
+              <ScoreDistributionChart />
             </TabsContent>
           </Tabs>
           {riskReturnData.length > 0 && (
