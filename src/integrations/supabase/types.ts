@@ -68,6 +68,7 @@ export type Database = {
           avatar_url: string | null
           cep: string | null
           city: string | null
+          collector_id: string | null
           complement: string | null
           cpf: string
           created_at: string
@@ -88,6 +89,7 @@ export type Database = {
           avatar_url?: string | null
           cep?: string | null
           city?: string | null
+          collector_id?: string | null
           complement?: string | null
           cpf: string
           created_at?: string
@@ -108,6 +110,7 @@ export type Database = {
           avatar_url?: string | null
           cep?: string | null
           city?: string | null
+          collector_id?: string | null
           complement?: string | null
           cpf?: string
           created_at?: string
@@ -123,7 +126,15 @@ export type Database = {
           updated_at?: string
           whatsapp?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_collector_id_fkey"
+            columns: ["collector_id"]
+            isOneToOne: false
+            referencedRelation: "collectors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       collection_logs: {
         Row: {
@@ -222,6 +233,42 @@ export type Database = {
           trigger_days?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      collectors: {
+        Row: {
+          access_token: string
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          operator_id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          operator_id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          operator_id?: string
+          phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
