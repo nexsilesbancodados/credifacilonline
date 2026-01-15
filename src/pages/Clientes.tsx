@@ -1,5 +1,5 @@
 import { MainLayout } from "@/components/layout/MainLayout";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -13,9 +13,16 @@ import {
   ChevronRight,
   Loader2,
   Users,
+  CheckSquare,
+  Square,
+  MessageCircle,
+  Send,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients, Client } from "@/hooks/useClients";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 type Status = "Todos" | "Ativo" | "Atraso" | "Quitado";
 type ViewMode = "grid" | "list";
@@ -32,11 +39,28 @@ const getInitials = (name: string) => {
   return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
 };
 
+const toneOptions = [
+  { value: "amigavel", label: "Amigável", emoji: "😊" },
+  { value: "formal", label: "Formal", emoji: "📋" },
+  { value: "urgente", label: "Urgente", emoji: "⚠️" },
+];
+
 const Clientes = () => {
   const { clients, isLoading } = useClients();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<Status>("Todos");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  
+  // Selection state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  
+  // Bulk action state
+  const [showBulkAction, setShowBulkAction] = useState(false);
+  const [selectedTone, setSelectedTone] = useState("amigavel");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedMessages, setGeneratedMessages] = useState<any[]>([]);
 
   const filters: Status[] = ["Todos", "Ativo", "Atraso", "Quitado"];
 
@@ -49,6 +73,90 @@ const Clientes = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const toggleSelection = (clientId: string) => {
+    const newSelection = new Set(selectedClients);
+    if (newSelection.has(clientId)) {
+      newSelection.delete(clientId);
+    } else {
+      newSelection.add(clientId);
+    }
+    setSelectedClients(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedClients.size === filteredClients.length) {
+      setSelectedClients(new Set());
+    } else {
+      setSelectedClients(new Set(filteredClients.map((c) => c.id)));
+    }
+  };
+
+  const cancelSelection = () => {
+    setSelectionMode(false);
+    setSelectedClients(new Set());
+    setShowBulkAction(false);
+    setGeneratedMessages([]);
+  };
+
+  const generateBulkMessages = async () => {
+    if (selectedClients.size === 0) {
+      toast({
+        title: "Nenhum cliente selecionado",
+        description: "Selecione pelo menos um cliente.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    setGeneratedMessages([]);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("n8n-webhook", {
+        body: {
+          action: "generate_messages",
+          client_ids: Array.from(selectedClients),
+          tone: selectedTone,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      setGeneratedMessages(data.messages || []);
+      setShowBulkAction(true);
+    } catch (error) {
+      console.error("Error generating messages:", error);
+      toast({
+        title: "Erro ao gerar mensagens",
+        description: error instanceof Error ? error.message : "Tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const openWhatsApp = (msg: any) => {
+    if (msg.whatsapp_link) {
+      window.open(msg.whatsapp_link, "_blank");
+    }
+  };
+
+  const openAllWhatsApp = () => {
+    generatedMessages.forEach((msg, index) => {
+      if (msg.whatsapp_link) {
+        setTimeout(() => {
+          window.open(msg.whatsapp_link, "_blank");
+        }, index * 500);
+      }
+    });
+    toast({
+      title: "Abrindo WhatsApp",
+      description: `${generatedMessages.filter((m) => m.whatsapp_link).length} conversas...`,
+    });
+  };
+
   return (
     <MainLayout>
       {/* Header */}
@@ -58,7 +166,7 @@ const Clientes = () => {
         transition={{ duration: 0.5 }}
         className="mb-8"
       >
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">
               Clientes
@@ -68,18 +176,178 @@ const Clientes = () => {
             </p>
           </div>
 
-          <Link to="/contratos/novo">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-3 font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
-            >
-              <Plus className="h-5 w-5" />
-              Novo Cliente
-            </motion.button>
-          </Link>
+          <div className="flex gap-2">
+            {!selectionMode ? (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectionMode(true)}
+                  className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                >
+                  <CheckSquare className="h-4 w-4" />
+                  Selecionar
+                </motion.button>
+                <Link to="/contratos/novo">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-2.5 font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
+                  >
+                    <Plus className="h-5 w-5" />
+                    Novo Cliente
+                  </motion.button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={cancelSelection}
+                  className="flex items-center gap-2 rounded-xl border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-secondary-foreground"
+                >
+                  <X className="h-4 w-4" />
+                  Cancelar
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={toggleSelectAll}
+                  className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary"
+                >
+                  {selectedClients.size === filteredClients.length ? "Desmarcar Todos" : "Selecionar Todos"}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={generateBulkMessages}
+                  disabled={selectedClients.size === 0 || isGenerating}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-gold px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-gold disabled:opacity-50"
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MessageCircle className="h-4 w-4" />
+                  )}
+                  Gerar Cobrança ({selectedClients.size})
+                </motion.button>
+              </>
+            )}
+          </div>
         </div>
       </motion.div>
+
+      {/* Selection Bar */}
+      {selectionMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 flex items-center justify-between rounded-xl bg-primary/10 border border-primary/30 p-3"
+        >
+          <p className="text-sm text-primary">
+            <strong>{selectedClients.size}</strong> cliente(s) selecionado(s)
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Tom:</span>
+            <div className="flex gap-1">
+              {toneOptions.map((tone) => (
+                <button
+                  key={tone.value}
+                  onClick={() => setSelectedTone(tone.value)}
+                  className={cn(
+                    "rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
+                    selectedTone === tone.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                  )}
+                >
+                  {tone.emoji} {tone.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bulk Action Modal */}
+      <AnimatePresence>
+        {showBulkAction && generatedMessages.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          >
+            <div
+              className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+              onClick={() => setShowBulkAction(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative z-10 w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-2xl border border-border/50 bg-card shadow-lg flex flex-col"
+            >
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <div>
+                  <h3 className="font-display text-lg font-bold text-foreground">
+                    Mensagens Geradas
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {generatedMessages.length} mensagem(ns) prontas para envio
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={openAllWhatsApp}
+                    className="flex items-center gap-2 rounded-lg bg-success px-3 py-2 text-sm font-medium text-success-foreground"
+                  >
+                    <Send className="h-4 w-4" />
+                    Enviar Todos
+                  </motion.button>
+                  <button
+                    onClick={() => setShowBulkAction(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {generatedMessages.map((msg) => (
+                  <div
+                    key={msg.client_id}
+                    className="rounded-xl border border-border/50 bg-secondary/30 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-medium text-foreground">{msg.client_name}</h4>
+                          <span className="text-xs text-muted-foreground">{msg.whatsapp}</span>
+                        </div>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3">
+                          {msg.message}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => openWhatsApp(msg)}
+                        disabled={!msg.whatsapp_link}
+                        className="flex items-center gap-1 rounded-lg bg-success px-3 py-2 text-sm font-medium text-success-foreground hover:bg-success/90 disabled:opacity-50"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filters Bar */}
       <motion.div
@@ -192,8 +460,26 @@ const Clientes = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
               whileHover={{ y: -4 }}
-              className="group relative cursor-pointer rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5 transition-all hover:border-primary/30"
+              onClick={() => selectionMode && toggleSelection(client.id)}
+              className={cn(
+                "group relative rounded-2xl border bg-gradient-to-br from-card to-card/50 p-5 transition-all",
+                selectionMode ? "cursor-pointer" : "cursor-default",
+                selectedClients.has(client.id)
+                  ? "border-primary bg-primary/5"
+                  : "border-border/50 hover:border-primary/30"
+              )}
             >
+              {/* Selection Checkbox */}
+              {selectionMode && (
+                <div className="absolute top-3 right-3 z-10">
+                  {selectedClients.has(client.id) ? (
+                    <CheckSquare className="h-5 w-5 text-primary" />
+                  ) : (
+                    <Square className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
+              )}
+
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-primary-foreground">
@@ -204,14 +490,16 @@ const Clientes = () => {
                     <p className="text-sm text-muted-foreground">{client.cpf}</p>
                   </div>
                 </div>
-                <span
-                  className={cn(
-                    "rounded-full border px-2.5 py-0.5 text-xs font-medium",
-                    statusStyles[client.status]
-                  )}
-                >
-                  {client.status}
-                </span>
+                {!selectionMode && (
+                  <span
+                    className={cn(
+                      "rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                      statusStyles[client.status]
+                    )}
+                  >
+                    {client.status}
+                  </span>
+                )}
               </div>
 
               <div className="mt-4 space-y-2">
@@ -225,37 +513,39 @@ const Clientes = () => {
                 )}
               </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-4">
-                <div className="flex gap-2">
-                  {client.whatsapp && (
-                    <a
-                      href={`https://wa.me/55${client.whatsapp.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Phone className="h-4 w-4" />
-                    </a>
-                  )}
-                  {client.email && (
-                    <a
-                      href={`mailto:${client.email}`}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Mail className="h-4 w-4" />
-                    </a>
-                  )}
+              {!selectionMode && (
+                <div className="mt-4 flex items-center justify-between border-t border-border/50 pt-4">
+                  <div className="flex gap-2">
+                    {client.whatsapp && (
+                      <a
+                        href={`https://wa.me/55${client.whatsapp.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Phone className="h-4 w-4" />
+                      </a>
+                    )}
+                    {client.email && (
+                      <a
+                        href={`mailto:${client.email}`}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Mail className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                  <Link
+                    to={`/clientes/${client.id}`}
+                    className="flex items-center gap-1 text-sm text-primary hover:underline"
+                  >
+                    Ver Dossiê
+                    <ChevronRight className="h-4 w-4" />
+                  </Link>
                 </div>
-                <Link 
-                  to={`/clientes/${client.id}`}
-                  className="flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  Ver Dossiê
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </div>
+              )}
 
               {/* Hover glow */}
               <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
@@ -269,6 +559,17 @@ const Clientes = () => {
           <table className="w-full">
             <thead className="bg-secondary/30">
               <tr>
+                {selectionMode && (
+                  <th className="px-4 py-4 w-12">
+                    <button onClick={toggleSelectAll}>
+                      {selectedClients.size === filteredClients.length ? (
+                        <CheckSquare className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Square className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </button>
+                  </th>
+                )}
                 <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">
                   Cliente
                 </th>
@@ -294,10 +595,26 @@ const Clientes = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="hover:bg-secondary/20 transition-colors cursor-pointer"
+                  onClick={() => selectionMode && toggleSelection(client.id)}
+                  className={cn(
+                    "transition-colors",
+                    selectionMode ? "cursor-pointer" : "cursor-default",
+                    selectedClients.has(client.id)
+                      ? "bg-primary/10"
+                      : "hover:bg-secondary/20"
+                  )}
                 >
+                  {selectionMode && (
+                    <td className="px-4 py-4">
+                      {selectedClients.has(client.id) ? (
+                        <CheckSquare className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Square className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </td>
+                  )}
                   <td className="px-6 py-4">
-                    <Link to={`/clientes/${client.id}`} className="flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-sm text-primary-foreground">
                         {getInitials(client.name)}
                       </div>
@@ -305,7 +622,7 @@ const Clientes = () => {
                         <p className="font-medium text-foreground">{client.name}</p>
                         <p className="text-xs text-muted-foreground">{client.email}</p>
                       </div>
-                    </Link>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-muted-foreground">
                     {client.cpf}
@@ -327,11 +644,13 @@ const Clientes = () => {
                     {client.whatsapp || "-"}
                   </td>
                   <td className="px-6 py-4">
-                    <Link to={`/clientes/${client.id}`}>
-                      <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                    </Link>
+                    {!selectionMode && (
+                      <Link to={`/clientes/${client.id}`}>
+                        <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </Link>
+                    )}
                   </td>
                 </motion.tr>
               ))}
