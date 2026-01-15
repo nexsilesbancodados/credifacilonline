@@ -23,7 +23,7 @@ interface ActivityHistoryProps {
   activities: Activity[];
 }
 
-const typeConfig = {
+const typeConfig: Record<string, { icon: typeof DollarSign; color: string; bgColor: string; borderColor: string }> = {
   payment: {
     icon: DollarSign,
     color: "text-success",
@@ -56,6 +56,13 @@ const typeConfig = {
   },
 };
 
+const defaultConfig = {
+  icon: FileText,
+  color: "text-muted-foreground",
+  bgColor: "bg-secondary",
+  borderColor: "border-border/50",
+};
+
 export const ActivityHistory = ({ activities }: ActivityHistoryProps) => {
   return (
     <div className="relative max-h-[500px] overflow-y-auto pr-2">
@@ -64,7 +71,7 @@ export const ActivityHistory = ({ activities }: ActivityHistoryProps) => {
 
       <div className="space-y-4">
         {activities.map((activity, index) => {
-          const config = typeConfig[activity.type];
+          const config = typeConfig[activity.type] || defaultConfig;
           const Icon = config.icon;
 
           return (
