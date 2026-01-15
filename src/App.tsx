@@ -13,6 +13,7 @@ import Contratos from "./pages/Contratos";
 import MesaCobranca from "./pages/MesaCobranca";
 import Tesouraria from "./pages/Tesouraria";
 import Analises from "./pages/Analises";
+import Historico from "./pages/Historico";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/cobranca" element={<ProtectedRoute><MesaCobranca /></ProtectedRoute>} />
             <Route path="/tesouraria" element={<ProtectedRoute><Tesouraria /></ProtectedRoute>} />
             <Route path="/analises" element={<ProtectedRoute><Analises /></ProtectedRoute>} />
+            <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             
             {/* Catch-all route */}

@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -25,6 +26,7 @@ const menuItems = [
   { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca" },
   { icon: Wallet, label: "Tesouraria", path: "/tesouraria" },
   { icon: BarChart3, label: "Análises", path: "/analises" },
+  { icon: History, label: "Histórico", path: "/historico" },
   { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];
 
