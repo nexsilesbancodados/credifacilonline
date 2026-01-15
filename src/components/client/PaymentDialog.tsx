@@ -126,7 +126,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
         .insert({
           operator_id: user.id,
           type: "entrada",
-          category: "recebimento",
+          category: "Recebimento",
           amount: amountPaid,
           description: `Pagamento parcela ${normalizedInstallment.number} - ${resolvedClientName}`,
           reference_type: "installment",
