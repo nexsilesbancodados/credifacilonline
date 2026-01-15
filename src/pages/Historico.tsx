@@ -18,6 +18,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  CalendarRange,
+  X,
 } from "lucide-react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +42,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useActivityHistory, useActivityStats, ActivityType } from "@/hooks/useActivityHistory";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useActivityHistory, useActivityStats, ActivityType, DateRange } from "@/hooks/useActivityHistory";
 import { cn } from "@/lib/utils";
 
 const activityTypeConfig: Record<string, { label: string; icon: typeof User; color: string }> = {
@@ -132,13 +140,15 @@ export default function Historico() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activityType, setActivityType] = useState<ActivityType>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const itemsPerPage = 15;
 
   const { data: activities, isLoading: isLoadingActivities } = useActivityHistory(
     activityType,
     searchQuery,
     currentPage,
-    itemsPerPage
+    itemsPerPage,
+    dateRange
   );
   const { data: stats, isLoading: isLoadingStats } = useActivityStats();
 
@@ -149,6 +159,16 @@ export default function Historico() {
 
   const handleTypeChange = (value: string) => {
     setActivityType(value as ActivityType);
+    setCurrentPage(1);
+  };
+
+  const handleDateRangeChange = (range: DateRange) => {
+    setDateRange(range);
+    setCurrentPage(1);
+  };
+
+  const clearDateRange = () => {
+    setDateRange({ from: undefined, to: undefined });
     setCurrentPage(1);
   };
 
@@ -220,32 +240,118 @@ export default function Historico() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="flex flex-col gap-4 sm:flex-row"
+          className="flex flex-col gap-4"
         >
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar atividades..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="pl-10 bg-card/50 border-border/50"
-            />
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar atividades..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 bg-card/50 border-border/50"
+              />
+            </div>
+            <Select value={activityType} onValueChange={handleTypeChange}>
+              <SelectTrigger className="w-full sm:w-[200px] bg-card/50 border-border/50">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Filtrar por tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="client">Clientes</SelectItem>
+                <SelectItem value="contract">Contratos</SelectItem>
+                <SelectItem value="payment">Pagamentos</SelectItem>
+                <SelectItem value="renegotiation">Renegociações</SelectItem>
+                <SelectItem value="collection">Cobranças</SelectItem>
+                <SelectItem value="system">Sistema</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          <Select value={activityType} onValueChange={handleTypeChange}>
-            <SelectTrigger className="w-full sm:w-[200px] bg-card/50 border-border/50">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Filtrar por tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
-              <SelectItem value="client">Clientes</SelectItem>
-              <SelectItem value="contract">Contratos</SelectItem>
-              <SelectItem value="payment">Pagamentos</SelectItem>
-              <SelectItem value="renegotiation">Renegociações</SelectItem>
-              <SelectItem value="collection">Cobranças</SelectItem>
-              <SelectItem value="system">Sistema</SelectItem>
-            </SelectContent>
-          </Select>
+
+          {/* Date Range Filter */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full sm:w-[180px] justify-start text-left font-normal bg-card/50 border-border/50",
+                      !dateRange.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarRange className="mr-2 h-4 w-4" />
+                    {dateRange.from ? (
+                      format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                    ) : (
+                      "Data inicial"
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dateRange.from}
+                    onSelect={(date) => handleDateRangeChange({ ...dateRange, from: date })}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <span className="text-muted-foreground">até</span>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full sm:w-[180px] justify-start text-left font-normal bg-card/50 border-border/50",
+                      !dateRange.to && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarRange className="mr-2 h-4 w-4" />
+                    {dateRange.to ? (
+                      format(dateRange.to, "dd/MM/yyyy", { locale: ptBR })
+                    ) : (
+                      "Data final"
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={dateRange.to}
+                    onSelect={(date) => handleDateRangeChange({ ...dateRange, to: date })}
+                    locale={ptBR}
+                    disabled={(date) => dateRange.from ? date < dateRange.from : false}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {(dateRange.from || dateRange.to) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={clearDateRange}
+                  className="h-10 w-10 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+
+            {(dateRange.from || dateRange.to) && (
+              <Badge variant="secondary" className="gap-1.5 py-1.5">
+                <CalendarRange className="h-3.5 w-3.5" />
+                Período: {dateRange.from ? format(dateRange.from, "dd/MM/yyyy", { locale: ptBR }) : "..."} 
+                {" - "}
+                {dateRange.to ? format(dateRange.to, "dd/MM/yyyy", { locale: ptBR }) : "..."}
+              </Badge>
+            )}
+          </div>
         </motion.div>
 
         {/* Activity Types Distribution */}

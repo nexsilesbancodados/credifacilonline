@@ -16,16 +16,22 @@ export interface ActivityLog {
 
 export type ActivityType = "all" | "client" | "contract" | "payment" | "renegotiation" | "collection" | "system";
 
+export interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
+}
+
 export function useActivityHistory(
   type: ActivityType = "all",
   searchQuery: string = "",
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
+  dateRange?: DateRange
 ) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ["activity-history", user?.id, type, searchQuery, page, limit],
+    queryKey: ["activity-history", user?.id, type, searchQuery, page, limit, dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
     queryFn: async () => {
       // First get activities
       let query = supabase
@@ -41,6 +47,17 @@ export function useActivityHistory(
       // Filter by search query
       if (searchQuery) {
         query = query.ilike("description", `%${searchQuery}%`);
+      }
+
+      // Filter by date range
+      if (dateRange?.from) {
+        query = query.gte("created_at", dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        // Add one day to include the entire end date
+        const endDate = new Date(dateRange.to);
+        endDate.setDate(endDate.getDate() + 1);
+        query = query.lt("created_at", endDate.toISOString());
       }
 
       // Pagination
