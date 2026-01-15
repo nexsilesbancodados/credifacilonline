@@ -2,7 +2,7 @@
 self.addEventListener('push', function(event) {
   const options = event.data ? event.data.json() : {};
   
-  const title = options.title || 'Elite Finances';
+  const title = options.title || 'Credifacil';
   const notificationOptions = {
     body: options.body || 'Você tem uma nova notificação',
     icon: options.icon || '/favicon.ico',

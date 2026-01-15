@@ -132,9 +132,8 @@ export function Sidebar() {
               transition={{ delay: 0.2 }}
             >
               <h1 className="font-display text-lg font-bold text-gradient-gold">
-                CreditWise
+                Credifacil
               </h1>
-              <p className="text-xs text-muted-foreground">Elite</p>
             </motion.div>
           )}
         </Link>

@@ -58,7 +58,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             )}
           </button>
           
-          <span className="font-display font-bold text-gradient-gold">CreditWise</span>
+          <span className="font-display font-bold text-gradient-gold">Credifacil</span>
           
           <button
             onClick={() => setSearchOpen(true)}
