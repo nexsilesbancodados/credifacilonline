@@ -293,10 +293,389 @@ serve(async (req) => {
       );
     }
 
+    // Action: register_payment_promise - Registra promessa de pagamento
+    if (action === "register_payment_promise") {
+      const { whatsapp, promise_date, amount, notes } = body;
+      
+      if (!whatsapp || !promise_date) {
+        return new Response(
+          JSON.stringify({ success: false, message: "whatsapp e promise_date são obrigatórios" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Buscar cliente
+      const cleanPhone = whatsapp.replace(/\D/g, "").slice(-11);
+      const { data: clients } = await supabase
+        .from("clients")
+        .select("id, name")
+        .or(`whatsapp.ilike.%${cleanPhone},whatsapp.ilike.%${cleanPhone.slice(-9)}`)
+        .limit(1);
+
+      const client = clients?.[0];
+      if (!client) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Cliente não encontrado" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Formatar data da promessa
+      const formattedPromiseDate = new Date(promise_date).toLocaleDateString("pt-BR");
+      const formattedAmount = amount 
+        ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amount)
+        : "não especificado";
+
+      // Registrar no activity_log
+      await supabase.from("activity_log").insert({
+        operator_id: "agente-ia",
+        client_id: client.id,
+        type: "payment_promise",
+        description: `Promessa de pagamento registrada via Agente IA. Data: ${formattedPromiseDate}. Valor: ${formattedAmount}${notes ? `. Obs: ${notes}` : ""}`,
+        metadata: { 
+          source: "agente-ia", 
+          promise_date, 
+          amount: amount || null,
+          notes: notes || null
+        },
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `Promessa de pagamento registrada para ${client.name} no dia ${formattedPromiseDate}`,
+          client_name: client.name,
+          promise_date: formattedPromiseDate,
+          amount: formattedAmount
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Action: get_renegotiation_options - Retorna opções de renegociação
+    if (action === "get_renegotiation_options") {
+      const { whatsapp } = body;
+      
+      if (!whatsapp) {
+        return new Response(
+          JSON.stringify({ success: false, message: "WhatsApp não informado" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Buscar cliente e parcelas
+      const cleanPhone = whatsapp.replace(/\D/g, "").slice(-11);
+      const { data: clients } = await supabase
+        .from("clients")
+        .select("id, name")
+        .or(`whatsapp.ilike.%${cleanPhone},whatsapp.ilike.%${cleanPhone.slice(-9)}`)
+        .limit(1);
+
+      const client = clients?.[0];
+      if (!client) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Cliente não encontrado" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Buscar total pendente
+      const { data: installments } = await supabase
+        .from("installments")
+        .select("amount_due, fine")
+        .eq("client_id", client.id)
+        .in("status", ["Pendente", "Atrasado"]);
+
+      const totalPending = (installments || []).reduce(
+        (sum, i) => sum + (i.amount_due || 0) + (i.fine || 0), 0
+      );
+
+      if (totalPending === 0) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Cliente não possui débitos pendentes" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const formatCurrency = (value: number) => 
+        new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
+      // Calcular opções de renegociação
+      const options = [
+        {
+          id: 1,
+          name: "À Vista com Desconto",
+          description: "Pagamento único com 10% de desconto",
+          total: totalPending * 0.9,
+          total_formatted: formatCurrency(totalPending * 0.9),
+          parcelas: 1,
+          valor_parcela: formatCurrency(totalPending * 0.9),
+          economia: formatCurrency(totalPending * 0.1),
+          vantagem: "Maior economia"
+        },
+        {
+          id: 2,
+          name: "Parcelamento 6x",
+          description: "Dividido em 6 vezes sem juros",
+          total: totalPending,
+          total_formatted: formatCurrency(totalPending),
+          parcelas: 6,
+          valor_parcela: formatCurrency(totalPending / 6),
+          economia: formatCurrency(0),
+          vantagem: "Sem juros"
+        },
+        {
+          id: 3,
+          name: "Parcelamento 12x",
+          description: "Dividido em 12 vezes com juros de 1% ao mês",
+          total: totalPending * 1.12,
+          total_formatted: formatCurrency(totalPending * 1.12),
+          parcelas: 12,
+          valor_parcela: formatCurrency((totalPending * 1.12) / 12),
+          economia: null,
+          vantagem: "Menor parcela"
+        }
+      ];
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          client_name: client.name,
+          divida_original: totalPending,
+          divida_original_formatted: formatCurrency(totalPending),
+          opcoes: options,
+          resumo: `${client.name}, temos 3 opções para você: 1) À vista com 10% de desconto = ${options[0].total_formatted}; 2) 6x sem juros de ${options[1].valor_parcela}; 3) 12x de ${options[2].valor_parcela}.`
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Action: escalate_to_human - Escala para atendimento humano
+    if (action === "escalate_to_human") {
+      const { whatsapp, reason, conversation_summary } = body;
+      
+      if (!whatsapp || !reason) {
+        return new Response(
+          JSON.stringify({ success: false, message: "whatsapp e reason são obrigatórios" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Buscar cliente
+      const cleanPhone = whatsapp.replace(/\D/g, "").slice(-11);
+      const { data: clients } = await supabase
+        .from("clients")
+        .select("id, name")
+        .or(`whatsapp.ilike.%${cleanPhone},whatsapp.ilike.%${cleanPhone.slice(-9)}`)
+        .limit(1);
+
+      const client = clients?.[0];
+
+      // Registrar solicitação de escalonamento
+      await supabase.from("activity_log").insert({
+        operator_id: "agente-ia",
+        client_id: client?.id || null,
+        type: "escalation_request",
+        description: `Escalonamento para atendimento humano. Motivo: ${reason}`,
+        metadata: { 
+          source: "agente-ia",
+          whatsapp,
+          reason,
+          conversation_summary: conversation_summary || null,
+          client_name: client?.name || "Não identificado"
+        },
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Conversa escalonada para atendimento humano. Um operador entrará em contato em breve.",
+          client_name: client?.name || "Não identificado",
+          reason
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Action: get_pending_by_tier - Busca clientes segmentados por tempo de atraso
+    if (action === "get_pending_by_tier") {
+      const { tier } = body;
+      
+      const validTiers = ["mild", "moderate", "critical"];
+      if (!tier || !validTiers.includes(tier)) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            message: "tier inválido. Use: mild (1-7 dias), moderate (8-30 dias) ou critical (30+ dias)" 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const today = new Date();
+      let minDays = 0, maxDays = 0;
+      let tone = "amigavel";
+
+      if (tier === "mild") {
+        minDays = 1; maxDays = 7; tone = "amigavel";
+      } else if (tier === "moderate") {
+        minDays = 8; maxDays = 30; tone = "formal";
+      } else if (tier === "critical") {
+        minDays = 31; maxDays = 9999; tone = "urgente";
+      }
+
+      const minDate = new Date(today);
+      minDate.setDate(minDate.getDate() - maxDays);
+      
+      const maxDate = new Date(today);
+      maxDate.setDate(maxDate.getDate() - minDays);
+
+      const { data: installments, error } = await supabase
+        .from("installments")
+        .select(`
+          client_id,
+          amount_due,
+          due_date,
+          fine,
+          clients!inner(id, name, whatsapp, email, status)
+        `)
+        .eq("status", "Atrasado")
+        .gte("due_date", minDate.toISOString().split("T")[0])
+        .lte("due_date", maxDate.toISOString().split("T")[0])
+        .order("due_date", { ascending: true });
+
+      if (error) throw error;
+
+      // Agrupar por cliente
+      const clientsMap = new Map();
+      installments?.forEach((inst: any) => {
+        const clientId = inst.client_id;
+        if (!clientsMap.has(clientId)) {
+          const daysOverdue = Math.floor((today.getTime() - new Date(inst.due_date).getTime()) / (1000 * 60 * 60 * 24));
+          clientsMap.set(clientId, {
+            id: inst.clients.id,
+            name: inst.clients.name,
+            whatsapp: inst.clients.whatsapp,
+            email: inst.clients.email,
+            pending_amount: 0,
+            days_overdue: daysOverdue,
+            oldest_due_date: inst.due_date,
+          });
+        }
+        const client = clientsMap.get(clientId);
+        client.pending_amount += (inst.amount_due || 0) + (inst.fine || 0);
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          tier,
+          suggested_tone: tone,
+          count: clientsMap.size,
+          clients: Array.from(clientsMap.values()),
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Action: get_conversation_history - Busca histórico de interações
+    if (action === "get_conversation_history") {
+      const { whatsapp, limit = 5 } = body;
+      
+      if (!whatsapp) {
+        return new Response(
+          JSON.stringify({ success: false, message: "WhatsApp não informado" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Buscar cliente
+      const cleanPhone = whatsapp.replace(/\D/g, "").slice(-11);
+      const { data: clients } = await supabase
+        .from("clients")
+        .select("id, name")
+        .or(`whatsapp.ilike.%${cleanPhone},whatsapp.ilike.%${cleanPhone.slice(-9)}`)
+        .limit(1);
+
+      const client = clients?.[0];
+      if (!client) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Cliente não encontrado" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Buscar activity_log
+      const { data: activities } = await supabase
+        .from("activity_log")
+        .select("type, description, created_at, metadata")
+        .eq("client_id", client.id)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      // Buscar collection_logs
+      const { data: collections } = await supabase
+        .from("collection_logs")
+        .select("channel, message, sent_at, status")
+        .eq("client_id", client.id)
+        .order("sent_at", { ascending: false })
+        .limit(limit);
+
+      // Combinar e ordenar timeline
+      const timeline = [
+        ...(activities || []).map(a => ({
+          type: a.type,
+          description: a.description,
+          date: a.created_at,
+          source: "activity"
+        })),
+        ...(collections || []).map(c => ({
+          type: `collection_${c.channel}`,
+          description: c.message?.substring(0, 100) + (c.message && c.message.length > 100 ? "..." : ""),
+          date: c.sent_at,
+          source: "collection",
+          status: c.status
+        }))
+      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+       .slice(0, limit);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          client_name: client.name,
+          history_count: timeline.length,
+          history: timeline.map(t => ({
+            ...t,
+            date_formatted: new Date(t.date).toLocaleDateString("pt-BR", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            })
+          })),
+          resumo: timeline.length > 0 
+            ? `Últimas ${timeline.length} interações com ${client.name}: ${timeline.map(t => t.type).join(", ")}`
+            : `Não há histórico de interações recentes com ${client.name}`
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ 
         error: "Invalid action",
-        available_actions: ["get_pending_clients", "generate_messages", "log_sent", "get_client_info"],
+        available_actions: [
+          "get_pending_clients", 
+          "generate_messages", 
+          "log_sent", 
+          "get_client_info",
+          "register_payment_promise",
+          "get_renegotiation_options",
+          "escalate_to_human",
+          "get_pending_by_tier",
+          "get_conversation_history"
+        ],
       }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
