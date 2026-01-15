@@ -365,111 +365,181 @@ const Configuracoes = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              className="space-y-6"
             >
+              {/* Webhook Endpoint Card */}
               <Card className="border-border/50 bg-card/50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Webhook className="w-5 h-5 text-primary" />
-                    Integração N8N
+                    Endpoint de Cobrança Automática
                   </CardTitle>
                   <CardDescription>
-                    Configure webhooks para automação com N8N
+                    Use este endpoint no n8n para disparar cobranças automaticamente
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="webhookUrl">URL do Webhook</Label>
-                    <Input
-                      id="webhookUrl"
-                      placeholder="https://n8n.seu-dominio.com/webhook/..."
-                      value={n8nSettings.webhookUrl}
-                      onChange={(e) => setN8nSettings({ ...n8nSettings, webhookUrl: e.target.value })}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Cole aqui a URL do webhook do seu fluxo N8N
-                    </p>
+                    <Label>URL do Webhook (use no n8n)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        readOnly
+                        value={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/n8n-webhook`}
+                        className="font-mono text-xs"
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/n8n-webhook`);
+                          toast({ title: "URL copiada!" });
+                        }}
+                      >
+                        Copiar
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-secondary/50 p-4 space-y-3">
+                    <h4 className="font-semibold text-sm">📋 Ações Disponíveis</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="p-2 rounded-lg bg-background/50">
+                        <code className="text-primary">get_pending_clients</code>
+                        <p className="text-muted-foreground text-xs mt-1">
+                          Lista todos os clientes com parcelas pendentes/atrasadas
+                        </p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-background/50">
+                        <code className="text-primary">generate_messages</code>
+                        <p className="text-muted-foreground text-xs mt-1">
+                          Gera mensagens de cobrança para clientes selecionados
+                        </p>
+                      </div>
+                      <div className="p-2 rounded-lg bg-background/50">
+                        <code className="text-primary">log_sent</code>
+                        <p className="text-muted-foreground text-xs mt-1">
+                          Registra que mensagens foram enviadas
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <Separator />
 
                   <div className="space-y-4">
-                    <h3 className="font-semibold">Eventos Ativos</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Selecione quais eventos devem disparar o webhook
-                    </p>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Novo contrato</p>
-                          <p className="text-sm text-muted-foreground">Quando um novo contrato é criado</p>
-                        </div>
-                        <Switch
-                          checked={n8nSettings.activeEvents.newContract}
-                          onCheckedChange={(checked) =>
-                            setN8nSettings({
-                              ...n8nSettings,
-                              activeEvents: { ...n8nSettings.activeEvents, newContract: checked },
-                            })
-                          }
-                        />
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Limite de Mensagens
+                    </h4>
+                    <div className="p-4 rounded-xl border border-warning/30 bg-warning/10">
+                      <p className="text-sm font-medium text-warning-foreground">
+                        ⚠️ Máximo de 20 mensagens por hora
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Configure seu workflow n8n com um delay de 3 minutos entre cada mensagem para respeitar este limite.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* n8n Workflow Instructions */}
+              <Card className="border-border/50 bg-card/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bot className="w-5 h-5 text-primary" />
+                    Como Configurar no n8n
+                  </CardTitle>
+                  <CardDescription>
+                    Siga estes passos para criar um workflow de cobrança automática
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</div>
+                      <div>
+                        <p className="font-medium text-sm">Crie um Schedule Trigger</p>
+                        <p className="text-xs text-muted-foreground">Configure para rodar diariamente (ex: 9h da manhã)</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Pagamento recebido</p>
-                          <p className="text-sm text-muted-foreground">Quando um pagamento é registrado</p>
-                        </div>
-                        <Switch
-                          checked={n8nSettings.activeEvents.payment}
-                          onCheckedChange={(checked) =>
-                            setN8nSettings({
-                              ...n8nSettings,
-                              activeEvents: { ...n8nSettings.activeEvents, payment: checked },
-                            })
-                          }
-                        />
+                    </div>
+                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</div>
+                      <div>
+                        <p className="font-medium text-sm">Adicione HTTP Request para buscar clientes</p>
+                        <p className="text-xs text-muted-foreground">POST para o webhook com {"{"}"action": "get_pending_clients"{"}"}</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Parcela atrasada</p>
-                          <p className="text-sm text-muted-foreground">Quando uma parcela entra em atraso</p>
-                        </div>
-                        <Switch
-                          checked={n8nSettings.activeEvents.overdue}
-                          onCheckedChange={(checked) =>
-                            setN8nSettings({
-                              ...n8nSettings,
-                              activeEvents: { ...n8nSettings.activeEvents, overdue: checked },
-                            })
-                          }
-                        />
+                    </div>
+                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</div>
+                      <div>
+                        <p className="font-medium text-sm">Filtre clientes (máx. 20)</p>
+                        <p className="text-xs text-muted-foreground">Use um nó Limit para limitar a 20 clientes por execução</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">Renegociação</p>
-                          <p className="text-sm text-muted-foreground">Quando uma dívida é renegociada</p>
-                        </div>
-                        <Switch
-                          checked={n8nSettings.activeEvents.renegotiation}
-                          onCheckedChange={(checked) =>
-                            setN8nSettings({
-                              ...n8nSettings,
-                              activeEvents: { ...n8nSettings.activeEvents, renegotiation: checked },
-                            })
-                          }
-                        />
+                    </div>
+                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">4</div>
+                      <div>
+                        <p className="font-medium text-sm">Gere as mensagens</p>
+                        <p className="text-xs text-muted-foreground">POST com {"{"}"action": "generate_messages", "client_ids": [...], "tone": "amigavel"{"}"}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 p-3 rounded-lg bg-secondary/30">
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">5</div>
+                      <div>
+                        <p className="font-medium text-sm">Envie via WhatsApp</p>
+                        <p className="text-xs text-muted-foreground">Use Evolution API, Z-API ou WhatsApp Business API com delay de 3 min entre cada</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-4">
-                    <Button
-                      onClick={() => handleSave("N8N")}
-                      disabled={isLoading}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Salvar configurações
-                    </Button>
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Label>Exemplo de Payload</Label>
+                    <pre className="p-3 rounded-lg bg-secondary/50 text-xs font-mono overflow-x-auto">
+{`// 1. Buscar clientes pendentes
+POST /functions/v1/n8n-webhook
+{
+  "action": "get_pending_clients"
+}
+
+// 2. Gerar mensagens para cobrança
+POST /functions/v1/n8n-webhook
+{
+  "action": "generate_messages",
+  "client_ids": ["uuid1", "uuid2"],
+  "tone": "amigavel"  // amigavel, formal, urgente
+}
+
+// 3. Mensagem customizada (opcional)
+{
+  "action": "generate_messages",
+  "client_ids": ["uuid1"],
+  "custom_message": "Olá {nome}, sua parcela de {valor} vence em {vencimento}"
+}`}
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Rate Limiting Card */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20">
+                      <Clock className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Rate Limit: 20 mensagens/hora</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Para respeitar o limite de 20 mensagens por hora, configure seu workflow n8n da seguinte forma:
+                      </p>
+                      <ul className="mt-2 space-y-1 text-sm text-muted-foreground list-disc list-inside">
+                        <li>Use um nó <strong>Limit</strong> para processar apenas 20 clientes por execução</li>
+                        <li>Adicione um nó <strong>Wait</strong> de 3 minutos entre cada envio</li>
+                        <li>Ou agende o workflow para rodar a cada hora com 20 clientes diferentes</li>
+                      </ul>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
