@@ -23,8 +23,53 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { PeriodFilter } from "@/hooks/useAnalyticsStats";
+
+const periodLabels: Record<PeriodFilter, string> = {
+  "7d": "7 dias",
+  "month": "Este mês",
+  "quarter": "Trimestre",
+  "year": "Este ano",
+  "all": "Todo período",
+};
+
+interface PeriodSelectorProps {
+  value: PeriodFilter;
+  onChange: (period: PeriodFilter) => void;
+}
+
+export const PeriodSelector = ({ value, onChange }: PeriodSelectorProps) => {
+  const periods: PeriodFilter[] = ["7d", "month", "quarter", "year", "all"];
+  
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
+        <Calendar className="h-4 w-4" />
+        <span className="text-sm font-medium">Período:</span>
+      </div>
+      <div className="flex gap-1 flex-wrap">
+        {periods.map((period) => (
+          <Button
+            key={period}
+            variant={value === period ? "default" : "outline"}
+            size="sm"
+            onClick={() => onChange(period)}
+            className={cn(
+              "h-8 px-3 text-xs font-medium transition-all",
+              value === period && "shadow-md"
+            )}
+          >
+            {periodLabels[period]}
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 interface StatCardProps {
   title: string;

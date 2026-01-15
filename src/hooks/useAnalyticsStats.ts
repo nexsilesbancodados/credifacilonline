@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useClients } from "@/hooks/useClients";
 import { useTreasury } from "@/hooks/useTreasury";
-import { parseISO, differenceInDays, startOfMonth, subMonths } from "date-fns";
+import { parseISO, differenceInDays, startOfMonth, subMonths, subDays, startOfQuarter, startOfYear, isWithinInterval } from "date-fns";
+
+export type PeriodFilter = "7d" | "month" | "quarter" | "year" | "all";
 
 export interface AnalyticsStats {
   // Contratos
@@ -50,7 +52,31 @@ export interface AnalyticsStats {
   isLoading: boolean;
 }
 
-export function useAnalyticsStats(): AnalyticsStats {
+function getPeriodStartDate(period: PeriodFilter): Date | null {
+  const today = new Date();
+  
+  switch (period) {
+    case "7d":
+      return subDays(today, 7);
+    case "month":
+      return startOfMonth(today);
+    case "quarter":
+      return startOfQuarter(today);
+    case "year":
+      return startOfYear(today);
+    case "all":
+    default:
+      return null;
+  }
+}
+
+function isInPeriod(dateString: string, periodStart: Date | null): boolean {
+  if (!periodStart) return true;
+  const date = parseISO(dateString);
+  return date >= periodStart;
+}
+
+export function useAnalyticsStats(period: PeriodFilter = "all"): AnalyticsStats {
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { clients, isLoading: isLoadingClients } = useClients();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
@@ -95,19 +121,26 @@ export function useAnalyticsStats(): AnalyticsStats {
       };
     }
 
+    const periodStart = getPeriodStartDate(period);
+
+    // Filtrar contratos pelo período
+    const filteredContracts = contracts?.filter(c => isInPeriod(c.created_at, periodStart)) || [];
+    const filteredClients = clients?.filter(c => isInPeriod(c.created_at, periodStart)) || [];
+    const filteredInstallments = installments?.filter(i => isInPeriod(i.due_date, periodStart)) || [];
+
     // Contratos
-    const totalContracts = contracts?.length || 0;
-    const activeContracts = contracts?.filter(c => c.status === "Ativo").length || 0;
-    const inactiveContracts = contracts?.filter(c => !["Ativo", "Atraso"].includes(c.status) && c.status !== "Quitado").length || 0;
-    const completedContracts = contracts?.filter(c => c.status === "Quitado").length || 0;
-    const overdueContracts = contracts?.filter(c => c.status === "Atraso").length || 0;
-    const renegotiatedContracts = contracts?.filter(c => c.renegotiated_from_id).length || 0;
+    const totalContracts = filteredContracts.length;
+    const activeContracts = filteredContracts.filter(c => c.status === "Ativo").length;
+    const inactiveContracts = filteredContracts.filter(c => !["Ativo", "Atraso"].includes(c.status) && c.status !== "Quitado").length;
+    const completedContracts = filteredContracts.filter(c => c.status === "Quitado").length;
+    const overdueContracts = filteredContracts.filter(c => c.status === "Atraso").length;
+    const renegotiatedContracts = filteredContracts.filter(c => c.renegotiated_from_id).length;
 
     // Clientes
-    const totalClients = clients?.length || 0;
-    const activeClients = clients?.filter(c => c.status === "Ativo").length || 0;
-    const overdueClients = clients?.filter(c => c.status === "Atraso").length || 0;
-    const settledClients = clients?.filter(c => c.status === "Quitado").length || 0;
+    const totalClients = filteredClients.length;
+    const activeClients = filteredClients.filter(c => c.status === "Ativo").length;
+    const overdueClients = filteredClients.filter(c => c.status === "Atraso").length;
+    const settledClients = filteredClients.filter(c => c.status === "Quitado").length;
     
     const thisMonthStart = startOfMonth(new Date());
     const newClientsThisMonth = clients?.filter(c => {
@@ -116,13 +149,13 @@ export function useAnalyticsStats(): AnalyticsStats {
     }).length || 0;
 
     // Financeiro
-    const totalCapital = contracts?.reduce((sum, c) => sum + Number(c.capital), 0) || 0;
-    const totalProfit = contracts?.reduce((sum, c) => sum + Number(c.total_profit), 0) || 0;
+    const totalCapital = filteredContracts.reduce((sum, c) => sum + Number(c.capital), 0);
+    const totalProfit = filteredContracts.reduce((sum, c) => sum + Number(c.total_profit), 0);
     
-    const pendingInstallmentsData = installments?.filter(i => 
+    const pendingInstallmentsData = filteredInstallments.filter(i => 
       ["Pendente", "Atrasado"].includes(i.status)
-    ) || [];
-    const paidInstallmentsData = installments?.filter(i => i.status === "Pago") || [];
+    );
+    const paidInstallmentsData = filteredInstallments.filter(i => i.status === "Pago");
     
     const capitalOnStreet = pendingInstallmentsData.reduce(
       (acc, i) => acc + (Number(i.amount_due) - Number(i.amount_paid || 0)),
@@ -140,16 +173,16 @@ export function useAnalyticsStats(): AnalyticsStats {
     );
     
     const averageTicket = totalContracts > 0 ? totalCapital / totalContracts : 0;
-    const averageRate = contracts?.length 
-      ? contracts.reduce((sum, c) => sum + Number(c.interest_rate), 0) / contracts.length 
+    const averageRate = filteredContracts.length 
+      ? filteredContracts.reduce((sum, c) => sum + Number(c.interest_rate), 0) / filteredContracts.length 
       : 0;
     const roi = totalCapital > 0 ? (totalProfit / totalCapital) * 100 : 0;
 
     // Parcelas
-    const totalInstallments = installments?.length || 0;
+    const totalInstallments = filteredInstallments.length;
     const paidInstallments = paidInstallmentsData.length;
-    const pendingInstallments = installments?.filter(i => i.status === "Pendente").length || 0;
-    const overdueInstallmentsData = installments?.filter(i => i.status === "Atrasado") || [];
+    const pendingInstallments = filteredInstallments.filter(i => i.status === "Pendente").length;
+    const overdueInstallmentsData = filteredInstallments.filter(i => i.status === "Atrasado");
     const overdueInstallmentsCount = overdueInstallmentsData.length;
 
     // Inadimplência
@@ -226,5 +259,5 @@ export function useAnalyticsStats(): AnalyticsStats {
       growthRate,
       isLoading: false,
     };
-  }, [contracts, clients, installments, transactions, isLoading]);
+  }, [contracts, clients, installments, transactions, isLoading, period]);
 }
