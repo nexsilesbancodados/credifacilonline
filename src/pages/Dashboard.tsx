@@ -1,33 +1,21 @@
 import { MainLayout } from "@/components/layout/MainLayout";
-import { MetricCard } from "@/components/dashboard/MetricCard";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { PortfolioHealthChart } from "@/components/dashboard/PortfolioHealthChart";
 import { OverdueList } from "@/components/dashboard/OverdueList";
+import { AnalyticsCards } from "@/components/dashboard/AnalyticsCards";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import {
-  Wallet,
-  TrendingUp,
-  AlertTriangle,
-  FileText,
-  Sparkles,
-  Loader2,
-} from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
+import { useAnalyticsStats } from "@/hooks/useAnalyticsStats";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const { profile } = useAuth();
-  const { data: stats, isLoading } = useDashboardStats();
+  const { data: dashboardStats, isLoading: isLoadingDashboard } = useDashboardStats();
+  const analyticsStats = useAnalyticsStats();
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  const isLoading = isLoadingDashboard || analyticsStats.isLoading;
 
   return (
     <MainLayout>
@@ -68,39 +56,7 @@ const Dashboard = () => {
         </div>
       ) : (
         <>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              title="Capital na Rua"
-              value={stats?.capitalOnStreet || 0}
-              prefix="R$"
-              icon={Wallet}
-              variant="primary"
-              delay={0}
-            />
-            <MetricCard
-              title="Lucro Realizado"
-              value={stats?.realizedProfit || 0}
-              prefix="R$"
-              icon={TrendingUp}
-              variant="success"
-              delay={0.1}
-            />
-            <MetricCard
-              title="Taxa de Inadimplência"
-              value={stats?.defaultRate || 0}
-              suffix="%"
-              icon={AlertTriangle}
-              variant="warning"
-              delay={0.2}
-            />
-            <MetricCard
-              title="Contratos Ativos"
-              value={stats?.activeContracts || 0}
-              icon={FileText}
-              variant="default"
-              delay={0.3}
-            />
-          </div>
+          <AnalyticsCards stats={analyticsStats} variant="compact" />
 
           {/* Charts Row */}
           <div className="mt-8 grid gap-6 lg:grid-cols-3">
@@ -108,7 +64,7 @@ const Dashboard = () => {
               <RevenueChart />
             </div>
             <PortfolioHealthChart 
-              data={stats?.clientsByStatus || { ativo: 0, atraso: 0, quitado: 0 }}
+              data={dashboardStats?.clientsByStatus || { ativo: 0, atraso: 0, quitado: 0 }}
             />
           </div>
 
