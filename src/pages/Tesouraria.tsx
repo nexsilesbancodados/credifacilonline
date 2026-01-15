@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 type TransactionCategory =
   | "Investimento"
@@ -136,26 +137,28 @@ const Tesouraria = () => {
             </p>
           </div>
 
-          <div className="flex gap-3">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setShowAddModal("aporte")}
-              className="flex items-center gap-2 rounded-xl bg-success/20 px-5 py-3 font-medium text-success transition-colors hover:bg-success/30"
-            >
-              <Plus className="h-5 w-5" />
-              Aporte
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setShowAddModal("sangria")}
-              className="flex items-center gap-2 rounded-xl bg-destructive/20 px-5 py-3 font-medium text-destructive transition-colors hover:bg-destructive/30"
-            >
-              <Minus className="h-5 w-5" />
-              Sangria
-            </motion.button>
-          </div>
+          <PermissionGate permission="canManageTreasury">
+            <div className="flex gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowAddModal("aporte")}
+                className="flex items-center gap-2 rounded-xl bg-success/20 px-5 py-3 font-medium text-success transition-colors hover:bg-success/30"
+              >
+                <Plus className="h-5 w-5" />
+                Aporte
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowAddModal("sangria")}
+                className="flex items-center gap-2 rounded-xl bg-destructive/20 px-5 py-3 font-medium text-destructive transition-colors hover:bg-destructive/30"
+              >
+                <Minus className="h-5 w-5" />
+                Sangria
+              </motion.button>
+            </div>
+          </PermissionGate>
         </div>
       </motion.div>
 

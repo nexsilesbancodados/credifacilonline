@@ -24,6 +24,7 @@ import { useClients, Client } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 type Status = "Todos" | "Ativo" | "Atraso" | "Quitado";
 type ViewMode = "grid" | "list";
@@ -180,25 +181,29 @@ const Clientes = () => {
           <div className="flex gap-2">
             {!selectionMode ? (
               <>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setSelectionMode(true)}
-                  className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
-                >
-                  <CheckSquare className="h-4 w-4" />
-                  Selecionar
-                </motion.button>
-                <Link to="/contratos/novo">
+                <PermissionGate permission="canEditClients">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-2.5 font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
+                    onClick={() => setSelectionMode(true)}
+                    className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
                   >
-                    <Plus className="h-5 w-5" />
-                    Novo Cliente
+                    <CheckSquare className="h-4 w-4" />
+                    Selecionar
                   </motion.button>
-                </Link>
+                </PermissionGate>
+                <PermissionGate permission="canCreateContracts">
+                  <Link to="/contratos/novo">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-2.5 font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
+                    >
+                      <Plus className="h-5 w-5" />
+                      Novo Cliente
+                    </motion.button>
+                  </Link>
+                </PermissionGate>
               </>
             ) : (
               <>

@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useContracts } from "@/hooks/useContracts";
 import { useClients } from "@/hooks/useClients";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 const statusStyles = {
   Ativo: "bg-success/20 text-success border-success/30",
@@ -78,16 +79,18 @@ const Contratos = () => {
               Gerencie todos os contratos de empréstimo
             </p>
           </div>
-          <Link to="/contratos/novo">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 rounded-xl bg-gradient-gold px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold"
-            >
-              <Plus className="h-4 w-4" />
-              Novo Contrato
-            </motion.button>
-          </Link>
+          <PermissionGate permission="canCreateContracts">
+            <Link to="/contratos/novo">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 rounded-xl bg-gradient-gold px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold"
+              >
+                <Plus className="h-4 w-4" />
+                Novo Contrato
+              </motion.button>
+            </Link>
+          </PermissionGate>
         </div>
       </motion.div>
 

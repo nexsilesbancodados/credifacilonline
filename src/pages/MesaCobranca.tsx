@@ -20,6 +20,7 @@ import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { PermissionGate } from "@/components/auth/PermissionGate";
 
 type TabType = "overdue" | "today" | "upcoming";
 
@@ -314,16 +315,18 @@ const MesaCobranca = () => {
                   </div>
 
                   <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handlePayment(item)}
-                      disabled={isPaying}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/20 text-success hover:bg-success/30 transition-colors disabled:opacity-50"
-                      title="Registrar pagamento"
-                    >
-                      <Check className="h-5 w-5" />
-                    </motion.button>
+                    <PermissionGate permission="canProcessPayments">
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handlePayment(item)}
+                        disabled={isPaying}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/20 text-success hover:bg-success/30 transition-colors disabled:opacity-50"
+                        title="Registrar pagamento"
+                      >
+                        <Check className="h-5 w-5" />
+                      </motion.button>
+                    </PermissionGate>
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.95 }}
