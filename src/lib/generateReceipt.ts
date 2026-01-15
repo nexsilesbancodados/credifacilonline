@@ -23,7 +23,7 @@ export function generatePaymentReceipt(data: ReceiptData): void {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  const companyName = data.companyName || "CreditWise Elite";
+  const companyName = data.companyName || "Credifacil";
   
   // Header
   doc.setFillColor(45, 45, 45);
@@ -169,7 +169,7 @@ export function generateContractPDF(data: ContractPDFData): void {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  const companyName = data.companyName || "CreditWise Elite";
+  const companyName = data.companyName || "Credifacil";
   
   // Header
   doc.setFillColor(45, 45, 45);

@@ -12,7 +12,7 @@ interface TourStep {
 
 const tourSteps: TourStep[] = [
   {
-    title: "Bem-vindo ao CreditWise! 🎉",
+    title: "Bem-vindo ao Credifacil! 🎉",
     description:
       "Este é o seu sistema completo de gestão de empréstimos. Vamos fazer um tour rápido para você conhecer as principais funcionalidades.",
   },

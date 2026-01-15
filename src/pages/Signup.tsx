@@ -62,7 +62,7 @@ const Signup = () => {
 
     toast({
       title: "Conta criada com sucesso!",
-      description: "Bem-vindo ao CreditWise Elite.",
+      description: "Bem-vindo ao Credifacil.",
     });
     navigate("/");
   };
@@ -87,8 +87,7 @@ const Signup = () => {
             <TrendingUp className="w-7 h-7 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-heading font-bold text-foreground">CreditWise</h1>
-            <p className="text-xs text-muted-foreground tracking-widest">ELITE</p>
+            <h1 className="text-2xl font-heading font-bold text-foreground">Credifacil</h1>
           </div>
         </div>
 
@@ -213,7 +212,7 @@ const Signup = () => {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          © 2024 CreditWise Elite. Todos os direitos reservados.
+          © 2024 Credifacil. Todos os direitos reservados.
         </p>
       </motion.div>
     </div>

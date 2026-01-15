@@ -45,7 +45,7 @@ const Configuracoes = () => {
     name: "João Silva",
     email: "joao@empresa.com",
     phone: "(11) 99999-9999",
-    company: "CrediFácil Ltda",
+    company: "Credifacil Ltda",
     cnpj: "12.345.678/0001-90",
   });
 
