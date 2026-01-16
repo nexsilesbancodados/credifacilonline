@@ -135,8 +135,14 @@
   }
 
   body {
-    @apply bg-background text-foreground transition-colors duration-300;
+    @apply text-foreground;
     min-height: 100vh;
+    /* Fundo garantido - nunca preto puro sem conteúdo */
+    background-color: hsl(40, 20%, 96%);
+  }
+
+  .dark body {
+    background-color: hsl(0, 0%, 3%);
   }
 
   /* Garantir visibilidade do conteúdo - fallbacks de segurança contra animações travadas */
@@ -151,15 +157,9 @@
     visibility: visible !important;
   }
 
-  /* Forçar todos os motion.div a serem visíveis após carregamento */
-  body.loaded [style*="opacity: 0"],
-  body.loaded [style*="opacity:0"] {
-    opacity: 1 !important;
-    transition: opacity 0.3s ease-in-out !important;
-  }
-
-  .dark body {
-    background: hsl(0, 0%, 0%);
+  /* Forçar todos os elementos a serem visíveis */
+  body.loaded * {
+    visibility: visible !important;
   }
 
   .light body {
