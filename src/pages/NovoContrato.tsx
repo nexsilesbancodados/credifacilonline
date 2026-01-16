@@ -104,14 +104,18 @@ const NovoContrato = () => {
   // Juros simples: Total = Capital × (1 + Taxa)
   // Exemplo: R$ 1000 a 10% = R$ 1100, em 10 parcelas = R$ 110 cada
   const calculateInstallment = () => {
-    const { capital, interestRate, installments } = formData;
+    const capital = Number(formData.capital) || 0;
+    const interestRate = Number(formData.interestRate) || 0;
+    const installments = Number(formData.installments) || 1;
     const rate = interestRate / 100;
     const totalAmount = capital * (1 + rate);
     return totalAmount / installments;
   };
 
   const calculateRate = () => {
-    const { capital, installmentValue, installments } = formData;
+    const capital = Number(formData.capital) || 0;
+    const installmentValue = Number(formData.installmentValue) || 0;
+    const installments = Number(formData.installments) || 1;
     if (installmentValue <= 0 || capital <= 0) return 0;
     const totalAmount = installmentValue * installments;
     const profit = totalAmount - capital;
@@ -119,10 +123,12 @@ const NovoContrato = () => {
     return rate;
   };
 
-  const installmentResult = mode === "rate" ? calculateInstallment() : formData.installmentValue;
-  const rateResult = mode === "installment" ? calculateRate() : formData.interestRate;
-  const totalAmount = installmentResult * formData.installments;
-  const totalProfit = totalAmount - formData.capital;
+  const installmentResult = mode === "rate" ? calculateInstallment() : (Number(formData.installmentValue) || 0);
+  const rateResult = mode === "installment" ? calculateRate() : (Number(formData.interestRate) || 0);
+  const capitalNum = Number(formData.capital) || 0;
+  const installmentsNum = Number(formData.installments) || 0;
+  const totalAmount = installmentResult * installmentsNum;
+  const totalProfit = totalAmount - capitalNum;
 
   const frequencies = [
     { value: "diario", label: "Diário" },
