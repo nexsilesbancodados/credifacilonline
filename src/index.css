@@ -139,6 +139,16 @@
     min-height: 100vh;
   }
 
+  /* Garantir visibilidade do conteúdo principal */
+  #root {
+    min-height: 100vh;
+  }
+
+  main {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
   .dark body {
     background: hsl(0, 0%, 0%);
   }
