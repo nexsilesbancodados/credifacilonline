@@ -49,12 +49,7 @@ const ForgotPassword = () => {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md relative z-10"
-      >
+      <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/30">
@@ -149,7 +144,7 @@ const ForgotPassword = () => {
         <p className="text-center text-xs text-muted-foreground mt-6">
           © 2024 Credifacil. Todos os direitos reservados.
         </p>
-      </motion.div>
+      </div>
     </div>
   );
 };
