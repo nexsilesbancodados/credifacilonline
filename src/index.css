@@ -139,14 +139,23 @@
     min-height: 100vh;
   }
 
-  /* Garantir visibilidade do conteúdo principal */
-  #root {
-    min-height: 100vh;
-  }
-
-  main {
+  /* Garantir visibilidade do conteúdo - fallbacks de segurança contra animações travadas */
+  #root,
+  #root > *,
+  main,
+  main > *,
+  [class*="MainLayout"],
+  [class*="min-h-screen"],
+  [class*="flex-1"] {
     opacity: 1 !important;
     visibility: visible !important;
+  }
+
+  /* Forçar todos os motion.div a serem visíveis após carregamento */
+  body.loaded [style*="opacity: 0"],
+  body.loaded [style*="opacity:0"] {
+    opacity: 1 !important;
+    transition: opacity 0.3s ease-in-out !important;
   }
 
   .dark body {

@@ -274,12 +274,7 @@ const Clientes = () => {
   return (
     <MainLayout>
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">
@@ -354,7 +349,7 @@ const Clientes = () => {
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Selection Bar */}
       {selectionMode && (

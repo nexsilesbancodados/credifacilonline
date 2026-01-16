@@ -126,15 +126,11 @@ export function Sidebar() {
             <div className="absolute -inset-1 rounded-xl bg-primary/20 blur-md -z-10" />
           </div>
           {!isCollapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
+            <div>
               <h1 className="font-display text-lg font-bold text-gradient-gold">
                 Credifacil
               </h1>
-            </motion.div>
+            </div>
           )}
         </Link>
         

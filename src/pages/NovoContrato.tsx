@@ -140,19 +140,14 @@ const NovoContrato = () => {
   return (
     <MainLayout>
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <h1 className="font-display text-3xl font-bold text-foreground">
           Novo Contrato
         </h1>
         <p className="mt-1 text-muted-foreground">
           Registre um novo empréstimo para seu cliente
         </p>
-      </motion.div>
+      </div>
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Form Section */}

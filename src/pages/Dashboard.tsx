@@ -26,12 +26,7 @@ const Dashboard = () => {
   return (
     <MainLayout>
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
+      <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-3xl font-bold text-foreground">
@@ -43,17 +38,13 @@ const Dashboard = () => {
           </div>
           
           <Link to="/contratos/novo">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-3 font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
-            >
+            <button className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-3 font-medium text-primary-foreground shadow-gold transition-all hover:shadow-gold-lg hover:scale-[1.02] active:scale-[0.98]">
               <Sparkles className="h-5 w-5" />
               Novo Contrato
-            </motion.button>
+            </button>
           </Link>
         </div>
-      </motion.div>
+      </div>
 
       {/* Period Filter & KPI Cards */}
       <div className="mb-6">
