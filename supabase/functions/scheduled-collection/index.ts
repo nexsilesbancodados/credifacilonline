@@ -16,18 +16,37 @@ interface CollectionRule {
   is_active: boolean;
 }
 
-interface InstallmentWithClient {
-  id: string;
-  amount: number;
-  due_date: string;
-  contract_id: string;
-  contracts: {
-    client_id: string;
-    clients: {
-      name: string;
-      phone: string;
-    };
-  };
+interface AIAgentTriggers {
+  day1?: boolean;
+  day3?: boolean;
+  day7?: boolean;
+  day15?: boolean;
+  day30?: boolean;
+}
+
+interface CompanySettings {
+  ai_agent_active: boolean | null;
+  ai_agent_start_time: string | null;
+  ai_agent_end_time: string | null;
+  ai_agent_triggers: AIAgentTriggers | null;
+}
+
+// Check if current time is within the allowed window
+function isWithinTimeWindow(startTime: string | null, endTime: string | null): boolean {
+  if (!startTime || !endTime) return true; // If not configured, allow all times
+
+  const now = new Date();
+  const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+
+  return currentTime >= startTime && currentTime <= endTime;
+}
+
+// Check if the trigger day is enabled
+function isTriggerDayEnabled(triggerDays: number, triggers: AIAgentTriggers | null): boolean {
+  if (!triggers) return true; // If not configured, allow all days
+
+  const dayKey = `day${triggerDays}` as keyof AIAgentTriggers;
+  return triggers[dayKey] === true;
 }
 
 serve(async (req) => {
@@ -52,78 +71,126 @@ serve(async (req) => {
     today.setHours(0, 0, 0, 0);
 
     const results: any[] = [];
+    const skipped: any[] = [];
 
-    for (const rule of rules as CollectionRule[]) {
-      // Calculate target date based on trigger_days
-      const targetDate = new Date(today);
-      targetDate.setDate(targetDate.getDate() - rule.trigger_days);
-      
-      const dateStr = targetDate.toISOString().split('T')[0];
+    // Group rules by user_id to minimize settings queries
+    const rulesByUser = (rules as CollectionRule[]).reduce((acc, rule) => {
+      if (!acc[rule.user_id]) acc[rule.user_id] = [];
+      acc[rule.user_id].push(rule);
+      return acc;
+    }, {} as Record<string, CollectionRule[]>);
 
-      // Find installments matching this date
-      const { data: installments, error: instError } = await supabase
-        .from("installments")
-        .select(`
-          id,
-          amount,
-          due_date,
-          contract_id,
-          contracts!inner (
-            client_id,
-            user_id,
-            clients!inner (
-              name,
-              phone
-            )
-          )
-        `)
-        .eq("due_date", dateStr)
-        .eq("status", "pending")
-        .eq("contracts.user_id", rule.user_id);
+    for (const [userId, userRules] of Object.entries(rulesByUser)) {
+      // Fetch company settings for this user
+      const { data: settings, error: settingsError } = await supabase
+        .from("company_settings")
+        .select("ai_agent_active, ai_agent_start_time, ai_agent_end_time, ai_agent_triggers")
+        .eq("operator_id", userId)
+        .maybeSingle();
 
-      if (instError) {
-        console.error("Error fetching installments:", instError);
+      if (settingsError) {
+        console.error(`Error fetching settings for user ${userId}:`, settingsError);
         continue;
       }
 
-      for (const inst of (installments as any) || []) {
-        const client = inst.contracts.clients;
+      const companySettings = settings as CompanySettings | null;
+
+      // Check if AI agent is active
+      if (companySettings?.ai_agent_active === false) {
+        console.log(`AI agent is disabled for user ${userId}, skipping`);
+        skipped.push({ userId, reason: "agent_disabled" });
+        continue;
+      }
+
+      // Check if we're within the time window
+      if (!isWithinTimeWindow(companySettings?.ai_agent_start_time ?? null, companySettings?.ai_agent_end_time ?? null)) {
+        console.log(`Outside time window for user ${userId} (${companySettings?.ai_agent_start_time} - ${companySettings?.ai_agent_end_time})`);
+        skipped.push({ 
+          userId, 
+          reason: "outside_time_window",
+          window: `${companySettings?.ai_agent_start_time} - ${companySettings?.ai_agent_end_time}`
+        });
+        continue;
+      }
+
+      for (const rule of userRules) {
+        // Check if this trigger day is enabled
+        if (!isTriggerDayEnabled(rule.trigger_days, companySettings?.ai_agent_triggers ?? null)) {
+          console.log(`Trigger day ${rule.trigger_days} not enabled for user ${userId}`);
+          skipped.push({ userId, ruleId: rule.id, reason: `day${rule.trigger_days}_disabled` });
+          continue;
+        }
+
+        // Calculate target date based on trigger_days
+        const targetDate = new Date(today);
+        targetDate.setDate(targetDate.getDate() - rule.trigger_days);
         
-        // Format message with variables
-        let message = rule.message_template
-          .replace(/{nome}/g, client.name)
-          .replace(/{valor}/g, inst.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }))
-          .replace(/{dias}/g, Math.abs(rule.trigger_days).toString())
-          .replace(/{vencimento}/g, new Date(inst.due_date).toLocaleDateString('pt-BR'));
+        const dateStr = targetDate.toISOString().split('T')[0];
 
-        // Log the collection attempt
-        await supabase.from("collection_logs").insert({
-          user_id: rule.user_id,
-          client_id: inst.contracts.client_id,
-          installment_id: inst.id,
-          rule_id: rule.id,
-          message_sent: message,
-          channel: "whatsapp",
-          status: "sent",
-        });
+        // Find installments matching this date
+        const { data: installments, error: instError } = await supabase
+          .from("installments")
+          .select(`
+            id,
+            amount_due,
+            due_date,
+            contract_id,
+            client_id,
+            clients!inner (
+              name,
+              whatsapp
+            )
+          `)
+          .eq("due_date", dateStr)
+          .eq("status", "pending")
+          .eq("operator_id", userId);
 
-        results.push({
-          rule: rule.name,
-          client: client.name,
-          phone: client.phone,
-          message,
-          due_date: inst.due_date,
-        });
+        if (instError) {
+          console.error("Error fetching installments:", instError);
+          continue;
+        }
+
+        for (const inst of (installments as any) || []) {
+          const client = inst.clients;
+          
+          // Format message with variables
+          let message = rule.message_template
+            .replace(/{nome}/g, client.name)
+            .replace(/{valor}/g, inst.amount_due.toLocaleString('pt-BR', { minimumFractionDigits: 2 }))
+            .replace(/{dias}/g, Math.abs(rule.trigger_days).toString())
+            .replace(/{vencimento}/g, new Date(inst.due_date).toLocaleDateString('pt-BR'));
+
+          // Log the collection attempt
+          await supabase.from("collection_logs").insert({
+            user_id: rule.user_id,
+            client_id: inst.client_id,
+            installment_id: inst.id,
+            rule_id: rule.id,
+            message_sent: message,
+            channel: "whatsapp",
+            status: "sent",
+          });
+
+          results.push({
+            rule: rule.name,
+            client: client.name,
+            phone: client.whatsapp,
+            message,
+            due_date: inst.due_date,
+          });
+        }
       }
     }
 
-    console.log(`Processed ${results.length} collection messages`);
+    console.log(`Processed ${results.length} collection messages, skipped ${skipped.length}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         processed: results.length,
+        skipped: skipped.length,
         results,
+        skippedDetails: skipped,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
