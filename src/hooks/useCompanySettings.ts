@@ -3,6 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+export interface AIAgentTriggers {
+  day1?: boolean;
+  day3?: boolean;
+  day7?: boolean;
+  day15?: boolean;
+  day30?: boolean;
+  [key: string]: boolean | undefined;
+}
+
 export interface CompanySettings {
   id: string;
   operator_id: string;
@@ -17,6 +26,11 @@ export interface CompanySettings {
   updated_at: string;
   // N8N webhook URL
   n8n_webhook_url: string | null;
+  // AI Agent settings
+  ai_agent_active: boolean | null;
+  ai_agent_start_time: string | null;
+  ai_agent_end_time: string | null;
+  ai_agent_triggers: AIAgentTriggers | null;
 }
 
 export function useCompanySettings() {

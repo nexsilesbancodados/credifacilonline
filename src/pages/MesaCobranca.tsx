@@ -12,12 +12,14 @@ import {
   ChevronRight,
   Loader2,
   Bell,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendingInstallments } from "@/hooks/useContracts";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format, isToday, isBefore, isAfter, addDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { PermissionGate } from "@/components/auth/PermissionGate";
@@ -49,11 +51,17 @@ const MesaCobranca = () => {
   const [activeTab, setActiveTab] = useState<TabType>("overdue");
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const { data: pendingInstallments, isLoading } = usePendingInstallments();
+  const { settings } = useCompanySettings();
   const navigate = useNavigate();
   const [paymentDialog, setPaymentDialog] = useState<{
     open: boolean;
     installment: any | null;
   }>({ open: false, installment: null });
+
+  // AI Agent status from settings
+  const isAgentActive = settings?.ai_agent_active ?? false;
+  const agentStartTime = settings?.ai_agent_start_time ?? "09:00";
+  const agentEndTime = settings?.ai_agent_end_time ?? "18:00";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -362,19 +370,32 @@ const MesaCobranca = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="mt-8 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-6"
+        className={cn(
+          "mt-8 rounded-2xl border p-6",
+          isAgentActive
+            ? "border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5"
+            : "border-muted/30 bg-muted/5"
+        )}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20">
-              <Sparkles className="h-6 w-6 text-primary" />
+            <div className={cn(
+              "flex h-12 w-12 items-center justify-center rounded-xl",
+              isAgentActive ? "bg-primary/20" : "bg-muted/20"
+            )}>
+              <Sparkles className={cn(
+                "h-6 w-6",
+                isAgentActive ? "text-primary" : "text-muted-foreground"
+              )} />
             </div>
             <div>
               <h3 className="font-display text-lg font-semibold text-foreground">
                 Agente de Cobrança IA
               </h3>
               <p className="text-sm text-muted-foreground">
-                Automatize cobranças com mensagens personalizadas via WhatsApp
+                {isAgentActive
+                  ? `Ativo das ${agentStartTime} às ${agentEndTime}`
+                  : "Desativado - configure para automatizar cobranças"}
               </p>
             </div>
           </div>
@@ -382,14 +403,25 @@ const MesaCobranca = () => {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-sm text-muted-foreground">Status</p>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-success/20 px-3 py-1 text-sm font-medium text-success">
-                <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-                Ativo
-              </span>
+              {isAgentActive ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-success/20 px-3 py-1 text-sm font-medium text-success">
+                  <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                  Ativo
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/30 px-3 py-1 text-sm font-medium text-muted-foreground">
+                  <span className="h-2 w-2 rounded-full bg-muted-foreground" />
+                  Inativo
+                </span>
+              )}
             </div>
-            <button className="rounded-xl bg-secondary px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors">
+            <Link
+              to="/configuracoes?tab=ai-agent"
+              className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors"
+            >
+              <Settings className="h-4 w-4" />
               Configurar
-            </button>
+            </Link>
           </div>
         </div>
       </motion.div>

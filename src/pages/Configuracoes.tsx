@@ -15,6 +15,7 @@ import { MessageTemplates } from "@/components/templates/MessageTemplates";
 import { ExportData } from "@/components/backup/ExportData";
 import { ImportData } from "@/components/backup/ImportData";
 import { CompanySettingsForm } from "@/components/settings/CompanySettingsForm";
+import { AIAgentSettings } from "@/components/settings/AIAgentSettings";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import {
   User,
@@ -29,6 +30,7 @@ import {
   Loader2,
   CheckCircle,
   Copy,
+  Bot,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -127,6 +129,10 @@ const Configuracoes = () => {
             <TabsTrigger value="backup" className="gap-2">
               <Database className="w-4 h-4" />
               Backup
+            </TabsTrigger>
+            <TabsTrigger value="ai-agent" className="gap-2">
+              <Bot className="w-4 h-4" />
+              Agente IA
             </TabsTrigger>
             <TabsTrigger value="integrations" className="gap-2">
               <Webhook className="w-4 h-4" />
@@ -352,6 +358,11 @@ const Configuracoes = () => {
               <ExportData />
               <ImportData />
             </motion.div>
+          </TabsContent>
+
+          {/* AI Agent Tab */}
+          <TabsContent value="ai-agent">
+            <AIAgentSettings />
           </TabsContent>
 
           {/* Integrations Tab (n8n + Evolution API) */}
