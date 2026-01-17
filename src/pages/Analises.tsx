@@ -5,6 +5,7 @@ import {
   FileText,
   Loader2,
   AlertTriangle,
+  Users,
 } from "lucide-react";
 import {
   BarChart,
@@ -33,6 +34,7 @@ import { DelinquencyChart } from "@/components/dashboard/DelinquencyChart";
 import { PortfolioAgingChart } from "@/components/dashboard/PortfolioAgingChart";
 import { PerformanceMetrics } from "@/components/dashboard/PerformanceMetrics";
 import { ScoreDistributionChart } from "@/components/dashboard/ScoreDistributionChart";
+import { CollectorReportsChart } from "@/components/dashboard/CollectorReportsChart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -237,6 +239,10 @@ const Analises = () => {
               </TabsTrigger>
               <TabsTrigger value="aging">Aging</TabsTrigger>
               <TabsTrigger value="score">Score</TabsTrigger>
+              <TabsTrigger value="collectors" className="gap-2">
+                <Users className="h-4 w-4" />
+                Cobradores
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="performance" className="mt-6">
@@ -364,6 +370,10 @@ const Analises = () => {
             
             <TabsContent value="score" className="mt-6">
               <ScoreDistributionChart />
+            </TabsContent>
+
+            <TabsContent value="collectors" className="mt-6">
+              <CollectorReportsChart />
             </TabsContent>
           </Tabs>
           {riskReturnData.length > 0 && (

@@ -153,9 +153,6 @@ export function ExportData() {
     setExportComplete(false);
 
     try {
-      // Simulate some processing time
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       const data = getDataForExport();
 
       switch (format) {
