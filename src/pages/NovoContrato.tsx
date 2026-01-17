@@ -1,11 +1,12 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Camera, X } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Calculator,
   User,
@@ -13,8 +14,6 @@ import {
   Calendar,
   DollarSign,
   Percent,
-  Hash,
-  ChevronRight,
   Sparkles,
   Check,
 } from "lucide-react";
@@ -30,6 +29,11 @@ const NovoContrato = () => {
   const [mode, setMode] = useState<CalculationMode>("rate");
   const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
     // Client data
     name: "",
@@ -49,11 +53,74 @@ const NovoContrato = () => {
     installments: "" as unknown as number,
     installmentValue: "" as unknown as number,
     frequency: "mensal",
-    dailyType: "seg-seg", // seg-seg, seg-sex, seg-sab
+    dailyType: "seg-seg",
     startDate: "",
     firstDueDate: "",
     paidInstallments: "" as unknown as number,
   });
+
+  // Handle avatar selection
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Arquivo muito grande",
+          description: "A imagem deve ter no máximo 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Upload avatar to storage
+  const uploadAvatar = async (clientId: string): Promise<string | null> => {
+    if (!avatarFile) return null;
+    
+    setIsUploadingAvatar(true);
+    try {
+      const fileExt = avatarFile.name.split(".").pop();
+      const fileName = `${clientId}.${fileExt}`;
+      const filePath = `clients/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, avatarFile, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error: any) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Erro ao enviar foto",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   // CEP lookup function
   const fetchAddressByCep = useCallback(async (cep: string) => {
@@ -101,8 +168,6 @@ const NovoContrato = () => {
   }, [toast]);
 
   // Calculate based on mode
-  // Juros simples: Total = Capital × (1 + Taxa)
-  // Exemplo: R$ 1000 a 10% = R$ 1100, em 10 parcelas = R$ 110 cada
   const calculateInstallment = () => {
     const capital = Number(formData.capital) || 0;
     const interestRate = Number(formData.interestRate) || 0;
@@ -143,6 +208,68 @@ const NovoContrato = () => {
     { value: "seg-sab", label: "Segunda a Sábado", description: "Exceto domingo" },
   ];
 
+  const handleSave = async () => {
+    if (!formData.name || !formData.cpf) {
+      toast({ title: "Erro", description: "Preencha o nome e CPF do cliente.", variant: "destructive" });
+      return;
+    }
+    if (!formData.startDate || !formData.firstDueDate) {
+      toast({ title: "Erro", description: "Preencha as datas do contrato.", variant: "destructive" });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Create client first
+      const { data: clientData, error: clientError } = await supabase.from("clients").insert({
+        operator_id: user?.id,
+        name: formData.name,
+        cpf: formData.cpf,
+        email: formData.email || null,
+        whatsapp: formData.whatsapp || null,
+        cep: formData.cep || null,
+        street: formData.street || null,
+        number: formData.number || null,
+        complement: formData.complement || null,
+        neighborhood: formData.neighborhood || null,
+        city: formData.city || null,
+        state: formData.state || null,
+      }).select().single();
+      
+      if (clientError) throw clientError;
+
+      // Upload avatar if selected
+      if (avatarFile && clientData) {
+        const avatarUrl = await uploadAvatar(clientData.id);
+        if (avatarUrl) {
+          await supabase.from("clients").update({ avatar_url: avatarUrl }).eq("id", clientData.id);
+        }
+      }
+      
+      // Then create contract
+      await createContract({
+        client_id: clientData.id,
+        capital: formData.capital,
+        interest_rate: rateResult,
+        installments: formData.installments,
+        installment_value: installmentResult,
+        total_amount: totalAmount,
+        total_profit: totalProfit,
+        frequency: formData.frequency as any,
+        daily_type: formData.frequency === "diario" ? formData.dailyType as any : undefined,
+        start_date: formData.startDate,
+        first_due_date: formData.firstDueDate,
+        paid_installments: formData.paidInstallments,
+      });
+      navigate("/clientes");
+    } catch (error: any) {
+      toast({ title: "Erro ao criar contrato", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <MainLayout>
       {/* Header */}
@@ -158,7 +285,7 @@ const NovoContrato = () => {
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Form Section */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Calculator Mode Toggle */}
+          {/* Step 1: Client Data with Photo */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -166,153 +293,9 @@ const NovoContrato = () => {
             className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
           >
             <div className="flex items-center gap-3 mb-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
-                <Calculator className="h-5 w-5 text-primary" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                1
               </div>
-              <div>
-                <h2 className="font-display text-lg font-semibold text-foreground">
-                  Motor de Cálculo
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Escolha como calcular o contrato
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={() => setMode("rate")}
-                className={cn(
-                  "flex-1 rounded-xl border p-4 transition-all",
-                  mode === "rate"
-                    ? "border-primary bg-primary/10"
-                    : "border-border/50 hover:border-border"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg",
-                    mode === "rate" ? "bg-primary text-primary-foreground" : "bg-secondary"
-                  )}>
-                    <Percent className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-foreground">Taxa de Juros</p>
-                    <p className="text-xs text-muted-foreground">
-                      Calcular parcela pela taxa
-                    </p>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setMode("installment")}
-                className={cn(
-                  "flex-1 rounded-xl border p-4 transition-all",
-                  mode === "installment"
-                    ? "border-primary bg-primary/10"
-                    : "border-border/50 hover:border-border"
-                )}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg",
-                    mode === "installment" ? "bg-primary text-primary-foreground" : "bg-secondary"
-                  )}>
-                    <DollarSign className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-foreground">Parcela Fixa</p>
-                    <p className="text-xs text-muted-foreground">
-                      Calcular taxa pela parcela
-                    </p>
-                  </div>
-                </div>
-              </button>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  Capital (R$)
-                </label>
-                <input
-                  type="number"
-                  value={formData.capital === 0 ? "" : formData.capital}
-                  onChange={(e) =>
-                    setFormData({ ...formData, capital: e.target.value === "" ? "" as unknown as number : Number(e.target.value) })
-                  }
-                  placeholder="0"
-                  className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              {mode === "rate" ? (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                    Taxa de Juros (%)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.interestRate === 0 ? "" : formData.interestRate}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        interestRate: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
-                      })
-                    }
-                    placeholder="0"
-                    className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              ) : (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                    Valor da Parcela (R$)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.installmentValue === 0 ? "" : formData.installmentValue}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        installmentValue: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
-                      })
-                    }
-                    placeholder="0"
-                    className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  Nº de Parcelas
-                </label>
-                <input
-                  type="number"
-                  value={formData.installments === 0 ? "" : formData.installments}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      installments: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
-                    })
-                  }
-                  placeholder="0"
-                  className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Client Data */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
-          >
-            <div className="flex items-center gap-3 mb-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
                 <User className="h-5 w-5 text-primary" />
               </div>
@@ -326,10 +309,55 @@ const NovoContrato = () => {
               </div>
             </div>
 
+            {/* Avatar Upload */}
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarSelect}
+                  className="hidden"
+                  id="avatar-upload"
+                />
+                
+                {avatarPreview ? (
+                  <div className="relative">
+                    <img
+                      src={avatarPreview}
+                      alt="Preview"
+                      className="h-28 w-28 rounded-full object-cover border-4 border-primary/30"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeAvatar}
+                      className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-lg hover:bg-destructive/90 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <label
+                      htmlFor="avatar-upload"
+                      className="absolute -bottom-2 -right-2 h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg cursor-pointer hover:bg-primary/90 transition-colors"
+                    >
+                      <Camera className="h-5 w-5" />
+                    </label>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="avatar-upload"
+                    className="flex flex-col items-center justify-center h-28 w-28 rounded-full border-2 border-dashed border-border bg-secondary/30 cursor-pointer hover:border-primary hover:bg-primary/5 transition-all"
+                  >
+                    <Camera className="h-8 w-8 text-muted-foreground mb-1" />
+                    <span className="text-xs text-muted-foreground">Foto</span>
+                  </label>
+                )}
+              </div>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  Nome Completo
+                  Nome Completo *
                 </label>
                 <input
                   type="text"
@@ -343,7 +371,7 @@ const NovoContrato = () => {
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  CPF
+                  CPF *
                 </label>
                 <input
                   type="text"
@@ -386,14 +414,17 @@ const NovoContrato = () => {
             </div>
           </motion.div>
 
-          {/* Address */}
+          {/* Step 2: Address */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
             className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
           >
             <div className="flex items-center gap-3 mb-6">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                2
+              </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
                 <MapPin className="h-5 w-5 text-primary" />
               </div>
@@ -419,7 +450,6 @@ const NovoContrato = () => {
                     onChange={(e) => {
                       const value = e.target.value;
                       setFormData({ ...formData, cep: value });
-                      // Auto-fetch when CEP has 8 digits (with or without hyphen)
                       const cleanCep = value.replace(/\D/g, "");
                       if (cleanCep.length === 8) {
                         fetchAddressByCep(cleanCep);
@@ -495,7 +525,157 @@ const NovoContrato = () => {
             </div>
           </motion.div>
 
-          {/* Contract Details */}
+          {/* Step 3: Calculator */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                3
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
+                <Calculator className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-display text-lg font-semibold text-foreground">
+                  Valores do Empréstimo
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Escolha como calcular o contrato
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mb-6">
+              <button
+                onClick={() => setMode("rate")}
+                className={cn(
+                  "flex-1 rounded-xl border p-4 transition-all",
+                  mode === "rate"
+                    ? "border-primary bg-primary/10"
+                    : "border-border/50 hover:border-border"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-lg",
+                    mode === "rate" ? "bg-primary text-primary-foreground" : "bg-secondary"
+                  )}>
+                    <Percent className="h-5 w-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-foreground">Taxa de Juros</p>
+                    <p className="text-xs text-muted-foreground">
+                      Calcular parcela pela taxa
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setMode("installment")}
+                className={cn(
+                  "flex-1 rounded-xl border p-4 transition-all",
+                  mode === "installment"
+                    ? "border-primary bg-primary/10"
+                    : "border-border/50 hover:border-border"
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-lg",
+                    mode === "installment" ? "bg-primary text-primary-foreground" : "bg-secondary"
+                  )}>
+                    <DollarSign className="h-5 w-5" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-medium text-foreground">Parcela Fixa</p>
+                    <p className="text-xs text-muted-foreground">
+                      Calcular taxa pela parcela
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Capital (R$) *
+                </label>
+                <input
+                  type="number"
+                  value={formData.capital === 0 ? "" : formData.capital}
+                  onChange={(e) =>
+                    setFormData({ ...formData, capital: e.target.value === "" ? "" as unknown as number : Number(e.target.value) })
+                  }
+                  placeholder="0"
+                  className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              {mode === "rate" ? (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                    Taxa de Juros (%) *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.interestRate === 0 ? "" : formData.interestRate}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        interestRate: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
+                      })
+                    }
+                    placeholder="0"
+                    className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                    Valor da Parcela (R$) *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.installmentValue === 0 ? "" : formData.installmentValue}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        installmentValue: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
+                      })
+                    }
+                    placeholder="0"
+                    className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Nº de Parcelas *
+                </label>
+                <input
+                  type="number"
+                  value={formData.installments === 0 ? "" : formData.installments}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      installments: e.target.value === "" ? "" as unknown as number : Number(e.target.value),
+                    })
+                  }
+                  placeholder="0"
+                  className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Step 4: Contract Details */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -503,6 +683,9 @@ const NovoContrato = () => {
             className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
           >
             <div className="flex items-center gap-3 mb-6">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                4
+              </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
                 <Calendar className="h-5 w-5 text-primary" />
               </div>
@@ -583,7 +766,7 @@ const NovoContrato = () => {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  Data de Início
+                  Data de Início *
                 </label>
                 <input
                   type="date"
@@ -596,7 +779,7 @@ const NovoContrato = () => {
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  Primeiro Vencimento
+                  Primeiro Vencimento *
                 </label>
                 <input
                   type="date"
@@ -647,6 +830,23 @@ const NovoContrato = () => {
               </h2>
             </div>
 
+            {/* Client Preview */}
+            {formData.name && (
+              <div className="flex items-center gap-3 mb-6 p-3 rounded-xl bg-secondary/30">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt={formData.name} className="h-12 w-12 rounded-full object-cover" />
+                ) : (
+                  <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                    {formData.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <p className="font-medium text-foreground">{formData.name}</p>
+                  <p className="text-xs text-muted-foreground">{formData.cpf || "CPF não informado"}</p>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-4">
               <div className="flex justify-between items-center py-3 border-b border-border/50">
                 <span className="text-muted-foreground">Capital</span>
@@ -654,7 +854,7 @@ const NovoContrato = () => {
                   {new Intl.NumberFormat("pt-BR", {
                     style: "currency",
                     currency: "BRL",
-                  }).format(formData.capital)}
+                  }).format(formData.capital || 0)}
                 </span>
               </div>
 
@@ -676,7 +876,7 @@ const NovoContrato = () => {
               <div className="flex justify-between items-center py-3 border-b border-border/50">
                 <span className="text-muted-foreground">Parcelas</span>
                 <span className="font-display font-semibold text-foreground">
-                  {formData.installments}x
+                  {formData.installments || 0}x
                 </span>
               </div>
 
@@ -714,65 +914,12 @@ const NovoContrato = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              disabled={isSaving || !formData.name || !formData.cpf || !formData.startDate || !formData.firstDueDate}
-              onClick={async () => {
-                if (!formData.name || !formData.cpf) {
-                  toast({ title: "Erro", description: "Preencha o nome e CPF do cliente.", variant: "destructive" });
-                  return;
-                }
-                if (!formData.startDate || !formData.firstDueDate) {
-                  toast({ title: "Erro", description: "Preencha as datas do contrato.", variant: "destructive" });
-                  return;
-                }
-                setIsSaving(true);
-                try {
-                  // Import supabase
-                  const { supabase } = await import("@/integrations/supabase/client");
-                  const { data: { user } } = await supabase.auth.getUser();
-                  
-                  // Create client first
-                  const { data: clientData, error: clientError } = await supabase.from("clients").insert({
-                    operator_id: user?.id,
-                    name: formData.name,
-                    cpf: formData.cpf,
-                    email: formData.email || null,
-                    whatsapp: formData.whatsapp || null,
-                    cep: formData.cep || null,
-                    street: formData.street || null,
-                    number: formData.number || null,
-                    complement: formData.complement || null,
-                    neighborhood: formData.neighborhood || null,
-                    city: formData.city || null,
-                    state: formData.state || null,
-                  }).select().single();
-                  if (clientError) throw clientError;
-                  
-                  // Then create contract
-                  await createContract({
-                    client_id: clientData.id,
-                    capital: formData.capital,
-                    interest_rate: rateResult,
-                    installments: formData.installments,
-                    installment_value: installmentResult,
-                    total_amount: totalAmount,
-                    total_profit: totalProfit,
-                    frequency: formData.frequency as any,
-                    daily_type: formData.frequency === "diario" ? formData.dailyType as any : undefined,
-                    start_date: formData.startDate,
-                    first_due_date: formData.firstDueDate,
-                    paid_installments: formData.paidInstallments,
-                  });
-                  navigate("/clientes");
-                } catch (error: any) {
-                  toast({ title: "Erro ao criar contrato", description: error.message, variant: "destructive" });
-                } finally {
-                  setIsSaving(false);
-                }
-              }}
+              disabled={isSaving || isUploadingAvatar || !formData.name || !formData.cpf || !formData.startDate || !formData.firstDueDate}
+              onClick={handleSave}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-gold py-4 font-display font-semibold text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg disabled:opacity-50"
             >
-              {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
-              {isSaving ? "Salvando..." : "Criar Contrato"}
+              {isSaving || isUploadingAvatar ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
+              {isSaving ? "Salvando..." : isUploadingAvatar ? "Enviando foto..." : "Criar Contrato"}
             </motion.button>
 
             <p className="mt-4 text-center text-xs text-muted-foreground">
