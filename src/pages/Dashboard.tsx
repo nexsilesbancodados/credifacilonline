@@ -6,6 +6,7 @@ import { OverdueList } from "@/components/dashboard/OverdueList";
 import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
 import { GoalsDashboard } from "@/components/dashboard/GoalsDashboard";
 import { ForecastChart } from "@/components/dashboard/ForecastChart";
+import { ReceivableForecastWidget } from "@/components/dashboard/ReceivableForecastWidget";
 import { OnboardingTour, useOnboardingTour } from "@/components/tour/OnboardingTour";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -69,9 +70,10 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Forecast Chart */}
-          <div className="mt-8">
+          {/* Forecast Charts Row */}
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
             <ForecastChart />
+            <ReceivableForecastWidget />
           </div>
 
           {/* Goals Dashboard */}
