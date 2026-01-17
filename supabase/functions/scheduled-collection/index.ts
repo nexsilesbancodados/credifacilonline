@@ -6,6 +6,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Evolution API credentials
+const EVOLUTION_URL = "https://credifacil-evolution-api.uqxoid.easypanel.host";
+const EVOLUTION_INSTANCE = "credifacil";
+const EVOLUTION_API_KEY = "BB8F1AB90F66-48A6-897C-B092EBFCEA82";
+
 interface CollectionRule {
   id: string;
   user_id: string;
@@ -31,6 +36,16 @@ interface CompanySettings {
   ai_agent_triggers: AIAgentTriggers | null;
 }
 
+interface SendResult {
+  rule: string;
+  client: string;
+  phone: string;
+  message: string;
+  due_date: string;
+  whatsapp_sent: boolean;
+  whatsapp_error?: string;
+}
+
 // Check if current time is within the allowed window
 function isWithinTimeWindow(startTime: string | null, endTime: string | null): boolean {
   if (!startTime || !endTime) return true; // If not configured, allow all times
@@ -47,6 +62,55 @@ function isTriggerDayEnabled(triggerDays: number, triggers: AIAgentTriggers | nu
 
   const dayKey = `day${triggerDays}` as keyof AIAgentTriggers;
   return triggers[dayKey] === true;
+}
+
+// Send WhatsApp message via Evolution API
+async function sendWhatsAppMessage(phone: string, message: string): Promise<{ success: boolean; error?: string }> {
+  if (!phone) {
+    return { success: false, error: "Telefone não informado" };
+  }
+
+  // Clean phone number and ensure correct format
+  const cleanPhone = phone.replace(/\D/g, "");
+  const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+
+  // Validate phone length (Brazil: 55 + DDD(2) + number(8-9) = 12-13 digits)
+  if (formattedPhone.length < 12 || formattedPhone.length > 13) {
+    return { success: false, error: `Número inválido: ${formattedPhone} (${formattedPhone.length} dígitos)` };
+  }
+
+  try {
+    console.log(`Sending WhatsApp to ${formattedPhone}...`);
+    
+    const response = await fetch(
+      `${EVOLUTION_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: EVOLUTION_API_KEY,
+        },
+        body: JSON.stringify({
+          number: formattedPhone,
+          text: message,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Evolution API error:", data);
+      return { success: false, error: data.message || "Erro na API Evolution" };
+    }
+
+    console.log(`WhatsApp sent successfully to ${formattedPhone}`);
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
+    console.error("Evolution API fetch error:", errorMsg);
+    return { success: false, error: errorMsg };
+  }
 }
 
 serve(async (req) => {
@@ -70,8 +134,10 @@ serve(async (req) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const results: any[] = [];
+    const results: SendResult[] = [];
     const skipped: any[] = [];
+    let sentCount = 0;
+    let failedCount = 0;
 
     // Group rules by user_id to minimize settings queries
     const rulesByUser = (rules as CollectionRule[]).reduce((acc, rule) => {
@@ -160,16 +226,33 @@ serve(async (req) => {
             .replace(/{dias}/g, Math.abs(rule.trigger_days).toString())
             .replace(/{vencimento}/g, new Date(inst.due_date).toLocaleDateString('pt-BR'));
 
-          // Log the collection attempt
-          await supabase.from("collection_logs").insert({
+          // Send WhatsApp message via Evolution API
+          const sendResult = await sendWhatsAppMessage(client.whatsapp, message);
+          
+          // Determine log status based on send result
+          const logStatus = sendResult.success ? "sent" : "failed";
+          
+          // Log the collection attempt with actual status
+          const { error: logError } = await supabase.from("collection_logs").insert({
             user_id: rule.user_id,
             client_id: inst.client_id,
             installment_id: inst.id,
             rule_id: rule.id,
             message_sent: message,
             channel: "whatsapp",
-            status: "sent",
+            status: logStatus,
           });
+
+          if (logError) {
+            console.error("Error logging collection:", logError);
+          }
+
+          // Update counters
+          if (sendResult.success) {
+            sentCount++;
+          } else {
+            failedCount++;
+          }
 
           results.push({
             rule: rule.name,
@@ -177,17 +260,21 @@ serve(async (req) => {
             phone: client.whatsapp,
             message,
             due_date: inst.due_date,
+            whatsapp_sent: sendResult.success,
+            whatsapp_error: sendResult.error,
           });
         }
       }
     }
 
-    console.log(`Processed ${results.length} collection messages, skipped ${skipped.length}`);
+    console.log(`Processed ${results.length} collection messages: ${sentCount} sent, ${failedCount} failed, ${skipped.length} skipped`);
 
     return new Response(
       JSON.stringify({
         success: true,
         processed: results.length,
+        sent: sentCount,
+        failed: failedCount,
         skipped: skipped.length,
         results,
         skippedDetails: skipped,
