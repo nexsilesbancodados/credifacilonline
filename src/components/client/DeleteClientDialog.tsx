@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -195,10 +194,10 @@ export function DeleteClientDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
+          <button
             onClick={handleDelete}
             disabled={!isConfirmed || isDeleting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="inline-flex h-10 items-center justify-center rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground ring-offset-background transition-colors hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
           >
             {isDeleting ? (
               <>
@@ -208,7 +207,7 @@ export function DeleteClientDialog({
             ) : (
               "Excluir Permanentemente"
             )}
-          </AlertDialogAction>
+          </button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
