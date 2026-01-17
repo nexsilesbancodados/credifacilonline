@@ -7,6 +7,7 @@ import { Loader2, Camera, X } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
 import { supabase } from "@/integrations/supabase/client";
+import { maskCPF, maskPhone, maskCEP, validateCPF, validatePhone } from "@/lib/masks";
 import {
   Calculator,
   User,
@@ -213,6 +214,19 @@ const NovoContrato = () => {
       toast({ title: "Erro", description: "Preencha o nome e CPF do cliente.", variant: "destructive" });
       return;
     }
+    
+    // Validate CPF
+    if (!validateCPF(formData.cpf)) {
+      toast({ title: "CPF Inválido", description: "O CPF informado não é válido. Verifique os dígitos.", variant: "destructive" });
+      return;
+    }
+    
+    // Validate phone if provided
+    if (formData.whatsapp && !validatePhone(formData.whatsapp)) {
+      toast({ title: "WhatsApp Inválido", description: "O número de WhatsApp deve ter 10 ou 11 dígitos.", variant: "destructive" });
+      return;
+    }
+    
     if (!formData.startDate || !formData.firstDueDate) {
       toast({ title: "Erro", description: "Preencha as datas do contrato.", variant: "destructive" });
       return;
@@ -377,9 +391,10 @@ const NovoContrato = () => {
                   type="text"
                   value={formData.cpf}
                   onChange={(e) =>
-                    setFormData({ ...formData, cpf: e.target.value })
+                    setFormData({ ...formData, cpf: maskCPF(e.target.value) })
                   }
-                  placeholder="123.456.789-00"
+                  placeholder="000.000.000-00"
+                  maxLength={14}
                   className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -405,9 +420,10 @@ const NovoContrato = () => {
                   type="text"
                   value={formData.whatsapp}
                   onChange={(e) =>
-                    setFormData({ ...formData, whatsapp: e.target.value })
+                    setFormData({ ...formData, whatsapp: maskPhone(e.target.value) })
                   }
-                  placeholder="(11) 98765-4321"
+                  placeholder="(00) 00000-0000"
+                  maxLength={15}
                   className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
@@ -448,9 +464,9 @@ const NovoContrato = () => {
                     type="text"
                     value={formData.cep}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData({ ...formData, cep: value });
-                      const cleanCep = value.replace(/\D/g, "");
+                      const masked = maskCEP(e.target.value);
+                      setFormData({ ...formData, cep: masked });
+                      const cleanCep = masked.replace(/\D/g, "");
                       if (cleanCep.length === 8) {
                         fetchAddressByCep(cleanCep);
                       }

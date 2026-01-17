@@ -46,7 +46,9 @@ import { DocumentList } from "@/components/documents/DocumentList";
 import { useClients, Client } from "@/hooks/useClients";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useActivityHistory } from "@/hooks/useActivityHistory";
+import { useClientScore } from "@/hooks/useClientScore";
 import { useToast } from "@/hooks/use-toast";
+import { generateClientDossierPDF } from "@/lib/generateDossierPDF";
 
 const statusStyles = {
   Ativo: "bg-success/20 text-success border-success/30",
@@ -76,6 +78,7 @@ const ClienteDossie = () => {
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { data: activityData, isLoading: isLoadingActivity } = useActivityHistory("all", "", 1, 50);
+  const { score } = useClientScore(id || "");
 
   const isLoading = isLoadingClients || isLoadingContracts || isLoadingInstallments;
 
@@ -178,6 +181,60 @@ const ClienteDossie = () => {
     setIsPaymentOpen(true);
   };
 
+  const handleExportPDF = () => {
+    if (!client) return;
+    
+    generateClientDossierPDF({
+      client: {
+        name: client.name,
+        cpf: client.cpf,
+        email: client.email || undefined,
+        whatsapp: client.whatsapp || undefined,
+        street: client.street || undefined,
+        number: client.number || undefined,
+        complement: client.complement || undefined,
+        neighborhood: client.neighborhood || undefined,
+        city: client.city || undefined,
+        state: client.state || undefined,
+        cep: client.cep || undefined,
+        status: client.status,
+      },
+      contract: activeContract ? {
+        id: activeContract.id,
+        capital: Number(activeContract.capital),
+        interest_rate: Number(activeContract.interest_rate),
+        installments: activeContract.installments,
+        installment_value: Number(activeContract.installment_value),
+        total_amount: Number(activeContract.total_amount),
+        total_profit: Number(activeContract.total_profit),
+        frequency: activeContract.frequency,
+        start_date: activeContract.start_date,
+        first_due_date: activeContract.first_due_date,
+        status: activeContract.status,
+      } : undefined,
+      installments: clientInstallments.map(i => ({
+        installment_number: i.installment_number,
+        due_date: i.due_date,
+        amount_due: Number(i.amount_due),
+        amount_paid: i.amount_paid ? Number(i.amount_paid) : undefined,
+        status: i.status,
+        payment_date: i.payment_date || undefined,
+        fine: i.fine ? Number(i.fine) : undefined,
+      })),
+      activities: activities.map(a => ({
+        type: a.type,
+        description: a.description,
+        created_at: a.date,
+      })),
+      score,
+    });
+    
+    toast({
+      title: "PDF Gerado!",
+      description: "O dossiê foi exportado com sucesso.",
+    });
+  };
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -251,9 +308,17 @@ const ClienteDossie = () => {
 
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-gold font-display text-xl font-bold text-primary-foreground">
-              {clientForDialogs.avatar}
-            </div>
+            {client.avatar_url ? (
+              <img
+                src={client.avatar_url}
+                alt={client.name}
+                className="h-16 w-16 rounded-full object-cover border-2 border-primary/30"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-gold font-display text-xl font-bold text-primary-foreground">
+                {clientForDialogs.avatar}
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="font-display text-2xl font-bold text-foreground">
@@ -309,6 +374,15 @@ const ClienteDossie = () => {
             >
               <Sparkles className="h-4 w-4" />
               IA
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleExportPDF}
+              className="flex items-center gap-2 rounded-xl border border-primary/50 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+            >
+              <Download className="h-4 w-4" />
+              PDF
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
