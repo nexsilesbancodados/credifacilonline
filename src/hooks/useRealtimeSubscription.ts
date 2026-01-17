@@ -34,7 +34,7 @@ export function useRealtimeSubscription(config: RealtimeConfig = { tables: [] })
             table,
           },
           async (payload) => {
-            console.log(`Realtime update on ${table}:`, payload.eventType);
+            // Realtime update received
 
             // Invalidate relevant queries based on table
             switch (table) {

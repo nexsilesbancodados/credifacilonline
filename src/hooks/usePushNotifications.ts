@@ -51,8 +51,7 @@ export function usePushNotifications() {
     if (!isSupported) return false;
 
     try {
-      const registration = await navigator.serviceWorker.register('/sw-push.js');
-      console.log('Service Worker registered:', registration);
+      await navigator.serviceWorker.register('/sw-push.js');
       setIsRegistered(true);
       return true;
     } catch (error) {
@@ -74,8 +73,7 @@ export function usePushNotifications() {
         return true;
       }
       return false;
-    } catch (error) {
-      console.error('Error requesting notification permission:', error);
+    } catch {
       return false;
     }
   }, [isSupported, registerServiceWorker]);
@@ -109,8 +107,7 @@ export function usePushNotifications() {
         requireInteraction: options?.requireInteraction || false,
       });
       return true;
-    } catch (error) {
-      console.error('Error showing notification:', error);
+    } catch {
       return false;
     }
   }, [permission, preferences.soundEnabled, playSound]);
@@ -188,8 +185,8 @@ export function usePushNotifications() {
           });
         }
       }
-    } catch (error) {
-      console.error('Error checking due installments:', error);
+    } catch {
+      // Error checking installments
     }
   }, [user, permission, preferences, showNotification]);
 

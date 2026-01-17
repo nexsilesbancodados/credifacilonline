@@ -46,8 +46,8 @@ export function useActivityLogger() {
         contract_id: contractId || null,
         metadata: (metadata as Json) || null,
       });
-    } catch (error) {
-      console.error("Error logging activity:", error);
+    } catch {
+      // Error logging activity silently
     }
   };
 

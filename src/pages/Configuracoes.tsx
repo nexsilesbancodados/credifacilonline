@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { PushNotificationSettings } from "@/components/notifications/PushNotificationSettings";
 import { CollectionRules } from "@/components/settings/CollectionRules";
 import { MessageTemplates } from "@/components/templates/MessageTemplates";
@@ -36,18 +37,28 @@ import { Badge } from "@/components/ui/badge";
 
 const Configuracoes = () => {
   const { toast } = useToast();
+  const { profile, updateProfile } = useAuth();
   const { settings, isLoading: isLoadingSettings, updateSettings, isUpdating } = useCompanySettings();
   const [isLoading, setIsLoading] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
 
-  // Profile settings
-  const [profile, setProfile] = useState({
-    name: "João Silva",
-    email: "joao@empresa.com",
-    phone: "(11) 99999-9999",
-    company: "Credifacil Ltda",
-    cnpj: "12.345.678/0001-90",
+  // Profile settings - initialize from auth context
+  const [profileData, setProfileData] = useState({
+    name: "",
+    email: "",
+    phone: "",
   });
+
+  // Sync profile data from auth context
+  useEffect(() => {
+    if (profile) {
+      setProfileData({
+        name: profile.name || "",
+        email: profile.email || "",
+        phone: profile.phone || "",
+      });
+    }
+  }, [profile]);
 
   // Notification settings
   const [notifications, setNotifications] = useState({
@@ -162,8 +173,8 @@ const Configuracoes = () => {
                       <Label htmlFor="name">Nome completo</Label>
                       <Input
                         id="name"
-                        value={profile.name}
-                        onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                        value={profileData.name}
+                        onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
@@ -171,16 +182,16 @@ const Configuracoes = () => {
                       <Input
                         id="email"
                         type="email"
-                        value={profile.email}
-                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Telefone</Label>
                       <Input
                         id="phone"
-                        value={profile.phone}
-                        onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                        value={profileData.phone}
+                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
                       />
                     </div>
                   </div>

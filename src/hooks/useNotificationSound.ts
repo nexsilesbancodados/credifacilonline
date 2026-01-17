@@ -78,8 +78,8 @@ export function useNotificationSound() {
         playTone(freq, config.durations[index], config.type, currentTime);
         currentTime += config.durations[index] / 1000;
       });
-    } catch (error) {
-      console.error('Error playing notification sound:', error);
+    } catch {
+      // Error playing sound silently
     }
   }, [getAudioContext, playTone]);
 

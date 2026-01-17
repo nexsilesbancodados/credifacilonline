@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Save, User, Phone, Mail, MapPin, Loader2 } from "lucide-react";
 import { useClients, Client } from "@/hooks/useClients";
+import { useToast } from "@/hooks/use-toast";
 
 interface EditClientDialogProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface EditClientDialogProps {
 
 export const EditClientDialog = ({ open, onOpenChange, client }: EditClientDialogProps) => {
   const { updateClient, isUpdating } = useClients();
+  const { toast } = useToast();
   
   const [formData, setFormData] = useState({
     name: "",
@@ -65,17 +67,33 @@ export const EditClientDialog = ({ open, onOpenChange, client }: EditClientDialo
       const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
       const data = await response.json();
       
-      if (!data.erro) {
-        setFormData(prev => ({
-          ...prev,
-          street: data.logradouro || prev.street,
-          neighborhood: data.bairro || prev.neighborhood,
-          city: data.localidade || prev.city,
-          state: data.uf || prev.state,
-        }));
+      if (data.erro) {
+        toast({
+          title: "CEP não encontrado",
+          description: "Verifique o CEP digitado e tente novamente.",
+          variant: "destructive",
+        });
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching address:", error);
+      
+      setFormData(prev => ({
+        ...prev,
+        street: data.logradouro || prev.street,
+        neighborhood: data.bairro || prev.neighborhood,
+        city: data.localidade || prev.city,
+        state: data.uf || prev.state,
+      }));
+      
+      toast({
+        title: "Endereço encontrado!",
+        description: `${data.logradouro}, ${data.bairro}`,
+      });
+    } catch {
+      toast({
+        title: "Erro ao buscar CEP",
+        description: "Não foi possível conectar ao serviço. Tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
