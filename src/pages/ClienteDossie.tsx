@@ -213,6 +213,7 @@ const ClienteDossie = () => {
     avatar: client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase(),
     status: client.status as "Ativo" | "Atraso" | "Quitado",
     createdAt: client.created_at,
+    contractId: activeContract?.id, // Full contract ID for renegotiation
     address: {
       street: client.street || "",
       number: client.number || "",
