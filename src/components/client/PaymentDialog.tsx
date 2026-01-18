@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, DollarSign, Calendar, CheckCircle2, AlertCircle, Printer, Loader2 } from "lucide-react";
+import { X, DollarSign, Calendar, CheckCircle2, AlertCircle, Printer, Loader2, Percent } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { calculateFine, FineConfig, DEFAULT_FINE_CONFIG } from "@/lib/calculateFine";
 import { generatePaymentReceipt } from "@/lib/generateReceipt";
@@ -31,6 +31,14 @@ interface Installment {
   };
 }
 
+interface ContractData {
+  id: string;
+  capital: number;
+  interest_rate: number;
+  frequency: string;
+  installment_value: number;
+}
+
 interface PaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,11 +48,15 @@ interface PaymentDialogProps {
   onConfirm?: (amountPaid: number) => void;
 }
 
+type PaymentType = "full" | "partial" | "interest_only";
+
 export const PaymentDialog = ({ open, onOpenChange, installment, clientName, clientId, onConfirm }: PaymentDialogProps) => {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
   const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [paymentType, setPaymentType] = useState<PaymentType>("full");
   const [showPrintOption, setShowPrintOption] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [contractData, setContractData] = useState<ContractData | null>(null);
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -72,6 +84,27 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
     contractId: installment.contract_id,
   } : null;
 
+  // Fetch contract data to get interest rate and frequency
+  useEffect(() => {
+    const fetchContractData = async () => {
+      if (normalizedInstallment?.contractId) {
+        const { data, error } = await supabase
+          .from("contracts")
+          .select("id, capital, interest_rate, frequency, installment_value")
+          .eq("id", normalizedInstallment.contractId)
+          .single();
+        
+        if (!error && data) {
+          setContractData(data);
+        }
+      }
+    };
+    
+    if (open && normalizedInstallment?.contractId) {
+      fetchContractData();
+    }
+  }, [open, normalizedInstallment?.contractId]);
+
   // Calculate remaining amount (total - already paid)
   const remainingAmount = normalizedInstallment 
     ? normalizedInstallment.amount - normalizedInstallment.amountPaid
@@ -89,16 +122,30 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
   // Total due is remaining amount + fine
   const totalDue = remainingAmount + actualFine;
 
+  // Calculate interest-only amount for monthly loans
+  // For monthly loans: Interest = Capital × Rate / 100
+  const interestOnlyAmount = contractData 
+    ? (contractData.capital * contractData.interest_rate / 100)
+    : 0;
+  
+  // Check if this is a monthly loan (frequency = "mensal")
+  const isMonthlyLoan = contractData?.frequency === "mensal";
+
   const [amountPaid, setAmountPaid] = useState(totalDue);
 
-  // Reset amount when installment changes
+  // Reset amount when installment or payment type changes
   useEffect(() => {
     if (normalizedInstallment) {
-      const remaining = normalizedInstallment.amount - normalizedInstallment.amountPaid;
-      const fine = normalizedInstallment.fine || calculateFine(remaining, normalizedInstallment.dueDate, fineConfig).totalFine;
-      setAmountPaid(remaining + fine);
+      if (paymentType === "interest_only" && isMonthlyLoan) {
+        setAmountPaid(interestOnlyAmount);
+      } else {
+        const remaining = normalizedInstallment.amount - normalizedInstallment.amountPaid;
+        const fine = normalizedInstallment.fine || calculateFine(remaining, normalizedInstallment.dueDate, fineConfig).totalFine;
+        setAmountPaid(remaining + fine);
+        setPaymentType("full");
+      }
     }
-  }, [installment]);
+  }, [installment, paymentType, isMonthlyLoan, interestOnlyAmount]);
 
   if (!open) return null;
 
@@ -111,66 +158,154 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
     setIsProcessing(true);
 
     try {
-      // Calculate new total paid
-      const newTotalPaid = normalizedInstallment.amountPaid + amountPaid;
-      const isFullyPaid = newTotalPaid >= normalizedInstallment.amount;
+      const isInterestOnlyPayment = paymentType === "interest_only" && isMonthlyLoan;
+      
+      if (isInterestOnlyPayment && contractData) {
+        // Interest-only payment: Mark current installment as paid with interest only
+        // and update the next installment's amount to include the remaining principal + new interest
+        
+        // Register the interest payment
+        const { error: treasuryError } = await supabase
+          .from("treasury_transactions")
+          .insert({
+            operator_id: user.id,
+            type: "entrada",
+            category: "Juros",
+            amount: amountPaid,
+            description: `Pagamento de juros - Parcela ${normalizedInstallment.number} - ${resolvedClientName}`,
+            reference_type: "installment",
+            reference_id: normalizedInstallment.id,
+            date: paymentDate,
+          });
 
-      // Update installment
-      const { error: updateError } = await supabase
-        .from("installments")
-        .update({
-          amount_paid: newTotalPaid,
-          status: isFullyPaid ? "Pago" : normalizedInstallment.status,
-          payment_date: isFullyPaid ? paymentDate : null,
-          fine: actualFine,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", normalizedInstallment.id);
+        if (treasuryError) throw treasuryError;
 
-      if (updateError) throw updateError;
+        // Mark current installment as "paid" (interest only)
+        const { error: updateCurrentError } = await supabase
+          .from("installments")
+          .update({
+            amount_paid: amountPaid,
+            status: "Pago",
+            payment_date: paymentDate,
+            fine: 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", normalizedInstallment.id);
 
-      // Register treasury transaction
-      const { error: treasuryError } = await supabase
-        .from("treasury_transactions")
-        .insert({
-          operator_id: user.id,
-          type: "entrada",
-          category: "Recebimento",
-          amount: amountPaid,
-          description: `Pagamento parcela ${normalizedInstallment.number} - ${resolvedClientName}`,
-          reference_type: "installment",
-          reference_id: normalizedInstallment.id,
-          date: paymentDate,
+        if (updateCurrentError) throw updateCurrentError;
+
+        // Find the next pending installment and update its amount
+        // The next installment should now have: capital + (capital * rate)
+        const { data: nextInstallments, error: nextError } = await supabase
+          .from("installments")
+          .select("*")
+          .eq("contract_id", normalizedInstallment.contractId)
+          .in("status", ["Pendente", "Atrasado"])
+          .neq("id", normalizedInstallment.id)
+          .order("due_date", { ascending: true })
+          .limit(1);
+
+        if (nextError) throw nextError;
+
+        if (nextInstallments && nextInstallments.length > 0) {
+          const nextInst = nextInstallments[0];
+          // New amount = current capital (what wasn't paid) + new interest
+          // Since only interest was paid, the capital remains the same
+          // The new amount should be: Capital + (Capital × Rate / 100)
+          const newAmountDue = contractData.capital + (contractData.capital * contractData.interest_rate / 100);
+          
+          const { error: updateNextError } = await supabase
+            .from("installments")
+            .update({
+              amount_due: newAmountDue,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", nextInst.id);
+
+          if (updateNextError) throw updateNextError;
+        }
+
+        // Log activity
+        await logActivity({
+          type: "payment_received",
+          description: `Pagamento de juros: ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountPaid)} - Parcela ${normalizedInstallment.number}. Capital rolado para próxima parcela.`,
+          clientId: normalizedInstallment.clientId,
+          contractId: normalizedInstallment.contractId,
+          metadata: { 
+            amount: amountPaid, 
+            installment_number: normalizedInstallment.number,
+            payment_method: paymentMethod,
+            payment_type: "interest_only",
+            capital_rolled: contractData.capital,
+          },
         });
 
-      if (treasuryError) throw treasuryError;
+        toast({
+          title: "Juros pagos!",
+          description: `Juros de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountPaid)} registrados. Capital de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(contractData.capital)} rolado para próxima parcela.`,
+        });
+      } else {
+        // Regular payment flow (full or partial)
+        const newTotalPaid = normalizedInstallment.amountPaid + amountPaid;
+        const isFullyPaid = newTotalPaid >= normalizedInstallment.amount;
 
-      // Log activity
-      await logActivity({
-        type: "payment_received",
-        description: `Pagamento de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountPaid)} - Parcela ${normalizedInstallment.number}`,
-        clientId: normalizedInstallment.clientId,
-        contractId: normalizedInstallment.contractId,
-        metadata: { 
-          amount: amountPaid, 
-          installment_number: normalizedInstallment.number,
-          payment_method: paymentMethod,
-          is_partial: !isFullyPaid,
-        },
-      });
+        // Update installment
+        const { error: updateError } = await supabase
+          .from("installments")
+          .update({
+            amount_paid: newTotalPaid,
+            status: isFullyPaid ? "Pago" : normalizedInstallment.status,
+            payment_date: isFullyPaid ? paymentDate : null,
+            fine: actualFine,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", normalizedInstallment.id);
+
+        if (updateError) throw updateError;
+
+        // Register treasury transaction
+        const { error: treasuryError } = await supabase
+          .from("treasury_transactions")
+          .insert({
+            operator_id: user.id,
+            type: "entrada",
+            category: "Recebimento",
+            amount: amountPaid,
+            description: `Pagamento parcela ${normalizedInstallment.number} - ${resolvedClientName}`,
+            reference_type: "installment",
+            reference_id: normalizedInstallment.id,
+            date: paymentDate,
+          });
+
+        if (treasuryError) throw treasuryError;
+
+        // Log activity
+        await logActivity({
+          type: "payment_received",
+          description: `Pagamento de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountPaid)} - Parcela ${normalizedInstallment.number}`,
+          clientId: normalizedInstallment.clientId,
+          contractId: normalizedInstallment.contractId,
+          metadata: { 
+            amount: amountPaid, 
+            installment_number: normalizedInstallment.number,
+            payment_method: paymentMethod,
+            is_partial: !isFullyPaid,
+          },
+        });
+
+        toast({
+          title: isFullyPaid ? "Pagamento registrado!" : "Pagamento parcial registrado!",
+          description: isFullyPaid 
+            ? `Parcela ${normalizedInstallment.number} quitada com sucesso.`
+            : `Pago ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountPaid)}. Resta ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(normalizedInstallment.amount - newTotalPaid)}.`,
+        });
+      }
 
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ["installments"] });
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       queryClient.invalidateQueries({ queryKey: ["treasury"] });
       queryClient.invalidateQueries({ queryKey: ["activity_log"] });
-
-      toast({
-        title: isFullyPaid ? "Pagamento registrado!" : "Pagamento parcial registrado!",
-        description: isFullyPaid 
-          ? `Parcela ${normalizedInstallment.number} quitada com sucesso.`
-          : `Pago ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(amountPaid)}. Resta ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(normalizedInstallment.amount - newTotalPaid)}.`,
-      });
 
       if (onConfirm) {
         onConfirm(amountPaid);
@@ -327,6 +462,61 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
                 </div>
               ) : (
                 <>
+                  {/* Payment Type Selection for Monthly Loans */}
+                  {isMonthlyLoan && contractData && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-muted-foreground mb-2">
+                        Tipo de Pagamento
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentType("full")}
+                          className={cn(
+                            "rounded-xl px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-2",
+                            paymentType === "full"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          )}
+                        >
+                          <DollarSign className="h-4 w-4" />
+                          Pagar Total
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentType("interest_only")}
+                          className={cn(
+                            "rounded-xl px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-2",
+                            paymentType === "interest_only"
+                              ? "bg-warning text-warning-foreground"
+                              : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                          )}
+                        >
+                          <Percent className="h-4 w-4" />
+                          Só Juros
+                        </button>
+                      </div>
+                      
+                      {paymentType === "interest_only" && (
+                        <div className="mt-3 p-3 rounded-lg bg-warning/10 border border-warning/30">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                            <div className="text-xs text-warning">
+                              <p className="font-medium mb-1">Pagamento Somente Juros</p>
+                              <p>
+                                Capital de <strong>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(contractData.capital)}</strong> será 
+                                rolado para próxima parcela com juros de <strong>{contractData.interest_rate}%</strong>.
+                              </p>
+                              <p className="mt-1">
+                                Próxima parcela: <strong>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(contractData.capital + (contractData.capital * contractData.interest_rate / 100))}</strong>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Form */}
                   <div className="space-y-4 mb-6">
                     <div>
@@ -343,7 +533,7 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
 
                     <div>
                       <label className="block text-sm font-medium text-muted-foreground mb-2">
-                        Valor a Pagar
+                        {paymentType === "interest_only" ? "Valor dos Juros" : "Valor a Pagar"}
                       </label>
                       <div className="relative">
                         <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -352,17 +542,21 @@ export const PaymentDialog = ({ open, onOpenChange, installment, clientName, cli
                           value={amountPaid}
                           onChange={(e) => setAmountPaid(Number(e.target.value))}
                           step={0.01}
-                          className="w-full h-11 rounded-xl border border-border bg-secondary/50 pl-10 pr-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                          disabled={paymentType === "interest_only"}
+                          className={cn(
+                            "w-full h-11 rounded-xl border border-border bg-secondary/50 pl-10 pr-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary",
+                            paymentType === "interest_only" && "opacity-70 cursor-not-allowed"
+                          )}
                         />
                       </div>
-                      {isPartialPayment && (
+                      {paymentType !== "interest_only" && isPartialPayment && (
                         <p className="mt-1 text-xs text-warning flex items-center gap-1">
                           <AlertCircle className="h-3 w-3" />
                           Pagamento parcial - restará{" "}
                           {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totalDue - amountPaid)}
                         </p>
                       )}
-                      {isOverPayment && (
+                      {paymentType !== "interest_only" && isOverPayment && (
                         <p className="mt-1 text-xs text-success flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />
                           Pagamento excedente - abater do próximo vencimento
