@@ -77,17 +77,19 @@ const Clientes = () => {
 
   const filters: Status[] = ["Todos", "Ativo", "Atraso", "Quitado"];
 
-  const filteredClients = clients.filter((client) => {
-    const matchesSearch =
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.cpf.includes(searchQuery);
-    const matchesFilter =
-      activeFilter === "Todos" || client.status === activeFilter;
-    const matchesArchived = showArchived 
-      ? !!client.archived_at 
-      : !client.archived_at;
-    return matchesSearch && matchesFilter && matchesArchived;
-  });
+  const filteredClients = clients
+    .filter((client) => {
+      const matchesSearch =
+        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        client.cpf.includes(searchQuery);
+      const matchesFilter =
+        activeFilter === "Todos" || client.status === activeFilter;
+      const matchesArchived = showArchived 
+        ? !!client.archived_at 
+        : !client.archived_at;
+      return matchesSearch && matchesFilter && matchesArchived;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
   const archivedCount = clients.filter(c => !!c.archived_at).length;
 
