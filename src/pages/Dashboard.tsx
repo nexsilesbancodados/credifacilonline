@@ -7,6 +7,7 @@ import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/Analytics
 import { GoalsDashboard } from "@/components/dashboard/GoalsDashboard";
 import { ForecastChart } from "@/components/dashboard/ForecastChart";
 import { ReceivableForecastWidget } from "@/components/dashboard/ReceivableForecastWidget";
+import { LoanFrequencyChart } from "@/components/dashboard/LoanFrequencyChart";
 import { OnboardingTour, useOnboardingTour } from "@/components/tour/OnboardingTour";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -69,9 +70,7 @@ const Dashboard = () => {
             <div className="lg:col-span-2">
               <RevenueChart />
             </div>
-            <PortfolioHealthChart 
-              data={dashboardStats?.clientsByStatus || { ativo: 0, atraso: 0, quitado: 0 }}
-            />
+            <LoanFrequencyChart />
           </div>
 
           {/* Forecast Charts Row */}
