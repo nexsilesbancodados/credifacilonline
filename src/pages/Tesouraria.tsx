@@ -12,6 +12,8 @@ import {
   ArrowDownRight,
   Loader2,
   Trash2,
+  Target,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTreasury, CreateTransactionData } from "@/hooks/useTreasury";
@@ -77,6 +79,8 @@ const Tesouraria = () => {
     transactions, 
     summary, 
     capitalOnStreet, 
+    pendingProfit,
+    totalToReceive,
     isLoading, 
     createTransaction, 
     deleteTransaction,
@@ -162,8 +166,8 @@ const Tesouraria = () => {
         </div>
       </motion.div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      {/* Summary Cards - Principal */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -190,11 +194,11 @@ const Tesouraria = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-amber-500/5 p-6"
+          className="rounded-2xl border-2 border-amber-500/50 bg-gradient-to-br from-amber-500/15 to-amber-500/5 p-6"
         >
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-muted-foreground">
-              Aporte na Rua
+              Total Emprestado (Aporte)
             </p>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20">
               <TrendingUp className="h-5 w-5 text-amber-500" />
@@ -203,13 +207,58 @@ const Tesouraria = () => {
           <p className="mt-3 font-display text-3xl font-bold text-amber-500">
             {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(capitalOnStreet)}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">Empréstimos ativos</p>
+          <p className="mt-1 text-sm text-muted-foreground">Valor principal em contratos ativos</p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
+          className="rounded-2xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-6"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">
+              Total a Receber
+            </p>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20">
+              <Target className="h-5 w-5 text-emerald-500" />
+            </div>
+          </div>
+          <p className="mt-3 font-display text-3xl font-bold text-emerald-500">
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(totalToReceive)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Aporte ({formatCurrency(capitalOnStreet)}) + Lucro ({formatCurrency(pendingProfit)})
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Cards Secundários */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25 }}
+          className="rounded-2xl border border-blue-500/30 bg-gradient-to-br from-blue-500/15 to-blue-500/5 p-6"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">
+              Lucro a Receber
+            </p>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20">
+              <DollarSign className="h-5 w-5 text-blue-500" />
+            </div>
+          </div>
+          <p className="mt-3 font-display text-2xl font-bold text-blue-500">
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(pendingProfit)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">De contratos ativos</p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
           className="rounded-2xl border border-success/30 bg-gradient-to-br from-success/15 to-success/5 p-6"
         >
           <div className="flex items-center justify-between">
@@ -220,7 +269,7 @@ const Tesouraria = () => {
               <ArrowUpRight className="h-5 w-5 text-success" />
             </div>
           </div>
-          <p className="mt-3 font-display text-3xl font-bold text-success">
+          <p className="mt-3 font-display text-2xl font-bold text-success">
             {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(todayIncome)}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -231,7 +280,7 @@ const Tesouraria = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
+          transition={{ duration: 0.5, delay: 0.35 }}
           className="rounded-2xl border border-destructive/30 bg-gradient-to-br from-destructive/15 to-destructive/5 p-6"
         >
           <div className="flex items-center justify-between">
@@ -242,11 +291,33 @@ const Tesouraria = () => {
               <ArrowDownRight className="h-5 w-5 text-destructive" />
             </div>
           </div>
-          <p className="mt-3 font-display text-3xl font-bold text-destructive">
+          <p className="mt-3 font-display text-2xl font-bold text-destructive">
             {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(todayExpense)}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             Empréstimos e saques
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-muted-foreground">
+              Total Entradas
+            </p>
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary">
+              <ArrowUpRight className="h-5 w-5 text-muted-foreground" />
+            </div>
+          </div>
+          <p className="mt-3 font-display text-2xl font-bold text-foreground">
+            {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(summary.totalIn)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Desde o início
           </p>
         </motion.div>
       </div>

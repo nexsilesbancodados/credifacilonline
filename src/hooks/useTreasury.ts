@@ -73,20 +73,27 @@ export function useTreasury() {
     enabled: !!user,
   });
 
-  // Get capital on the street (active loans) - CORRIGIDO
-  // Usa o capital dos contratos ativos, não as parcelas
+  // Get capital on the street and pending profit (active loans) - SINCRONIZADO
+  // Usa o capital e lucro dos contratos ativos
   const capitalOnStreetQuery = useQuery({
     queryKey: ["capital-on-street", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select("capital, status")
+        .select("capital, total_profit, status")
         .in("status", ["Ativo", "Atraso"]);
 
       if (error) throw error;
 
-      // Soma o capital de todos os contratos ativos
-      return data.reduce((acc, c) => acc + Number(c.capital), 0);
+      // Soma o capital e lucro de todos os contratos ativos
+      const capital = data.reduce((acc, c) => acc + Number(c.capital), 0);
+      const pendingProfit = data.reduce((acc, c) => acc + Number(c.total_profit), 0);
+      
+      return {
+        capitalOnStreet: capital,
+        pendingProfit: pendingProfit,
+        totalToReceive: capital + pendingProfit,
+      };
     },
     enabled: !!user,
   });
@@ -153,7 +160,9 @@ export function useTreasury() {
   return {
     transactions: transactionsQuery.data || [],
     summary: summaryQuery.data || { totalIn: 0, totalOut: 0, balance: 0 },
-    capitalOnStreet: capitalOnStreetQuery.data || 0,
+    capitalOnStreet: capitalOnStreetQuery.data?.capitalOnStreet || 0,
+    pendingProfit: capitalOnStreetQuery.data?.pendingProfit || 0,
+    totalToReceive: capitalOnStreetQuery.data?.totalToReceive || 0,
     isLoading: transactionsQuery.isLoading || summaryQuery.isLoading,
     createTransaction: createTransactionMutation.mutate,
     deleteTransaction: deleteTransactionMutation.mutate,
