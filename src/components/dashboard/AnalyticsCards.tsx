@@ -210,29 +210,32 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
           <StatCard
             title="Capital na Rua"
             value={formatCurrency(stats.capitalOnStreet)}
+            subtitle="Empréstimos ativos"
             icon={Wallet}
             variant="primary"
             delay={0}
           />
           <StatCard
-            title="Lucro Realizado"
+            title="Lucro Recebido"
             value={formatCurrency(stats.realizedProfit)}
+            subtitle="Contratos quitados"
             icon={TrendingUp}
             variant="success"
             delay={0.05}
+          />
+          <StatCard
+            title="Lucro a Receber"
+            value={formatCurrency(stats.pendingProfit)}
+            subtitle="Contratos ativos"
+            icon={DollarSign}
+            variant="info"
+            delay={0.1}
           />
           <StatCard
             title="Taxa Inadimplência"
             value={`${stats.defaultRate.toFixed(1)}%`}
             icon={AlertTriangle}
             variant={stats.defaultRate > 10 ? "danger" : stats.defaultRate > 5 ? "warning" : "success"}
-            delay={0.1}
-          />
-          <StatCard
-            title="Contratos Ativos"
-            value={stats.activeContracts}
-            icon={FileCheck}
-            variant="info"
             delay={0.15}
           />
         </div>
@@ -404,20 +407,23 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
           <StatCard
             title="Capital na Rua"
             value={formatCurrency(stats.capitalOnStreet)}
+            subtitle="Empréstimos ativos"
             icon={TrendingUp}
             variant="warning"
             delay={0.6}
           />
           <StatCard
-            title="Lucro Realizado"
+            title="Lucro Recebido"
             value={formatCurrency(stats.realizedProfit)}
+            subtitle="Contratos quitados"
             icon={TrendingUp}
             variant="success"
             delay={0.65}
           />
           <StatCard
-            title="Lucro Pendente"
+            title="Lucro a Receber"
             value={formatCurrency(stats.pendingProfit)}
+            subtitle="Contratos ativos"
             icon={DollarSign}
             variant="info"
             delay={0.7}
