@@ -190,20 +190,20 @@ const Tesouraria = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
+          className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-amber-500/5 p-6"
         >
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-muted-foreground">
-              Dinheiro na Rua
+              Aporte na Rua
             </p>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary">
-              <TrendingUp className="h-5 w-5 text-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20">
+              <TrendingUp className="h-5 w-5 text-amber-500" />
             </div>
           </div>
-          <p className="mt-3 font-display text-3xl font-bold text-foreground">
+          <p className="mt-3 font-display text-3xl font-bold text-amber-500">
             {isLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : formatCurrency(capitalOnStreet)}
           </p>
-          <p className="mt-1 text-sm text-muted-foreground">Capital emprestado</p>
+          <p className="mt-1 text-sm text-muted-foreground">Empréstimos ativos</p>
         </motion.div>
 
         <motion.div

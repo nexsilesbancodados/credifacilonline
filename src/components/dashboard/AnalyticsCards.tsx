@@ -208,7 +208,7 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
         {/* Resumo Principal */}
         <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <StatCard
-            title="Capital na Rua"
+            title="Aporte na Rua"
             value={formatCurrency(stats.capitalOnStreet)}
             subtitle="Empréstimos ativos"
             icon={Wallet}
@@ -398,14 +398,14 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
         </h3>
         <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           <StatCard
-            title="Capital Total"
+            title="Aporte Total"
             value={formatCurrency(stats.totalCapital)}
             icon={Wallet}
             variant="primary"
             delay={0.55}
           />
           <StatCard
-            title="Capital na Rua"
+            title="Aporte na Rua"
             value={formatCurrency(stats.capitalOnStreet)}
             subtitle="Empréstimos ativos"
             icon={TrendingUp}
