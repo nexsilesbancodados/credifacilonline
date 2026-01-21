@@ -202,41 +202,70 @@ const formatCurrency = (value: number) => {
 };
 
 export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps) => {
+  // Cálculos sincronizados
+  const totalToReceive = stats.capitalOnStreet + stats.pendingProfit; // Aporte + Lucro dos contratos ativos
+
   if (variant === "compact") {
     return (
       <div className="space-y-6">
-        {/* Resumo Principal */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+        {/* Resumo Principal - Cards maiores */}
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
           <StatCard
-            title="Aporte na Rua"
+            title="Total Emprestado"
             value={formatCurrency(stats.capitalOnStreet)}
-            subtitle="Empréstimos ativos"
+            subtitle="Aporte em contratos ativos"
             icon={Wallet}
-            variant="primary"
+            variant="warning"
             delay={0}
           />
+          <StatCard
+            title="Total a Receber"
+            value={formatCurrency(totalToReceive)}
+            subtitle="Aporte + Lucro pendente"
+            icon={Target}
+            variant="primary"
+            delay={0.05}
+          />
+          <StatCard
+            title="Lucro a Receber"
+            value={formatCurrency(stats.pendingProfit)}
+            subtitle="De contratos ativos"
+            icon={DollarSign}
+            variant="info"
+            delay={0.1}
+          />
+        </div>
+
+        {/* Cards de Lucro */}
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
           <StatCard
             title="Lucro Recebido"
             value={formatCurrency(stats.realizedProfit)}
             subtitle="Contratos quitados"
             icon={TrendingUp}
             variant="success"
-            delay={0.05}
+            delay={0.15}
           />
           <StatCard
-            title="Lucro a Receber"
-            value={formatCurrency(stats.pendingProfit)}
-            subtitle="Contratos ativos"
-            icon={DollarSign}
-            variant="info"
-            delay={0.1}
+            title="Aporte Total"
+            value={formatCurrency(stats.totalCapital)}
+            subtitle="Todos os contratos"
+            icon={Wallet}
+            delay={0.2}
+          />
+          <StatCard
+            title="Lucro Total Esperado"
+            value={formatCurrency(stats.totalProfit)}
+            subtitle="Todos os contratos"
+            icon={BarChart3}
+            delay={0.25}
           />
           <StatCard
             title="Taxa Inadimplência"
             value={`${stats.defaultRate.toFixed(1)}%`}
             icon={AlertTriangle}
             variant={stats.defaultRate > 10 ? "danger" : stats.defaultRate > 5 ? "warning" : "success"}
-            delay={0.15}
+            delay={0.3}
           />
         </div>
 
@@ -247,7 +276,7 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
             value={stats.totalContracts}
             icon={FileText}
             size="sm"
-            delay={0.2}
+            delay={0.35}
           />
           <StatCard
             title="Em Atraso"
@@ -255,14 +284,14 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
             icon={FileWarning}
             variant={stats.overdueContracts > 0 ? "danger" : "default"}
             size="sm"
-            delay={0.25}
+            delay={0.4}
           />
           <StatCard
             title="Clientes"
             value={stats.totalClients}
             icon={Users}
             size="sm"
-            delay={0.3}
+            delay={0.45}
           />
           <StatCard
             title="Devedores"
@@ -270,7 +299,7 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
             icon={UserX}
             variant={stats.overdueClients > 0 ? "warning" : "default"}
             size="sm"
-            delay={0.35}
+            delay={0.5}
           />
           <StatCard
             title="Parcelas Pagas"
@@ -278,7 +307,7 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
             icon={CheckCircle}
             variant="success"
             size="sm"
-            delay={0.4}
+            delay={0.55}
           />
           <StatCard
             title="Parcelas Atrasadas"
@@ -286,7 +315,7 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
             icon={Clock}
             variant={stats.overdueInstallments > 0 ? "danger" : "default"}
             size="sm"
-            delay={0.45}
+            delay={0.6}
           />
         </div>
       </div>
@@ -396,21 +425,56 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
           <DollarSign className="h-5 w-5 text-primary" />
           Financeiro
         </h3>
+        {/* Cards destacados de Total Emprestado e Total a Receber */}
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 mb-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55, duration: 0.3 }}
+            className="rounded-xl border-2 border-amber-500/50 bg-gradient-to-br from-amber-500/15 to-amber-500/5 p-5"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Emprestado (Aporte)</p>
+                <p className="font-display text-3xl font-bold text-amber-500 mt-1">
+                  {formatCurrency(stats.capitalOnStreet)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Valor principal em contratos ativos</p>
+              </div>
+              <div className="rounded-lg bg-amber-500/20 p-2">
+                <Wallet className="h-6 w-6 text-amber-500" />
+              </div>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.3 }}
+            className="rounded-xl border-2 border-primary/50 bg-gradient-to-br from-primary/15 to-primary/5 p-5"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Total a Receber</p>
+                <p className="font-display text-3xl font-bold text-primary mt-1">
+                  {formatCurrency(stats.capitalOnStreet + stats.pendingProfit)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Aporte ({formatCurrency(stats.capitalOnStreet)}) + Lucro ({formatCurrency(stats.pendingProfit)})
+                </p>
+              </div>
+              <div className="rounded-lg bg-primary/20 p-2">
+                <Target className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </motion.div>
+        </div>
         <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           <StatCard
             title="Aporte Total"
             value={formatCurrency(stats.totalCapital)}
+            subtitle="Todos os contratos"
             icon={Wallet}
-            variant="primary"
-            delay={0.55}
-          />
-          <StatCard
-            title="Aporte na Rua"
-            value={formatCurrency(stats.capitalOnStreet)}
-            subtitle="Empréstimos ativos"
-            icon={TrendingUp}
-            variant="warning"
-            delay={0.6}
+            delay={0.65}
           />
           <StatCard
             title="Lucro Recebido"
@@ -418,7 +482,7 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
             subtitle="Contratos quitados"
             icon={TrendingUp}
             variant="success"
-            delay={0.65}
+            delay={0.7}
           />
           <StatCard
             title="Lucro a Receber"
@@ -426,26 +490,33 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
             subtitle="Contratos ativos"
             icon={DollarSign}
             variant="info"
-            delay={0.7}
+            delay={0.75}
+          />
+          <StatCard
+            title="Lucro Total Esperado"
+            value={formatCurrency(stats.totalProfit)}
+            subtitle="Todos os contratos"
+            icon={BarChart3}
+            delay={0.8}
           />
           <StatCard
             title="Ticket Médio"
             value={formatCurrency(stats.averageTicket)}
             icon={Target}
-            delay={0.75}
+            delay={0.85}
           />
           <StatCard
             title="Taxa Média"
             value={`${stats.averageRate.toFixed(1)}%`}
             icon={Percent}
-            delay={0.8}
+            delay={0.9}
           />
           <StatCard
             title="ROI"
             value={`${stats.roi.toFixed(1)}%`}
             icon={BarChart3}
             variant={stats.roi > 0 ? "success" : "danger"}
-            delay={0.85}
+            delay={0.95}
           />
           <StatCard
             title="Crescimento"
@@ -453,7 +524,7 @@ export const AnalyticsCards = ({ stats, variant = "full" }: AnalyticsCardsProps)
             subtitle={`${stats.contractsThisMonth} contratos este mês`}
             icon={stats.growthRate >= 0 ? TrendingUp : TrendingDown}
             variant={stats.growthRate > 0 ? "success" : stats.growthRate < 0 ? "danger" : "default"}
-            delay={0.9}
+            delay={1}
           />
         </div>
       </div>
