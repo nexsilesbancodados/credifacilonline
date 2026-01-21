@@ -13,6 +13,7 @@ import { Link } from "react-router-dom";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
 import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
+import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
@@ -21,6 +22,9 @@ const Dashboard = () => {
   const { data: dashboardStats, isLoading: isLoadingDashboard } = useDashboardStats();
   const analyticsStats = useAnalyticsStats(period);
   const { isOpen: isTourOpen, setIsOpen: setTourOpen } = useOnboardingTour();
+
+  // Enable real-time updates for dashboard
+  useRealtimeDashboard();
 
   const isLoading = isLoadingDashboard || analyticsStats.isLoading;
 
