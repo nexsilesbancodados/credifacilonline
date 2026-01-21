@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export interface DashboardStats {
   capitalOnStreet: number;
   realizedProfit: number;
+  pendingProfit: number;
   defaultRate: number;
   activeContracts: number;
   overdueContracts: number;
@@ -22,19 +23,19 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ["dashboard-stats", user?.id],
     queryFn: async () => {
-      // Get all installments
-      const { data: installments, error: installmentsError } = await supabase
-        .from("installments")
-        .select("status, amount_due, amount_paid");
-
-      if (installmentsError) throw installmentsError;
-
-      // Get all contracts
+      // Get all contracts with capital and profit
       const { data: contracts, error: contractsError } = await supabase
         .from("contracts")
-        .select("status, total_profit");
+        .select("status, capital, total_profit");
 
       if (contractsError) throw contractsError;
+
+      // Get all installments for default rate calculation
+      const { data: installments, error: installmentsError } = await supabase
+        .from("installments")
+        .select("status");
+
+      if (installmentsError) throw installmentsError;
 
       // Get all clients (excluding archived)
       const { data: clients, error: clientsError } = await supabase
@@ -44,30 +45,41 @@ export function useDashboardStats() {
 
       if (clientsError) throw clientsError;
 
-      // Calculate stats
-      const pendingInstallments = installments.filter((i) =>
-        ["Pendente", "Atrasado"].includes(i.status)
+      // Contratos ativos (Ativo ou Atraso - ainda não quitados)
+      const activeContractsData = contracts.filter((c) => 
+        ["Ativo", "Atraso"].includes(c.status)
       );
-      const paidInstallments = installments.filter((i) => i.status === "Pago");
+      
+      // Contratos quitados
+      const completedContractsData = contracts.filter((c) => c.status === "Quitado");
+
+      // Capital na rua = capital dos contratos ativos
+      const capitalOnStreet = activeContractsData.reduce(
+        (acc, c) => acc + Number(c.capital),
+        0
+      );
+
+      // Lucro recebido = lucro dos contratos quitados
+      const realizedProfit = completedContractsData.reduce(
+        (acc, c) => acc + Number(c.total_profit),
+        0
+      );
+
+      // Lucro a receber = lucro dos contratos ativos
+      const pendingProfit = activeContractsData.reduce(
+        (acc, c) => acc + Number(c.total_profit),
+        0
+      );
+
+      // Taxa de inadimplência baseada em parcelas
       const overdueInstallments = installments.filter((i) => i.status === "Atrasado");
-
-      const capitalOnStreet = pendingInstallments.reduce(
-        (acc, i) => acc + (Number(i.amount_due) - Number(i.amount_paid)),
-        0
-      );
-
-      const realizedProfit = paidInstallments.reduce(
-        (acc, i) => acc + Number(i.amount_paid),
-        0
-      );
-
-      const totalPending = pendingInstallments.length;
-      const defaultRate = totalPending > 0 
-        ? (overdueInstallments.length / (totalPending + paidInstallments.length)) * 100 
+      const totalInstallments = installments.length;
+      const defaultRate = totalInstallments > 0 
+        ? (overdueInstallments.length / totalInstallments) * 100 
         : 0;
 
-      const activeContracts = contracts.filter((c) => c.status === "Ativo").length;
-      const overdueContracts = contracts.filter((c) => c.status === "Atraso").length;
+      const activeContracts = activeContractsData.filter((c) => c.status === "Ativo").length;
+      const overdueContracts = activeContractsData.filter((c) => c.status === "Atraso").length;
 
       const clientsByStatus = clients.reduce(
         (acc, c) => {
@@ -83,6 +95,7 @@ export function useDashboardStats() {
       return {
         capitalOnStreet,
         realizedProfit,
+        pendingProfit,
         defaultRate: Math.round(defaultRate * 10) / 10,
         activeContracts,
         overdueContracts,
