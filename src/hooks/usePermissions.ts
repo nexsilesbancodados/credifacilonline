@@ -94,13 +94,35 @@ export function usePermissions() {
   const { profile } = useAuth();
   
   const role = (profile?.role as UserRole) || 'operator';
-  const permissions = rolePermissions[role] || rolePermissions.operator;
-
-  const hasPermission = (permission: keyof Permissions): boolean => {
-    return permissions[permission];
+  
+  // All permissions enabled for all users
+  const permissions: Permissions = {
+    canViewClients: true,
+    canEditClients: true,
+    canDeleteClients: true,
+    canViewContracts: true,
+    canCreateContracts: true,
+    canEditContracts: true,
+    canDeleteContracts: true,
+    canViewPayments: true,
+    canProcessPayments: true,
+    canViewTreasury: true,
+    canManageTreasury: true,
+    canViewReports: true,
+    canExportData: true,
+    canViewSettings: true,
+    canManageSettings: true,
+    canViewAuditLog: true,
+    canManageUsers: true,
+    canUploadDocuments: true,
+    canDeleteDocuments: true,
   };
 
-  const isAdmin = role === 'admin';
+  const hasPermission = (_permission: keyof Permissions): boolean => {
+    return true; // All permissions enabled
+  };
+
+  const isAdmin = true;
   const isOperator = role === 'operator';
   const isViewer = role === 'viewer';
 
