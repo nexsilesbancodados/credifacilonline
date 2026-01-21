@@ -240,7 +240,7 @@ const Tesouraria = () => {
         >
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-muted-foreground">
-              Saldo em Caixa
+              Carteira
             </p>
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
               <Wallet className="h-5 w-5 text-primary" />
