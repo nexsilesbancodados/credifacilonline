@@ -73,18 +73,20 @@ export function useTreasury() {
     enabled: !!user,
   });
 
-  // Get capital on the street (active loans)
+  // Get capital on the street (active loans) - CORRIGIDO
+  // Usa o capital dos contratos ativos, não as parcelas
   const capitalOnStreetQuery = useQuery({
     queryKey: ["capital-on-street", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("installments")
-        .select("amount_due, amount_paid")
-        .in("status", ["Pendente", "Atrasado"]);
+        .from("contracts")
+        .select("capital, status")
+        .in("status", ["Ativo", "Atraso"]);
 
       if (error) throw error;
 
-      return data.reduce((acc, i) => acc + (Number(i.amount_due) - Number(i.amount_paid)), 0);
+      // Soma o capital de todos os contratos ativos
+      return data.reduce((acc, c) => acc + Number(c.capital), 0);
     },
     enabled: !!user,
   });
