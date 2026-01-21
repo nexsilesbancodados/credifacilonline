@@ -1,7 +1,7 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
-import { useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera, X } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
@@ -17,6 +17,7 @@ import {
   Percent,
   Sparkles,
   Check,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,8 +25,11 @@ type CalculationMode = "rate" | "installment";
 
 const NovoContrato = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const existingClientId = searchParams.get("clientId");
+  
   const { toast } = useToast();
-  const { createClient, isCreating: isCreatingClient } = useClients();
+  const { clients, createClient, isCreating: isCreatingClient } = useClients();
   const { createContract, isCreating: isCreatingContract } = useContracts();
   const [mode, setMode] = useState<CalculationMode>("rate");
   const [isLoadingCep, setIsLoadingCep] = useState(false);
@@ -34,6 +38,12 @@ const NovoContrato = () => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Find existing client if clientId is provided
+  const existingClient = useMemo(() => {
+    if (!existingClientId) return null;
+    return clients.find(c => c.id === existingClientId) || null;
+  }, [clients, existingClientId]);
   
   const [formData, setFormData] = useState({
     // Client data
@@ -59,6 +69,29 @@ const NovoContrato = () => {
     firstDueDate: "",
     paidInstallments: "" as unknown as number,
   });
+
+  // Pre-fill form if existing client
+  useEffect(() => {
+    if (existingClient) {
+      setFormData(prev => ({
+        ...prev,
+        name: existingClient.name,
+        cpf: existingClient.cpf,
+        email: existingClient.email || "",
+        whatsapp: existingClient.whatsapp || "",
+        cep: existingClient.cep || "",
+        street: existingClient.street || "",
+        number: existingClient.number || "",
+        complement: existingClient.complement || "",
+        neighborhood: existingClient.neighborhood || "",
+        city: existingClient.city || "",
+        state: existingClient.state || "",
+      }));
+      if (existingClient.avatar_url) {
+        setAvatarPreview(existingClient.avatar_url);
+      }
+    }
+  }, [existingClient]);
 
   // Handle avatar selection
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -210,60 +243,85 @@ const NovoContrato = () => {
   ];
 
   const handleSave = async () => {
-    if (!formData.name || !formData.cpf) {
-      toast({ title: "Erro", description: "Preencha o nome e CPF do cliente.", variant: "destructive" });
-      return;
-    }
-    
-    // Validate CPF
-    if (!validateCPF(formData.cpf)) {
-      toast({ title: "CPF Inválido", description: "O CPF informado não é válido. Verifique os dígitos.", variant: "destructive" });
-      return;
-    }
-    
-    // Validate phone if provided
-    if (formData.whatsapp && !validatePhone(formData.whatsapp)) {
-      toast({ title: "WhatsApp Inválido", description: "O número de WhatsApp deve ter 10 ou 11 dígitos.", variant: "destructive" });
-      return;
+    // Only validate client data if creating new client
+    if (!existingClient) {
+      if (!formData.name || !formData.cpf) {
+        toast({ title: "Erro", description: "Preencha o nome e CPF do cliente.", variant: "destructive" });
+        return;
+      }
+      
+      // Validate CPF
+      if (!validateCPF(formData.cpf)) {
+        toast({ title: "CPF Inválido", description: "O CPF informado não é válido. Verifique os dígitos.", variant: "destructive" });
+        return;
+      }
+      
+      // Validate phone if provided
+      if (formData.whatsapp && !validatePhone(formData.whatsapp)) {
+        toast({ title: "WhatsApp Inválido", description: "O número de WhatsApp deve ter 10 ou 11 dígitos.", variant: "destructive" });
+        return;
+      }
     }
     
     if (!formData.startDate || !formData.firstDueDate) {
       toast({ title: "Erro", description: "Preencha as datas do contrato.", variant: "destructive" });
       return;
     }
+    
+    if (!formData.capital || !formData.installments) {
+      toast({ title: "Erro", description: "Preencha o capital e número de parcelas.", variant: "destructive" });
+      return;
+    }
+    
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Create client first
-      const { data: clientData, error: clientError } = await supabase.from("clients").insert({
-        operator_id: user?.id,
-        name: formData.name,
-        cpf: formData.cpf,
-        email: formData.email || null,
-        whatsapp: formData.whatsapp || null,
-        cep: formData.cep || null,
-        street: formData.street || null,
-        number: formData.number || null,
-        complement: formData.complement || null,
-        neighborhood: formData.neighborhood || null,
-        city: formData.city || null,
-        state: formData.state || null,
-      }).select().single();
+      let clientId: string;
       
-      if (clientError) throw clientError;
+      if (existingClient) {
+        // Use existing client
+        clientId = existingClient.id;
+        
+        // Update client status to Ativo if it was Quitado
+        if (existingClient.status === "Quitado") {
+          await supabase
+            .from("clients")
+            .update({ status: "Ativo" })
+            .eq("id", clientId);
+        }
+      } else {
+        // Create new client
+        const { data: clientData, error: clientError } = await supabase.from("clients").insert({
+          operator_id: user?.id,
+          name: formData.name,
+          cpf: formData.cpf,
+          email: formData.email || null,
+          whatsapp: formData.whatsapp || null,
+          cep: formData.cep || null,
+          street: formData.street || null,
+          number: formData.number || null,
+          complement: formData.complement || null,
+          neighborhood: formData.neighborhood || null,
+          city: formData.city || null,
+          state: formData.state || null,
+        }).select().single();
+        
+        if (clientError) throw clientError;
+        clientId = clientData.id;
 
-      // Upload avatar if selected
-      if (avatarFile && clientData) {
-        const avatarUrl = await uploadAvatar(clientData.id);
-        if (avatarUrl) {
-          await supabase.from("clients").update({ avatar_url: avatarUrl }).eq("id", clientData.id);
+        // Upload avatar if selected
+        if (avatarFile && clientData) {
+          const avatarUrl = await uploadAvatar(clientData.id);
+          if (avatarUrl) {
+            await supabase.from("clients").update({ avatar_url: avatarUrl }).eq("id", clientData.id);
+          }
         }
       }
       
-      // Then create contract
+      // Create contract
       await createContract({
-        client_id: clientData.id,
+        client_id: clientId,
         capital: formData.capital,
         interest_rate: rateResult,
         installments: formData.installments,
@@ -276,7 +334,13 @@ const NovoContrato = () => {
         first_due_date: formData.firstDueDate,
         paid_installments: formData.paidInstallments,
       });
-      navigate("/clientes");
+      
+      // Navigate back to client dossier if adding to existing client
+      if (existingClient) {
+        navigate(`/cliente/${clientId}`);
+      } else {
+        navigate("/clientes");
+      }
     } catch (error: any) {
       toast({ title: "Erro ao criar contrato", description: error.message, variant: "destructive" });
     } finally {
@@ -289,39 +353,64 @@ const NovoContrato = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-display text-3xl font-bold text-foreground">
-          Novo Contrato
+          {existingClient ? "Novo Contrato" : "Novo Contrato"}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Registre um novo empréstimo para seu cliente
+          {existingClient 
+            ? `Novo empréstimo para ${existingClient.name}`
+            : "Registre um novo empréstimo para seu cliente"
+          }
         </p>
       </div>
+
+      {/* Existing Client Info Banner */}
+      {existingClient && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 rounded-2xl border border-accent/50 bg-accent/10 p-4"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/20">
+              <UserCheck className="h-6 w-6 text-accent" />
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Cliente existente selecionado</p>
+              <p className="text-sm text-muted-foreground">
+                {existingClient.name} • CPF: {existingClient.cpf}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Form Section */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Step 1: Client Data with Photo */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
-                1
+          {/* Step 1: Client Data with Photo - Only show if new client */}
+          {!existingClient && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
+                  1
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-display text-lg font-semibold text-foreground">
+                    Dados do Cliente
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Informações pessoais do cliente
+                  </p>
+                </div>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
-                <User className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <h2 className="font-display text-lg font-semibold text-foreground">
-                  Dados do Cliente
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Informações pessoais do cliente
-                </p>
-              </div>
-            </div>
 
             {/* Avatar Upload */}
             <div className="flex justify-center mb-6">
@@ -429,8 +518,10 @@ const NovoContrato = () => {
               </div>
             </div>
           </motion.div>
+          )}
 
-          {/* Step 2: Address */}
+          {/* Step 2: Address - Only show if new client */}
+          {!existingClient && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -540,17 +631,21 @@ const NovoContrato = () => {
               </div>
             </div>
           </motion.div>
+          )}
 
-          {/* Step 3: Calculator */}
+          {/* Step 3: Calculator (Step 1 if existing client) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
+            transition={{ duration: 0.5, delay: existingClient ? 0.1 : 0.3 }}
             className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
-                3
+                {existingClient ? 1 : 3}
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
+                <Calculator className="h-5 w-5 text-primary" />
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
                 <Calculator className="h-5 w-5 text-primary" />
@@ -691,16 +786,16 @@ const NovoContrato = () => {
             </div>
           </motion.div>
 
-          {/* Step 4: Contract Details */}
+          {/* Step 4: Contract Details (Step 2 if existing client) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+            transition={{ duration: 0.5, delay: existingClient ? 0.2 : 0.4 }}
             className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6"
           >
             <div className="flex items-center gap-3 mb-6">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
-                4
+                {existingClient ? 2 : 4}
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
                 <Calendar className="h-5 w-5 text-primary" />
