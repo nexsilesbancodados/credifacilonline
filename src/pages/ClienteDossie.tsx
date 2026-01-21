@@ -36,7 +36,7 @@ import { RenegotiationDialog } from "@/components/client/RenegotiationDialog";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { BulkPaymentDialog } from "@/components/client/BulkPaymentDialog";
 import { AIMessageDialog } from "@/components/client/AIMessageDialog";
-import { EditClientDialog } from "@/components/client/EditClientDialog";
+import { EditDossierDialog } from "@/components/client/EditDossierDialog";
 import { ManageInstallmentsDialog } from "@/components/client/ManageInstallmentsDialog";
 import { DeleteClientDialog } from "@/components/client/DeleteClientDialog";
 import { ArchiveClientDialog } from "@/components/client/ArchiveClientDialog";
@@ -700,10 +700,26 @@ const ClienteDossie = () => {
         client={clientForDialogs}
       />
 
-      <EditClientDialog
+      <EditDossierDialog
         open={isEditClientOpen}
         onOpenChange={setIsEditClientOpen}
         client={client as Client}
+        contract={activeContract ? {
+          id: activeContract.id,
+          capital: Number(activeContract.capital),
+          interest_rate: Number(activeContract.interest_rate),
+          installments: activeContract.installments,
+          installment_value: Number(activeContract.installment_value),
+          total_amount: Number(activeContract.total_amount),
+          total_profit: Number(activeContract.total_profit),
+          frequency: activeContract.frequency,
+          start_date: activeContract.start_date,
+          first_due_date: activeContract.first_due_date,
+          status: activeContract.status,
+          fine_percentage: (activeContract as any).fine_percentage ?? 2,
+          daily_interest_rate: (activeContract as any).daily_interest_rate ?? 0.033,
+          daily_type: activeContract.daily_type || undefined,
+        } : null}
       />
 
       <ManageInstallmentsDialog
