@@ -14,6 +14,8 @@ import {
   Trash2,
   Target,
   DollarSign,
+  Bell,
+  PiggyBank,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTreasury, CreateTransactionData } from "@/hooks/useTreasury";
@@ -122,8 +124,93 @@ const Tesouraria = () => {
       currency: "BRL",
     }).format(value);
 
+  // Count pending notifications (overdue installments)
+  const overdueCount = 5; // Placeholder - could be fetched from installments
+
   return (
     <MainLayout>
+      {/* Quick Stats Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/50 bg-card/50 p-4"
+      >
+        <div className="flex flex-wrap items-center gap-6">
+          {/* Wallet Balance */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
+              <Wallet className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Carteira</p>
+              <p className="font-display text-lg font-bold text-foreground">
+                {isLoading ? "..." : formatCurrency(summary.balance)}
+              </p>
+            </div>
+          </div>
+
+          <div className="h-8 w-px bg-border/50 hidden sm:block" />
+
+          {/* Profit */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/20">
+              <PiggyBank className="h-5 w-5 text-success" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Lucro a Receber</p>
+              <p className="font-display text-lg font-bold text-success">
+                {isLoading ? "..." : formatCurrency(pendingProfit)}
+              </p>
+            </div>
+          </div>
+
+          <div className="h-8 w-px bg-border/50 hidden sm:block" />
+
+          {/* Notifications */}
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20">
+              <Bell className="h-5 w-5 text-amber-500" />
+              {overdueCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+                  {overdueCount}
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Alertas</p>
+              <p className="font-display text-lg font-bold text-amber-500">
+                {overdueCount} pendentes
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <PermissionGate permission="canManageTreasury">
+          <div className="flex gap-2">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowAddModal("aporte")}
+              className="flex items-center gap-2 rounded-xl bg-success px-4 py-2.5 font-medium text-white shadow-lg shadow-success/25 transition-all hover:shadow-success/40"
+            >
+              <Plus className="h-4 w-4" />
+              Aporte
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowAddModal("sangria")}
+              className="flex items-center gap-2 rounded-xl bg-destructive px-4 py-2.5 font-medium text-white shadow-lg shadow-destructive/25 transition-all hover:shadow-destructive/40"
+            >
+              <Minus className="h-4 w-4" />
+              Sangria
+            </motion.button>
+          </div>
+        </PermissionGate>
+      </motion.div>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -140,29 +227,6 @@ const Tesouraria = () => {
               Controle seu fluxo de caixa
             </p>
           </div>
-
-          <PermissionGate permission="canManageTreasury">
-            <div className="flex gap-3">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowAddModal("aporte")}
-                className="flex items-center gap-2 rounded-xl bg-success/20 px-5 py-3 font-medium text-success transition-colors hover:bg-success/30"
-              >
-                <Plus className="h-5 w-5" />
-                Aporte
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowAddModal("sangria")}
-                className="flex items-center gap-2 rounded-xl bg-destructive/20 px-5 py-3 font-medium text-destructive transition-colors hover:bg-destructive/30"
-              >
-                <Minus className="h-5 w-5" />
-                Sangria
-              </motion.button>
-            </div>
-          </PermissionGate>
         </div>
       </motion.div>
 
