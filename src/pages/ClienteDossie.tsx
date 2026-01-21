@@ -27,6 +27,8 @@ import {
   Trash2,
   Archive,
   ArchiveRestore,
+  PlusCircle,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
@@ -69,6 +71,8 @@ const ClienteDossie = () => {
   const [isArchiveClientOpen, setIsArchiveClientOpen] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
+  const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+  const [showContractSelector, setShowContractSelector] = useState(false);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -93,12 +97,20 @@ const ClienteDossie = () => {
     return contracts.filter(c => c.client_id === client.id);
   }, [contracts, client]);
 
-  // Get active contract
-  const activeContract = useMemo(() => {
-    return clientContracts.find(c => c.status === "Ativo" || c.status === "Atraso") || clientContracts[0];
+  // Get all active contracts (Ativo or Atraso)
+  const activeContracts = useMemo(() => {
+    return clientContracts.filter(c => c.status === "Ativo" || c.status === "Atraso");
   }, [clientContracts]);
 
-  // Get client installments
+  // Get selected or default active contract
+  const activeContract = useMemo(() => {
+    if (selectedContractId) {
+      return clientContracts.find(c => c.id === selectedContractId);
+    }
+    return activeContracts[0] || clientContracts[0];
+  }, [clientContracts, activeContracts, selectedContractId]);
+
+  // Get client installments for selected contract
   const clientInstallments = useMemo(() => {
     if (!activeContract) return [];
     return installments
@@ -342,6 +354,15 @@ const ClienteDossie = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
+              onClick={() => navigate(`/novo-contrato?clientId=${client.id}`)}
+              className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Novo Contrato
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setIsPaymentOpen(true)}
               className="flex items-center gap-2 rounded-xl bg-success px-4 py-2.5 text-sm font-medium text-success-foreground transition-colors hover:bg-success/90"
             >
@@ -498,12 +519,57 @@ const ClienteDossie = () => {
             </div>
           </div>
 
+          {/* Contract Selector (when multiple active contracts) */}
+          {activeContracts.length > 1 && (
+            <div className="rounded-2xl border border-primary/50 bg-gradient-to-br from-primary/10 to-primary/5 p-5">
+              <h3 className="mb-3 font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Contratos Ativos ({activeContracts.length})
+              </h3>
+              <div className="space-y-2">
+                {activeContracts.map((contract) => (
+                  <button
+                    key={contract.id}
+                    onClick={() => setSelectedContractId(contract.id)}
+                    className={cn(
+                      "w-full flex items-center justify-between p-3 rounded-lg border transition-colors text-left",
+                      activeContract?.id === contract.id
+                        ? "border-primary bg-primary/20 text-foreground"
+                        : "border-border/50 bg-card hover:bg-secondary/50 text-muted-foreground"
+                    )}
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        #{contract.id.slice(0, 8)}
+                      </p>
+                      <p className="text-xs">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(contract.capital))}
+                      </p>
+                    </div>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full",
+                      contract.status === "Atraso" 
+                        ? "bg-destructive/20 text-destructive"
+                        : "bg-success/20 text-success"
+                    )}>
+                      {contract.status}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Contract Info */}
           {activeContract && (
             <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5">
-              <h3 className="mb-4 font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Dados do Contrato
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Dados do Contrato
+                </h3>
+                {activeContracts.length > 1 && (
+                  <span className="text-xs text-primary">Selecionado</span>
+                )}
+              </div>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Nº Contrato</span>
