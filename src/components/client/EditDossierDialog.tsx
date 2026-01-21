@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
+import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
 
 interface Contract {
   id: string;
@@ -187,6 +188,8 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
       const installmentValue = (capital * (1 + rate)) / renewalData.installments;
       const totalAmount = installmentValue * renewalData.installments;
       const totalProfit = totalAmount - capital;
+      const finePercentage = 10;
+      const dailyInterestRate = 2;
 
       // Create new contract
       const { data: newContract, error: contractError } = await supabase
@@ -204,8 +207,8 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           start_date: format(new Date(), "yyyy-MM-dd"),
           first_due_date: renewalData.first_due_date,
           status: "Ativo",
-          fine_percentage: 2,
-          daily_interest_rate: 0.033,
+          fine_percentage: finePercentage,
+          daily_interest_rate: dailyInterestRate,
         })
         .select()
         .single();
@@ -284,10 +287,34 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
         reference_id: newContract.id,
       });
 
+      // Generate and save contract PDF to documents
+      await saveContractPDFToDocuments({
+        contractId: newContract.id,
+        clientId: client.id,
+        userId: user.id,
+        contractData: {
+          contractId: newContract.id,
+          creditorName: "Credifacil Global",
+          clientName: client.name,
+          clientCpf: client.cpf,
+          startDate: format(new Date(), "yyyy-MM-dd"),
+          capital,
+          installments: renewalData.installments,
+          installmentValue,
+          frequency: renewalData.frequency,
+          firstDueDate: renewalData.first_due_date,
+          finePercentage,
+          dailyInterestRate,
+          city: client.city || undefined,
+          state: client.state || undefined,
+        },
+      });
+
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       queryClient.invalidateQueries({ queryKey: ["installments"] });
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["treasury"] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
 
       toast({
         title: "Empréstimo renovado!",

@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { addDays, addWeeks, addMonths, getDay } from "date-fns";
+import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
+import { LoanContractData } from "@/lib/generateLoanContract";
 
 export interface Contract {
   id: string;
@@ -54,6 +56,14 @@ export interface CreateContractData {
   start_date: string;
   first_due_date: string;
   paid_installments?: number;
+  fine_percentage?: number;
+  daily_interest_rate?: number;
+  // Client data for contract PDF
+  client_name?: string;
+  client_cpf?: string;
+  client_city?: string;
+  client_state?: string;
+  company_name?: string;
 }
 
 // Check if a date is valid for daily collection based on dailyType
@@ -123,7 +133,17 @@ export function useContracts(clientId?: string) {
     mutationFn: async (contractData: CreateContractData) => {
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { paid_installments = 0, ...contractFields } = contractData;
+      const { 
+        paid_installments = 0, 
+        client_name, 
+        client_cpf, 
+        client_city, 
+        client_state,
+        company_name,
+        fine_percentage = 2,
+        daily_interest_rate = 0.033,
+        ...contractFields 
+      } = contractData;
 
       // Create contract
       const { data: contract, error: contractError } = await supabase
@@ -131,6 +151,8 @@ export function useContracts(clientId?: string) {
         .insert({
           ...contractFields,
           operator_id: user.id,
+          fine_percentage,
+          daily_interest_rate,
         })
         .select()
         .single();
@@ -186,6 +208,38 @@ export function useContracts(clientId?: string) {
         description: `Contrato criado - R$ ${contractData.capital.toLocaleString("pt-BR")} em ${contractData.installments}x`,
       });
 
+      // Generate and save contract PDF to documents
+      if (client_name && client_cpf) {
+        const pdfData: LoanContractData = {
+          contractId: contract.id,
+          creditorName: company_name || "Credifacil Global",
+          clientName: client_name,
+          clientCpf: client_cpf,
+          startDate: contractData.start_date,
+          capital: contractData.capital,
+          installments: contractData.installments,
+          installmentValue: contractData.installment_value,
+          frequency: contractData.frequency,
+          firstDueDate: contractData.first_due_date,
+          finePercentage: fine_percentage,
+          dailyInterestRate: daily_interest_rate,
+          city: client_city,
+          state: client_state,
+        };
+
+        const saveResult = await saveContractPDFToDocuments({
+          contractId: contract.id,
+          clientId: contractData.client_id,
+          userId: user.id,
+          contractData: pdfData,
+        });
+
+        if (!saveResult.success) {
+          console.warn("Failed to save contract PDF:", saveResult.error);
+          // Don't fail the contract creation, just log the warning
+        }
+      }
+
       return contract as Contract;
     },
     onSuccess: () => {
@@ -193,6 +247,7 @@ export function useContracts(clientId?: string) {
       queryClient.invalidateQueries({ queryKey: ["installments"] });
       queryClient.invalidateQueries({ queryKey: ["treasury"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
       toast({
         title: "Contrato criado!",
         description: "O contrato e as parcelas foram gerados com sucesso.",

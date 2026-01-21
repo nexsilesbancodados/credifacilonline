@@ -319,7 +319,7 @@ const NovoContrato = () => {
         }
       }
       
-      // Create contract
+      // Create contract with client data for PDF generation
       await createContract({
         client_id: clientId,
         capital: formData.capital,
@@ -333,6 +333,14 @@ const NovoContrato = () => {
         start_date: formData.startDate,
         first_due_date: formData.firstDueDate,
         paid_installments: formData.paidInstallments,
+        fine_percentage: 10, // Default from example
+        daily_interest_rate: 2, // Default from example  
+        // Client data for contract PDF
+        client_name: existingClient ? existingClient.name : formData.name,
+        client_cpf: existingClient ? existingClient.cpf : formData.cpf,
+        client_city: existingClient ? existingClient.city || undefined : formData.city || undefined,
+        client_state: existingClient ? existingClient.state || undefined : formData.state || undefined,
+        company_name: "Credifacil Global",
       });
       
       // Navigate back to client dossier if adding to existing client
