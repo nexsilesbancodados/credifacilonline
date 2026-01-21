@@ -148,29 +148,33 @@ export function useAnalyticsStats(period: PeriodFilter = "all"): AnalyticsStats 
       return created >= thisMonthStart;
     }).length || 0;
 
-    // Financeiro
+    // Financeiro - CORRIGIDO
+    // Capital total emprestado (soma do capital de todos os contratos)
     const totalCapital = filteredContracts.reduce((sum, c) => sum + Number(c.capital), 0);
+    
+    // Lucro total esperado (soma do total_profit de todos os contratos)
     const totalProfit = filteredContracts.reduce((sum, c) => sum + Number(c.total_profit), 0);
     
+    // Contratos ativos e em atraso (ainda não quitados)
+    const activeContractsData = filteredContracts.filter(c => ["Ativo", "Atraso"].includes(c.status));
+    
+    // Capital na rua = capital dos contratos ativos (ainda não recebido)
+    const capitalOnStreet = activeContractsData.reduce((sum, c) => sum + Number(c.capital), 0);
+    
+    // Lucro pendente (a receber) = total_profit dos contratos ativos
+    const pendingProfit = activeContractsData.reduce((sum, c) => sum + Number(c.total_profit), 0);
+    
+    // Contratos quitados
+    const completedContractsData = filteredContracts.filter(c => c.status === "Quitado");
+    
+    // Lucro realizado (já recebido) = total_profit dos contratos quitados
+    const realizedProfit = completedContractsData.reduce((sum, c) => sum + Number(c.total_profit), 0);
+    
+    // Dados de parcelas
     const pendingInstallmentsData = filteredInstallments.filter(i => 
       ["Pendente", "Atrasado"].includes(i.status)
     );
     const paidInstallmentsData = filteredInstallments.filter(i => i.status === "Pago");
-    
-    const capitalOnStreet = pendingInstallmentsData.reduce(
-      (acc, i) => acc + (Number(i.amount_due) - Number(i.amount_paid || 0)),
-      0
-    );
-    
-    const realizedProfit = paidInstallmentsData.reduce(
-      (acc, i) => acc + Number(i.amount_paid || 0),
-      0
-    );
-    
-    const pendingProfit = pendingInstallmentsData.reduce(
-      (acc, i) => acc + Number(i.amount_due),
-      0
-    );
     
     const averageTicket = totalContracts > 0 ? totalCapital / totalContracts : 0;
     const averageRate = filteredContracts.length 
