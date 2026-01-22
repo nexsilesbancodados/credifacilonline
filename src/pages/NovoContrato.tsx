@@ -1,10 +1,10 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Camera, X } from "lucide-react";
-import { useClients } from "@/hooks/useClients";
+import { useClients, useClient } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF, maskPhone, maskCEP, validateCPF, validatePhone } from "@/lib/masks";
@@ -29,8 +29,12 @@ const NovoContrato = () => {
   const existingClientId = searchParams.get("clientId");
   
   const { toast } = useToast();
-  const { clients, createClient, isCreating: isCreatingClient } = useClients();
+  const { createClient, isCreating: isCreatingClient } = useClients();
   const { createContract, isCreating: isCreatingContract } = useContracts();
+  
+  // Fetch specific client when clientId is provided
+  const { data: existingClient, isLoading: isLoadingClient } = useClient(existingClientId || undefined);
+  
   const [mode, setMode] = useState<CalculationMode>("rate");
   const [isLoadingCep, setIsLoadingCep] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -38,12 +42,7 @@ const NovoContrato = () => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Find existing client if clientId is provided
-  const existingClient = useMemo(() => {
-    if (!existingClientId) return null;
-    return clients.find(c => c.id === existingClientId) || null;
-  }, [clients, existingClientId]);
+  const [formDataInitialized, setFormDataInitialized] = useState(false);
   
   const [formData, setFormData] = useState({
     // Client data
@@ -70,9 +69,9 @@ const NovoContrato = () => {
     paidInstallments: "" as unknown as number,
   });
 
-  // Pre-fill form if existing client
+  // Pre-fill form when existing client data is loaded
   useEffect(() => {
-    if (existingClient) {
+    if (existingClient && !formDataInitialized) {
       setFormData(prev => ({
         ...prev,
         name: existingClient.name,
@@ -90,8 +89,9 @@ const NovoContrato = () => {
       if (existingClient.avatar_url) {
         setAvatarPreview(existingClient.avatar_url);
       }
+      setFormDataInitialized(true);
     }
-  }, [existingClient]);
+  }, [existingClient, formDataInitialized]);
 
   // Handle avatar selection
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -356,6 +356,20 @@ const NovoContrato = () => {
     }
   };
 
+  // Show loading while fetching existing client
+  if (existingClientId && isLoadingClient) {
+    return (
+      <MainLayout>
+        <div className="flex h-[60vh] items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Carregando dados do cliente...</p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       {/* Header */}
@@ -379,14 +393,32 @@ const NovoContrato = () => {
           className="mb-6 rounded-2xl border border-accent/50 bg-accent/10 p-4"
         >
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/20">
-              <UserCheck className="h-6 w-6 text-accent" />
-            </div>
-            <div>
+            {existingClient.avatar_url ? (
+              <img
+                src={existingClient.avatar_url}
+                alt={existingClient.name}
+                className="h-12 w-12 rounded-full object-cover border-2 border-accent/30"
+              />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/20">
+                <UserCheck className="h-6 w-6 text-accent" />
+              </div>
+            )}
+            <div className="flex-1">
               <p className="font-medium text-foreground">Cliente existente selecionado</p>
               <p className="text-sm text-muted-foreground">
                 {existingClient.name} • CPF: {existingClient.cpf}
               </p>
+              {existingClient.whatsapp && (
+                <p className="text-xs text-muted-foreground">
+                  WhatsApp: {existingClient.whatsapp}
+                </p>
+              )}
+            </div>
+            <div className="text-right text-xs text-muted-foreground">
+              {existingClient.city && existingClient.state && (
+                <p>{existingClient.city}/{existingClient.state}</p>
+              )}
             </div>
           </div>
         </motion.div>
