@@ -1,10 +1,10 @@
 import { MainLayout } from "@/components/layout/MainLayout";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera, X } from "lucide-react";
-import { useClients, useClient } from "@/hooks/useClients";
+import { Loader2, Camera, X, Search, UserCheck, AlertCircle } from "lucide-react";
+import { useClients, useClient, Client } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF, maskPhone, maskCEP, validateCPF, validatePhone } from "@/lib/masks";
@@ -17,7 +17,6 @@ import {
   Percent,
   Sparkles,
   Check,
-  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,11 +28,17 @@ const NovoContrato = () => {
   const existingClientId = searchParams.get("clientId");
   
   const { toast } = useToast();
-  const { createClient, isCreating: isCreatingClient } = useClients();
+  const { clients, createClient, isCreating: isCreatingClient } = useClients();
   const { createContract, isCreating: isCreatingContract } = useContracts();
   
   // Fetch specific client when clientId is provided
   const { data: existingClient, isLoading: isLoadingClient } = useClient(existingClientId || undefined);
+  
+  // State for CPF search
+  const [foundClient, setFoundClient] = useState<Client | null>(null);
+  const [showClientSuggestion, setShowClientSuggestion] = useState(false);
+  const [isSearchingCpf, setIsSearchingCpf] = useState(false);
+  const [selectedExistingClient, setSelectedExistingClient] = useState<Client | null>(null);
   
   const [mode, setMode] = useState<CalculationMode>("rate");
   const [isLoadingCep, setIsLoadingCep] = useState(false);
@@ -69,9 +74,92 @@ const NovoContrato = () => {
     paidInstallments: "" as unknown as number,
   });
 
-  // Pre-fill form when existing client data is loaded
+  // Search for existing client by CPF
+  const searchClientByCpf = useCallback((cpf: string) => {
+    const cleanCpf = cpf.replace(/\D/g, "");
+    
+    // Only search when CPF has 11 digits
+    if (cleanCpf.length !== 11) {
+      setFoundClient(null);
+      setShowClientSuggestion(false);
+      return;
+    }
+    
+    setIsSearchingCpf(true);
+    
+    // Search in already loaded clients
+    const found = clients.find(c => c.cpf.replace(/\D/g, "") === cleanCpf);
+    
+    if (found && !selectedExistingClient) {
+      setFoundClient(found);
+      setShowClientSuggestion(true);
+    } else {
+      setFoundClient(null);
+      setShowClientSuggestion(false);
+    }
+    
+    setIsSearchingCpf(false);
+  }, [clients, selectedExistingClient]);
+
+  // Handle CPF change with search
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const maskedCpf = maskCPF(e.target.value);
+    setFormData({ ...formData, cpf: maskedCpf });
+    searchClientByCpf(maskedCpf);
+  };
+
+  // Use existing client data
+  const useExistingClient = (client: Client) => {
+    setSelectedExistingClient(client);
+    setFormData(prev => ({
+      ...prev,
+      name: client.name,
+      cpf: client.cpf,
+      email: client.email || "",
+      whatsapp: client.whatsapp || "",
+      cep: client.cep || "",
+      street: client.street || "",
+      number: client.number || "",
+      complement: client.complement || "",
+      neighborhood: client.neighborhood || "",
+      city: client.city || "",
+      state: client.state || "",
+    }));
+    if (client.avatar_url) {
+      setAvatarPreview(client.avatar_url);
+    }
+    setShowClientSuggestion(false);
+    setFoundClient(null);
+    toast({
+      title: "Cliente selecionado!",
+      description: `Dados de ${client.name} preenchidos automaticamente.`,
+    });
+  };
+
+  // Clear selected existing client
+  const clearSelectedClient = () => {
+    setSelectedExistingClient(null);
+    setFormData(prev => ({
+      ...prev,
+      name: "",
+      cpf: "",
+      email: "",
+      whatsapp: "",
+      cep: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+    }));
+    setAvatarPreview(null);
+  };
+
+  // Pre-fill form when existing client data is loaded (from URL param)
   useEffect(() => {
     if (existingClient && !formDataInitialized) {
+      setSelectedExistingClient(existingClient);
       setFormData(prev => ({
         ...prev,
         name: existingClient.name,
@@ -243,8 +331,11 @@ const NovoContrato = () => {
   ];
 
   const handleSave = async () => {
+    // Use selectedExistingClient or existingClient (from URL param)
+    const clientToUse = selectedExistingClient || existingClient;
+    
     // Only validate client data if creating new client
-    if (!existingClient) {
+    if (!clientToUse) {
       if (!formData.name || !formData.cpf) {
         toast({ title: "Erro", description: "Preencha o nome e CPF do cliente.", variant: "destructive" });
         return;
@@ -279,12 +370,12 @@ const NovoContrato = () => {
       
       let clientId: string;
       
-      if (existingClient) {
+      if (clientToUse) {
         // Use existing client
-        clientId = existingClient.id;
+        clientId = clientToUse.id;
         
         // Update client status to Ativo if it was Quitado
-        if (existingClient.status === "Quitado") {
+        if (clientToUse.status === "Quitado") {
           await supabase
             .from("clients")
             .update({ status: "Ativo" })
@@ -320,6 +411,7 @@ const NovoContrato = () => {
       }
       
       // Create contract with client data for PDF generation
+      const clientForPdf = clientToUse || { name: formData.name, cpf: formData.cpf, city: formData.city, state: formData.state };
       await createContract({
         client_id: clientId,
         capital: formData.capital,
@@ -336,15 +428,15 @@ const NovoContrato = () => {
         fine_percentage: 10, // Default from example
         daily_interest_rate: 2, // Default from example  
         // Client data for contract PDF
-        client_name: existingClient ? existingClient.name : formData.name,
-        client_cpf: existingClient ? existingClient.cpf : formData.cpf,
-        client_city: existingClient ? existingClient.city || undefined : formData.city || undefined,
-        client_state: existingClient ? existingClient.state || undefined : formData.state || undefined,
+        client_name: clientForPdf.name,
+        client_cpf: clientForPdf.cpf,
+        client_city: clientForPdf.city || undefined,
+        client_state: clientForPdf.state || undefined,
         company_name: "Credifacil Global",
       });
       
       // Navigate back to client dossier if adding to existing client
-      if (existingClient) {
+      if (clientToUse) {
         navigate(`/cliente/${clientId}`);
       } else {
         navigate("/clientes");
@@ -385,18 +477,18 @@ const NovoContrato = () => {
         </p>
       </div>
 
-      {/* Existing Client Info Banner */}
-      {existingClient && (
+      {/* Selected Client Banner (from CPF search OR from URL param) */}
+      {(selectedExistingClient || existingClient) && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 rounded-2xl border border-accent/50 bg-accent/10 p-4"
         >
           <div className="flex items-center gap-4">
-            {existingClient.avatar_url ? (
+            {(selectedExistingClient?.avatar_url || existingClient?.avatar_url) ? (
               <img
-                src={existingClient.avatar_url}
-                alt={existingClient.name}
+                src={selectedExistingClient?.avatar_url || existingClient?.avatar_url || ""}
+                alt={(selectedExistingClient || existingClient)?.name}
                 className="h-12 w-12 rounded-full object-cover border-2 border-accent/30"
               />
             ) : (
@@ -407,17 +499,29 @@ const NovoContrato = () => {
             <div className="flex-1">
               <p className="font-medium text-foreground">Cliente existente selecionado</p>
               <p className="text-sm text-muted-foreground">
-                {existingClient.name} • CPF: {existingClient.cpf}
+                {(selectedExistingClient || existingClient)?.name} • CPF: {(selectedExistingClient || existingClient)?.cpf}
               </p>
-              {existingClient.whatsapp && (
+              {(selectedExistingClient?.whatsapp || existingClient?.whatsapp) && (
                 <p className="text-xs text-muted-foreground">
-                  WhatsApp: {existingClient.whatsapp}
+                  WhatsApp: {selectedExistingClient?.whatsapp || existingClient?.whatsapp}
                 </p>
               )}
             </div>
-            <div className="text-right text-xs text-muted-foreground">
-              {existingClient.city && existingClient.state && (
-                <p>{existingClient.city}/{existingClient.state}</p>
+            <div className="flex items-center gap-2">
+              {(selectedExistingClient?.city || existingClient?.city) && (selectedExistingClient?.state || existingClient?.state) && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedExistingClient?.city || existingClient?.city}/{selectedExistingClient?.state || existingClient?.state}
+                </p>
+              )}
+              {!existingClientId && (
+                <button
+                  type="button"
+                  onClick={clearSelectedClient}
+                  className="h-8 w-8 rounded-full bg-muted hover:bg-destructive/20 flex items-center justify-center transition-colors"
+                  title="Remover cliente selecionado"
+                >
+                  <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                </button>
               )}
             </div>
           </div>
@@ -427,8 +531,8 @@ const NovoContrato = () => {
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Form Section */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Step 1: Client Data with Photo - Only show if new client */}
-          {!existingClient && (
+          {/* Step 1: Client Data with Photo - Only show if no client selected */}
+          {!selectedExistingClient && !existingClient && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -512,20 +616,95 @@ const NovoContrato = () => {
                   className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
-              <div>
+              <div className="relative">
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  CPF *
+                  CPF * <span className="text-xs text-accent">(digite para buscar cliente)</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.cpf}
-                  onChange={(e) =>
-                    setFormData({ ...formData, cpf: maskCPF(e.target.value) })
-                  }
-                  placeholder="000.000.000-00"
-                  maxLength={14}
-                  className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={formData.cpf}
+                    onChange={handleCpfChange}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    className={cn(
+                      "h-11 w-full rounded-xl border bg-secondary/50 px-4 pr-10 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1",
+                      showClientSuggestion
+                        ? "border-accent focus:border-accent focus:ring-accent"
+                        : "border-border focus:border-primary focus:ring-primary"
+                    )}
+                  />
+                  {isSearchingCpf && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    </div>
+                  )}
+                  {!isSearchingCpf && formData.cpf.replace(/\D/g, "").length === 11 && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Client Suggestion Popup */}
+                <AnimatePresence>
+                  {showClientSuggestion && foundClient && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute z-50 left-0 right-0 mt-2 rounded-xl border border-accent bg-card shadow-lg overflow-hidden"
+                    >
+                      <div className="p-3 bg-accent/10 border-b border-accent/30">
+                        <div className="flex items-center gap-2 text-accent">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="text-sm font-medium">Cliente encontrado!</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => useExistingClient(foundClient)}
+                        className="w-full p-4 flex items-center gap-4 hover:bg-accent/5 transition-colors text-left"
+                      >
+                        {foundClient.avatar_url ? (
+                          <img
+                            src={foundClient.avatar_url}
+                            alt={foundClient.name}
+                            className="h-12 w-12 rounded-full object-cover border-2 border-accent/30"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-accent/20 flex items-center justify-center">
+                            <User className="h-6 w-6 text-accent" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium text-foreground">{foundClient.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {foundClient.whatsapp || "Sem WhatsApp"}
+                            {foundClient.city && ` • ${foundClient.city}/${foundClient.state}`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">
+                            Usar este cliente
+                          </span>
+                        </div>
+                      </button>
+                      <div className="p-2 bg-secondary/30 border-t border-border">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowClientSuggestion(false);
+                            setFoundClient(null);
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center py-1"
+                        >
+                          Ignorar e cadastrar novo cliente
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
@@ -560,8 +739,8 @@ const NovoContrato = () => {
           </motion.div>
           )}
 
-          {/* Step 2: Address - Only show if new client */}
-          {!existingClient && (
+          {/* Step 2: Address - Only show if no client selected */}
+          {!selectedExistingClient && !existingClient && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
