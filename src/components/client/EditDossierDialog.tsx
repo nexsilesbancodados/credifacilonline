@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Save, User, Phone, MapPin, Loader2, FileText, RefreshCw, Calendar, Percent, DollarSign } from "lucide-react";
+import { X, Save, User, Phone, MapPin, Loader2, FileText, RefreshCw, Calendar, Percent, DollarSign, AlertTriangle } from "lucide-react";
 import { useClients, Client } from "@/hooks/useClients";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Contract {
   id: string;
@@ -43,6 +53,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
   const [activeTab, setActiveTab] = useState("cliente");
   const [isSavingContract, setIsSavingContract] = useState(false);
   const [isRenewing, setIsRenewing] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   const [clientData, setClientData] = useState({
     name: "",
@@ -834,7 +845,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={handleSaveContract}
+                      onClick={() => setShowConfirmDialog(true)}
                       disabled={isSavingContract}
                       className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
@@ -989,6 +1000,51 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
             </TabsContent>
           </Tabs>
         </motion.div>
+
+        {/* Confirmation Dialog */}
+        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <AlertDialogContent className="rounded-2xl border border-border/50">
+            <AlertDialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10">
+                  <AlertTriangle className="h-5 w-5 text-warning" />
+                </div>
+                <AlertDialogTitle className="font-display">Confirmar Alterações</AlertDialogTitle>
+              </div>
+              <AlertDialogDescription className="text-muted-foreground">
+                Você está prestes a editar o contrato. As parcelas não pagas serão recalculadas com os novos valores.
+                <div className="mt-4 p-3 rounded-xl bg-secondary/50 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Capital:</span>
+                    <span className="font-medium text-foreground">
+                      R$ {contractData.capital.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Taxa de Juros:</span>
+                    <span className="font-medium text-foreground">{contractData.interest_rate}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Parcelas:</span>
+                    <span className="font-medium text-foreground">{contractData.installments}x</span>
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="gap-2">
+              <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleSaveContract}
+                className="rounded-xl bg-primary hover:bg-primary/90"
+              >
+                {isSavingContract ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Confirmar Alteração
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AnimatePresence>
   );
