@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
-import { PortfolioHealthChart } from "@/components/dashboard/PortfolioHealthChart";
 import { OverdueList } from "@/components/dashboard/OverdueList";
 import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
 import { GoalsDashboard } from "@/components/dashboard/GoalsDashboard";
@@ -9,7 +8,6 @@ import { ForecastChart } from "@/components/dashboard/ForecastChart";
 import { ReceivableForecastWidget } from "@/components/dashboard/ReceivableForecastWidget";
 import { LoanFrequencyChart } from "@/components/dashboard/LoanFrequencyChart";
 import { OnboardingTour, useOnboardingTour } from "@/components/tour/OnboardingTour";
-import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
