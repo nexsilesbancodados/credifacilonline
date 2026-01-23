@@ -132,7 +132,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
   };
 
   const handleSaveContract = async () => {
-    if (!contract || !user) return;
+    if (!contract || !user || !client) return;
     
     setIsSavingContract(true);
     try {
@@ -143,7 +143,8 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
       const totalAmount = installmentValue * contractData.installments;
       const totalProfit = totalAmount - capital;
 
-      const { error } = await supabase
+      // Update contract
+      const { error: contractError } = await supabase
         .from("contracts")
         .update({
           capital: contractData.capital,
@@ -160,13 +161,111 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
         })
         .eq("id", contract.id);
 
-      if (error) throw error;
+      if (contractError) throw contractError;
+
+      // Delete existing unpaid installments and recreate them
+      const { error: deleteError } = await supabase
+        .from("installments")
+        .delete()
+        .eq("contract_id", contract.id)
+        .neq("status", "Pago");
+
+      if (deleteError) throw deleteError;
+
+      // Get count of paid installments
+      const { data: paidInstallments, error: paidError } = await supabase
+        .from("installments")
+        .select("installment_number")
+        .eq("contract_id", contract.id)
+        .eq("status", "Pago");
+
+      if (paidError) throw paidError;
+
+      const paidCount = paidInstallments?.length || 0;
+      const remainingInstallments = contractData.installments - paidCount;
+
+      if (remainingInstallments > 0) {
+        // Generate new installments starting after paid ones
+        const newInstallments = [];
+        let currentDueDate = new Date(contractData.first_due_date);
+
+        // Skip to the correct start date based on paid installments
+        for (let i = 0; i < paidCount; i++) {
+          switch (contractData.frequency) {
+            case "diario":
+              currentDueDate = addDays(currentDueDate, 1);
+              break;
+            case "semanal":
+              currentDueDate = addWeeks(currentDueDate, 1);
+              break;
+            case "quinzenal":
+              currentDueDate = addWeeks(currentDueDate, 2);
+              break;
+            case "mensal":
+            default:
+              currentDueDate = addMonths(currentDueDate, 1);
+              break;
+          }
+        }
+
+        for (let i = paidCount + 1; i <= contractData.installments; i++) {
+          newInstallments.push({
+            contract_id: contract.id,
+            client_id: client.id,
+            operator_id: user.id,
+            installment_number: i,
+            total_installments: contractData.installments,
+            due_date: format(currentDueDate, "yyyy-MM-dd"),
+            amount_due: installmentValue,
+            status: "Pendente",
+          });
+
+          // Calculate next due date
+          switch (contractData.frequency) {
+            case "diario":
+              currentDueDate = addDays(currentDueDate, 1);
+              break;
+            case "semanal":
+              currentDueDate = addWeeks(currentDueDate, 1);
+              break;
+            case "quinzenal":
+              currentDueDate = addWeeks(currentDueDate, 2);
+              break;
+            case "mensal":
+            default:
+              currentDueDate = addMonths(currentDueDate, 1);
+              break;
+          }
+        }
+
+        if (newInstallments.length > 0) {
+          const { error: insertError } = await supabase
+            .from("installments")
+            .insert(newInstallments);
+
+          if (insertError) throw insertError;
+        }
+      }
+
+      // Log activity
+      await supabase.from("activity_log").insert({
+        operator_id: user.id,
+        client_id: client.id,
+        contract_id: contract.id,
+        type: "contract_updated",
+        description: `Contrato editado - R$ ${capital.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em ${contractData.installments}x`,
+      });
 
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["installments"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      
       toast({
         title: "Contrato atualizado!",
-        description: "Os dados do contrato foram salvos.",
+        description: "Os dados do contrato e parcelas foram salvos.",
       });
+      
+      onOpenChange(false);
     } catch (error: any) {
       toast({
         title: "Erro ao atualizar contrato",
