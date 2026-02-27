@@ -92,6 +92,13 @@ const Clientes = () => {
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 
   const archivedCount = clients.filter(c => !!c.archived_at).length;
+  const activeClients = clients.filter(c => !c.archived_at);
+  const clientStats = {
+    total: activeClients.length,
+    ativos: activeClients.filter(c => c.status === "Ativo").length,
+    atraso: activeClients.filter(c => c.status === "Atraso").length,
+    quitados: activeClients.filter(c => c.status === "Quitado").length,
+  };
 
   const toggleSelection = (clientId: string) => {
     const newSelection = new Set(selectedClients);
@@ -276,14 +283,14 @@ const Clientes = () => {
   return (
     <MainLayout>
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold text-foreground">
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
               Clientes
             </h1>
-            <p className="mt-1 text-muted-foreground">
-              Gerencie todos os seus clientes em um só lugar
+            <p className="mt-1 text-sm text-muted-foreground">
+              {clientStats.total} clientes · {clientStats.ativos} ativos · {clientStats.atraso > 0 ? <span className="text-destructive">{clientStats.atraso} em atraso</span> : "0 em atraso"}
             </p>
           </div>
 
@@ -542,20 +549,29 @@ const Clientes = () => {
 
           {/* Status Filters */}
           <div className="flex gap-1 rounded-xl bg-secondary/50 p-1">
-            {filters.map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={cn(
-                  "rounded-lg px-4 py-2 text-sm font-medium transition-all",
-                  activeFilter === filter
-                    ? "bg-primary text-primary-foreground shadow-gold"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {filter}
-              </button>
-            ))}
+            {filters.map((filter) => {
+              const count = filter === "Todos" ? clientStats.total : clientStats[filter.toLowerCase() === "ativo" ? "ativos" : filter.toLowerCase() === "atraso" ? "atraso" : "quitados"];
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={cn(
+                    "rounded-lg px-3 py-2 text-sm font-medium transition-all flex items-center gap-1.5",
+                    activeFilter === filter
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {filter}
+                  <span className={cn(
+                    "text-xs rounded-full px-1.5 py-0.5",
+                    activeFilter === filter ? "bg-primary-foreground/20" : "bg-secondary"
+                  )}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Archive Toggle */}
