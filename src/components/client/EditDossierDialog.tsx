@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, addMonths, addWeeks, addDays } from "date-fns";
+import { format, addMonths } from "date-fns";
+import { advanceDateByFrequency } from "@/lib/dateUtils";
 import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
 import {
   AlertDialog,
@@ -202,21 +203,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
 
         // Skip to the correct start date based on paid installments
         for (let i = 0; i < paidCount; i++) {
-          switch (contractData.frequency) {
-            case "diario":
-              currentDueDate = addDays(currentDueDate, 1);
-              break;
-            case "semanal":
-              currentDueDate = addWeeks(currentDueDate, 1);
-              break;
-            case "quinzenal":
-              currentDueDate = addWeeks(currentDueDate, 2);
-              break;
-            case "mensal":
-            default:
-              currentDueDate = addMonths(currentDueDate, 1);
-              break;
-          }
+          currentDueDate = advanceDateByFrequency(currentDueDate, contractData.frequency);
         }
 
         for (let i = paidCount + 1; i <= contractData.installments; i++) {
@@ -231,22 +218,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
             status: "Pendente",
           });
 
-          // Calculate next due date
-          switch (contractData.frequency) {
-            case "diario":
-              currentDueDate = addDays(currentDueDate, 1);
-              break;
-            case "semanal":
-              currentDueDate = addWeeks(currentDueDate, 1);
-              break;
-            case "quinzenal":
-              currentDueDate = addWeeks(currentDueDate, 2);
-              break;
-            case "mensal":
-            default:
-              currentDueDate = addMonths(currentDueDate, 1);
-              break;
-          }
+          currentDueDate = advanceDateByFrequency(currentDueDate, contractData.frequency);
         }
 
         if (newInstallments.length > 0) {
@@ -341,22 +313,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           status: "Pendente",
         });
 
-        // Calculate next due date
-        switch (renewalData.frequency) {
-          case "diario":
-            currentDueDate = addDays(currentDueDate, 1);
-            break;
-          case "semanal":
-            currentDueDate = addWeeks(currentDueDate, 1);
-            break;
-          case "quinzenal":
-            currentDueDate = addWeeks(currentDueDate, 2);
-            break;
-          case "mensal":
-          default:
-            currentDueDate = addMonths(currentDueDate, 1);
-            break;
-        }
+        currentDueDate = advanceDateByFrequency(currentDueDate, renewalData.frequency);
       }
 
       const { error: installmentsError } = await supabase

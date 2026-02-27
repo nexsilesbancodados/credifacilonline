@@ -9,7 +9,6 @@ import {
   Calendar,
   DollarSign,
   TrendingUp,
-  Filter,
   ChevronRight,
   RefreshCw,
 } from "lucide-react";
