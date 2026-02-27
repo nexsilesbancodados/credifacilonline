@@ -9,11 +9,18 @@ import { ReceivableForecastWidget } from "@/components/dashboard/ReceivableForec
 import { LoanFrequencyChart } from "@/components/dashboard/LoanFrequencyChart";
 import { OnboardingTour, useOnboardingTour } from "@/components/tour/OnboardingTour";
 import { Link } from "react-router-dom";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, Users, FileText, Calculator, BarChart3 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
 import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
 import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 import { useAuth } from "@/contexts/AuthContext";
+
+const quickActions = [
+  { icon: Sparkles, label: "Novo Contrato", path: "/contratos/novo", color: "bg-gradient-gold text-primary-foreground shadow-gold" },
+  { icon: Users, label: "Clientes", path: "/clientes", color: "bg-secondary text-secondary-foreground" },
+  { icon: Calculator, label: "Simulador", path: "/simulador", color: "bg-secondary text-secondary-foreground" },
+  { icon: BarChart3, label: "Análises", path: "/analises", color: "bg-secondary text-secondary-foreground" },
+];
 
 const Dashboard = () => {
   const [period, setPeriod] = useState<PeriodFilter>("all");
@@ -22,35 +29,44 @@ const Dashboard = () => {
   const analyticsStats = useAnalyticsStats(period);
   const { isOpen: isTourOpen, setIsOpen: setTourOpen } = useOnboardingTour();
 
-  // Enable real-time updates for dashboard
   useRealtimeDashboard();
 
   const isLoading = isLoadingDashboard || analyticsStats.isLoading;
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
+  };
+
   return (
     <MainLayout>
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-foreground">
-              Dashboard
-            </h1>
-            <p className="mt-1 text-muted-foreground">
-              Bem-vindo de volta{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}! Aqui está o resumo da sua carteira.
-            </p>
-          </div>
-          
-          <Link to="/contratos/novo">
-            <button className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-3 font-medium text-primary-foreground shadow-gold transition-all hover:shadow-gold-lg hover:scale-[1.02] active:scale-[0.98]">
-              <Sparkles className="h-5 w-5" />
-              Novo Contrato
-            </button>
-          </Link>
-        </div>
+      {/* Header with greeting */}
+      <div className="mb-6">
+        <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
+          {getGreeting()}{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}! 👋
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Aqui está o resumo da sua carteira de hoje.
+        </p>
       </div>
 
-      {/* Period Filter & KPI Cards */}
+      {/* Quick Actions */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {quickActions.map((action) => (
+          <Link
+            key={action.path}
+            to={action.path}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] ${action.color}`}
+          >
+            <action.icon className="h-4 w-4" />
+            {action.label}
+          </Link>
+        ))}
+      </div>
+
+      {/* Period Filter */}
       <div className="mb-6">
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
@@ -63,7 +79,6 @@ const Dashboard = () => {
         <>
           <AnalyticsCards stats={analyticsStats} variant="compact" />
 
-          {/* Charts Row */}
           <div className="mt-8 grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <RevenueChart />
@@ -71,29 +86,25 @@ const Dashboard = () => {
             <LoanFrequencyChart />
           </div>
 
-          {/* Forecast Charts Row */}
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
             <ForecastChart />
             <ReceivableForecastWidget />
           </div>
 
-          {/* Goals Dashboard */}
           <div className="mt-8">
             <GoalsDashboard />
           </div>
 
-          {/* Overdue List */}
           <div className="mt-8">
             <OverdueList />
           </div>
         </>
       )}
-      
-      {/* Onboarding Tour */}
-      <OnboardingTour 
-        isOpen={isTourOpen} 
-        onClose={() => setTourOpen(false)} 
-        onComplete={() => setTourOpen(false)} 
+
+      <OnboardingTour
+        isOpen={isTourOpen}
+        onClose={() => setTourOpen(false)}
+        onComplete={() => setTourOpen(false)}
       />
     </MainLayout>
   );
