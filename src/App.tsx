@@ -27,6 +27,7 @@ const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const QRCodeGenerator = lazy(() => import("./pages/QRCodeGenerator"));
+const AgenteIA = lazy(() => import("./pages/AgenteIA"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback component
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="/auditoria" element={<ProtectedRoute><Auditoria /></ProtectedRoute>} />
               <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
               <Route path="/qrcode" element={<ProtectedRoute><QRCodeGenerator /></ProtectedRoute>} />
+              <Route path="/agente-ia" element={<ProtectedRoute><AgenteIA /></ProtectedRoute>} />
               
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />

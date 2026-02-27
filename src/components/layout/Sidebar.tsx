@@ -19,6 +19,7 @@ import {
   Shield,
   Calculator,
   QrCode,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -54,7 +55,8 @@ const baseMenuItems = [
   { icon: BarChart3, label: "Análises", path: "/analises", permission: "canViewReports" as const },
   { icon: History, label: "Histórico", path: "/historico", permission: null },
   { icon: Shield, label: "Auditoria", path: "/auditoria", permission: "canViewAuditLog" as const },
-  { icon: QrCode, label: "QR Code", path: "/qrcode", permission: null },
+  { icon: QrCode, label: "WhatsApp", path: "/qrcode", permission: null },
+  { icon: Bot, label: "Agente IA", path: "/agente-ia", permission: null },
   { icon: Settings, label: "Configurações", path: "/configuracoes", permission: "canViewSettings" as const },
 ];
 
