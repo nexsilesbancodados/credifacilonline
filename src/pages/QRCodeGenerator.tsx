@@ -89,6 +89,13 @@ const QRCodeGenerator = () => {
     fetchInstances();
   }, [fetchInstances]);
 
+  const extractQrCode = (data: any): string | null => {
+    if (data?.qrcode?.base64) return data.qrcode.base64;
+    if (data?.base64) return data.base64;
+    if (typeof data?.qrcode === "string") return data.qrcode;
+    return null;
+  };
+
   const handleCreateInstance = async () => {
     if (!newInstanceName.trim()) {
       toast.error("Digite o nome da instância");
@@ -101,14 +108,20 @@ const QRCodeGenerator = () => {
         instanceName: newInstanceName.trim(),
       });
 
-      if (data?.qrcode?.base64) {
-        setQrCodes(prev => ({ ...prev, [newInstanceName.trim()]: data.qrcode.base64 }));
+      console.log("Create instance response:", JSON.stringify(data, null, 2));
+
+      const qr = extractQrCode(data);
+      if (qr) {
+        setQrCodes(prev => ({ ...prev, [newInstanceName.trim()]: qr }));
+        toast.success("QR Code gerado! Escaneie com o WhatsApp.");
+      } else {
+        toast.success(`Instância "${newInstanceName}" criada! Clique em "Conectar" para gerar o QR Code.`);
       }
 
-      toast.success(`Instância "${newInstanceName}" criada com sucesso!`);
       setNewInstanceName("");
       await fetchInstances();
     } catch (err: any) {
+      console.error("Create instance error:", err);
       toast.error("Erro ao criar instância: " + (err.message || "Erro desconhecido"));
     } finally {
       setCreating(false);
@@ -118,17 +131,21 @@ const QRCodeGenerator = () => {
   const handleConnect = async (instanceName: string) => {
     try {
       const data = await callEvolutionApi({ action: "connect_instance", instanceName });
-      if (data?.base64 || data?.qrcode?.base64) {
-        const qr = data.base64 || data.qrcode.base64;
+      console.log("Connect instance response:", JSON.stringify(data, null, 2));
+      
+      const qr = extractQrCode(data);
+      if (qr) {
         setQrCodes(prev => ({ ...prev, [instanceName]: qr }));
         toast.success("QR Code gerado! Escaneie com o WhatsApp.");
-      } else if (data?.instance?.state === "open") {
+      } else if (data?.instance?.state === "open" || data?.state === "open") {
         toast.success("Instância já está conectada!");
         setConnectionStates(prev => ({ ...prev, [instanceName]: "open" }));
       } else {
-        toast.info("Aguardando conexão...");
+        console.warn("No QR code found in response:", data);
+        toast.info("Nenhum QR Code retornado. Tente novamente em alguns segundos.");
       }
     } catch (err: any) {
+      console.error("Connect error:", err);
       toast.error("Erro ao conectar: " + (err.message || "Erro desconhecido"));
     }
   };
