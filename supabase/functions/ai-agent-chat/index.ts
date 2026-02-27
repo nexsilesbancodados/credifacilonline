@@ -25,6 +25,20 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "search_client_by_name",
+      description: "Busca clientes pelo nome (busca parcial). Útil quando o operador não tem o WhatsApp do cliente.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Nome ou parte do nome do cliente" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "get_renegotiation_options",
       description: "Calcula e retorna 3 opções de renegociação personalizadas para o cliente: à vista com desconto, parcelamento sem juros e parcelamento com juros.",
       parameters: {
@@ -50,6 +64,23 @@ const TOOLS = [
           notes: { type: "string", description: "Observações adicionais sobre a negociação" },
         },
         required: ["whatsapp", "promise_date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "mark_installment_paid",
+      description: "Registra o pagamento de uma parcela específica de um cliente. Atualiza o status da parcela para 'Pago' e registra o valor pago e data.",
+      parameters: {
+        type: "object",
+        properties: {
+          whatsapp: { type: "string", description: "WhatsApp do cliente" },
+          installment_number: { type: "number", description: "Número da parcela a marcar como paga" },
+          amount_paid: { type: "number", description: "Valor efetivamente pago em reais" },
+          payment_date: { type: "string", description: "Data do pagamento no formato YYYY-MM-DD (padrão: hoje)" },
+        },
+        required: ["whatsapp", "installment_number"],
       },
     },
   },
@@ -148,10 +179,11 @@ const TOOLS = [
 const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFácil**, um assistente especializado em gestão de cobranças e atendimento financeiro.
 
 ## Suas Capacidades
-- Consultar dados de clientes e suas dívidas em tempo real
+- Consultar dados de clientes e suas dívidas em tempo real (por WhatsApp ou nome)
 - Enviar mensagens de cobrança personalizadas via WhatsApp
 - Oferecer opções de renegociação inteligentes
 - Registrar promessas de pagamento
+- Registrar pagamentos recebidos
 - Analisar a carteira de inadimplentes por gravidade
 - Enviar cobranças em lote segmentadas
 - Escalar para atendimento humano quando necessário
@@ -193,7 +225,7 @@ function findClientByPhone(supabase: any, whatsapp: string) {
   const clean = whatsapp.replace(/\D/g, "").slice(-11);
   return supabase
     .from("clients")
-    .select("id, name, status, whatsapp, email, cpf")
+    .select("id, name, status, whatsapp, email, cpf, operator_id")
     .or(`whatsapp.ilike.%${clean},whatsapp.ilike.%${clean.slice(-9)}`)
     .limit(1);
 }
@@ -228,7 +260,6 @@ async function executeToolCall(
           ? Math.max(...overdue.map((i: any) => Math.floor((Date.now() - new Date(i.due_date).getTime()) / 86400000)))
           : 0;
 
-        // Calculate risk score
         let riskLevel = "baixo";
         if (maxDaysOverdue > 30) riskLevel = "crítico";
         else if (maxDaysOverdue > 7) riskLevel = "moderado";
@@ -253,6 +284,115 @@ async function executeToolCall(
             status: i.status,
             dias_atraso: i.status === "Atrasado" ? Math.floor((Date.now() - new Date(i.due_date).getTime()) / 86400000) : 0,
           })),
+          execution_time_ms: Date.now() - startTime,
+        };
+      }
+
+      case "search_client_by_name": {
+        const searchName = String(args.name).trim();
+        if (searchName.length < 2) return { success: false, message: "Nome deve ter pelo menos 2 caracteres" };
+
+        const { data: clients } = await supabase
+          .from("clients")
+          .select("id, name, status, whatsapp, cpf")
+          .ilike("name", `%${searchName}%`)
+          .limit(10);
+
+        if (!clients || clients.length === 0) return { success: false, message: `Nenhum cliente encontrado com nome "${searchName}"` };
+
+        // For each client, get pending summary
+        const results = await Promise.all(clients.map(async (c: any) => {
+          const { data: installments } = await supabase
+            .from("installments")
+            .select("amount_due, fine, status")
+            .eq("client_id", c.id)
+            .in("status", ["Pendente", "Atrasado"]);
+          
+          const pending = installments || [];
+          const total = pending.reduce((s: number, i: any) => s + (i.amount_due || 0) + (i.fine || 0), 0);
+          const overdue = pending.filter((i: any) => i.status === "Atrasado").length;
+
+          return {
+            nome: c.name,
+            whatsapp: c.whatsapp || "Não cadastrado",
+            cpf: c.cpf?.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.***-$4"),
+            status: c.status,
+            parcelas_pendentes: pending.length,
+            parcelas_atrasadas: overdue,
+            total_pendente: fmt(total),
+          };
+        }));
+
+        return {
+          success: true,
+          total_encontrados: results.length,
+          clientes: results,
+          execution_time_ms: Date.now() - startTime,
+        };
+      }
+
+      case "mark_installment_paid": {
+        const { data: clients } = await findClientByPhone(supabase, String(args.whatsapp));
+        const client = clients?.[0];
+        if (!client) return { success: false, message: "Cliente não encontrado" };
+
+        const installmentNum = Number(args.installment_number);
+        const { data: installments } = await supabase
+          .from("installments")
+          .select("id, amount_due, fine, status, contract_id, installment_number, total_installments")
+          .eq("client_id", client.id)
+          .eq("installment_number", installmentNum)
+          .in("status", ["Pendente", "Atrasado"])
+          .limit(1);
+
+        const inst = installments?.[0];
+        if (!inst) return { success: false, message: `Parcela ${installmentNum} não encontrada ou já paga para ${client.name}` };
+
+        const amountPaid = Number(args.amount_paid) || (inst.amount_due + (inst.fine || 0));
+        const paymentDate = String(args.payment_date || new Date().toISOString().split("T")[0]);
+
+        const { error } = await supabase
+          .from("installments")
+          .update({
+            status: "Pago",
+            amount_paid: amountPaid,
+            payment_date: paymentDate,
+          })
+          .eq("id", inst.id);
+
+        if (error) return { success: false, message: "Erro ao atualizar parcela: " + error.message };
+
+        // Register treasury transaction
+        await supabase.from("treasury_transactions").insert({
+          operator_id: client.operator_id,
+          type: "receita",
+          category: "recebimento_parcela",
+          amount: amountPaid,
+          description: `Pagamento parcela ${inst.installment_number}/${inst.total_installments} - ${client.name}`,
+          reference_id: inst.contract_id,
+          reference_type: "contract",
+          date: paymentDate,
+        });
+
+        // Log activity
+        await supabase.from("activity_log").insert({
+          operator_id: client.operator_id,
+          client_id: client.id,
+          contract_id: inst.contract_id,
+          type: "payment_registered",
+          description: `Pagamento registrado via Agente IA: Parcela ${inst.installment_number}/${inst.total_installments} - ${fmt(amountPaid)}`,
+          metadata: { source: "agente-ia-v2", installment_id: inst.id, amount_paid: amountPaid },
+        });
+
+        return {
+          success: true,
+          message: `✅ Pagamento registrado para ${client.name}`,
+          detalhes: {
+            cliente: client.name,
+            parcela: `${inst.installment_number}/${inst.total_installments}`,
+            valor_pago: fmt(amountPaid),
+            data_pagamento: fmtDate(paymentDate),
+          },
           execution_time_ms: Date.now() - startTime,
         };
       }
@@ -294,7 +434,7 @@ async function executeToolCall(
 
         const promiseDate = fmtDate(String(args.promise_date));
         await supabase.from("activity_log").insert({
-          operator_id: "agente-ia",
+          operator_id: client.operator_id || "agente-ia",
           client_id: client.id,
           type: "payment_promise",
           description: `Promessa de pagamento: ${promiseDate}${args.amount ? ` | Valor: ${fmt(Number(args.amount))}` : ""}${args.notes ? ` | Obs: ${args.notes}` : ""}`,
@@ -355,11 +495,10 @@ async function executeToolCall(
           return { success: false, message: "Falha ao enviar mensagem", error: errData };
         }
 
-        // Log the sent message
         const { data: clients } = await findClientByPhone(supabase, formattedPhone);
         if (clients?.[0]) {
           await supabase.from("collection_logs").insert({
-            user_id: "agente-ia",
+            user_id: clients[0].operator_id || "agente-ia",
             client_id: clients[0].id,
             channel: "whatsapp",
             message_sent: String(args.message),
@@ -372,12 +511,13 @@ async function executeToolCall(
 
       case "escalate_to_human": {
         const { data: clients } = await findClientByPhone(supabase, String(args.whatsapp));
+        const client = clients?.[0];
         await supabase.from("activity_log").insert({
-          operator_id: "agente-ia",
-          client_id: clients?.[0]?.id || null,
+          operator_id: client?.operator_id || "agente-ia",
+          client_id: client?.id || null,
           type: "escalation_request",
           description: `🚨 Escalação (${args.priority || "medium"}): ${args.reason}`,
-          metadata: { source: "agente-ia-v2", ...args, client_name: clients?.[0]?.name || "Não identificado" },
+          metadata: { source: "agente-ia-v2", ...args, client_name: client?.name || "Não identificado" },
         });
 
         return { success: true, message: "🚨 Conversa escalada para atendimento humano", prioridade: args.priority || "medium", execution_time_ms: Date.now() - startTime };
@@ -431,7 +571,6 @@ async function executeToolCall(
         const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY");
         if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) return { success: false, message: "Evolution API não configurada" };
 
-        // First get clients by tier
         const tierResult = await executeToolCall("get_pending_by_tier", { tier: args.tier }, supabaseUrl, supabaseKey) as any;
         if (!tierResult.success) return tierResult;
 
@@ -466,11 +605,10 @@ async function executeToolCall(
             if (resp.ok) {
               sent++;
               results.push({ nome: client.nome, status: "enviado" });
-              // Log
               const { data: clients } = await findClientByPhone(supabase, formattedPhone);
               if (clients?.[0]) {
                 await supabase.from("collection_logs").insert({
-                  user_id: "agente-ia",
+                  user_id: clients[0].operator_id || "agente-ia",
                   client_id: clients[0].id,
                   channel: "whatsapp",
                   message_sent: message,
@@ -480,7 +618,6 @@ async function executeToolCall(
             } else { failed++; results.push({ nome: client.nome, status: "falhou" }); }
           } catch { failed++; results.push({ nome: client.nome, status: "erro" }); }
 
-          // Rate limit: 1 message per second
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
@@ -549,7 +686,6 @@ async function saveMetrics(
   const promises = toolCalls.filter(tc => tc.tool === "register_payment_promise").length;
   const whatsappSent = toolCalls.filter(tc => tc.tool === "send_whatsapp_message" || tc.tool === "bulk_send_collection").length;
 
-  // Upsert metrics
   const { data: existing } = await supabase
     .from("ai_agent_metrics")
     .select("*")
@@ -606,11 +742,11 @@ serve(async (req) => {
   const requestStart = Date.now();
 
   try {
-    const { messages, conversation_id, operator_id = "system" } = await req.json();
+    const { messages, conversation_id, operator_id = "system", stream = false } = await req.json();
 
     const allMessages = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
-    // DeepSeek API call with tool calling
+    // First call - always non-streaming to handle tool calls
     let response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
@@ -633,7 +769,6 @@ serve(async (req) => {
       const errText = await response.text();
       console.error("DeepSeek error:", response.status, errText);
 
-      // Retry once on 5xx
       if (response.status >= 500) {
         console.log("Retrying DeepSeek call...");
         await new Promise(r => setTimeout(r, 2000));
@@ -657,7 +792,7 @@ serve(async (req) => {
     let result = await response.json();
     let assistantMessage = result.choices[0].message;
 
-    // Tool calling loop (max 8 iterations for complex flows)
+    // Tool calling loop (max 8 iterations)
     const toolResults: Array<{ tool: string; args: Record<string, unknown>; result: unknown }> = [];
     let iterations = 0;
 
@@ -665,7 +800,6 @@ serve(async (req) => {
       iterations++;
       const toolCallMessages: any[] = [...allMessages, assistantMessage];
 
-      // Execute tool calls in parallel when possible
       const toolPromises = assistantMessage.tool_calls.map(async (tc: any) => {
         const args = JSON.parse(tc.function.arguments);
         console.log(`[Tool ${iterations}] ${tc.function.name}`, JSON.stringify(args).substring(0, 200));
@@ -684,7 +818,11 @@ serve(async (req) => {
         });
       }
 
-      // Call DeepSeek again
+      // If streaming is requested and this is the last tool call iteration, stream the final response
+      if (stream && !assistantMessage.tool_calls?.some((tc: any) => tc.function.name)) {
+        // Non-streaming for tool loop continuation
+      }
+
       response = await fetch("https://api.deepseek.com/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, "Content-Type": "application/json" },
@@ -725,10 +863,12 @@ serve(async (req) => {
         tokens_used: tokensUsed,
         response_time_ms: responseTimeMs,
       });
+      // Update conversation stats
+      const { count } = await supabase.from("ai_messages").select("id", { count: "exact", head: true }).eq("conversation_id", conversation_id);
       await supabase.from("ai_conversations").update({
-        total_messages: undefined, // will be handled by app
-        total_tool_calls: undefined,
-        total_tokens_used: undefined,
+        total_messages: count || 0,
+        total_tool_calls: toolResults.length,
+        total_tokens_used: tokensUsed,
       }).eq("id", conversation_id);
     }
 
