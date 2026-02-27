@@ -28,7 +28,9 @@ import {
   Archive,
   ArchiveRestore,
   PlusCircle,
-  ChevronDown,
+  MoreHorizontal,
+  ExternalLink,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
@@ -51,12 +53,30 @@ import { useActivityHistory } from "@/hooks/useActivityHistory";
 import { useClientScore } from "@/hooks/useClientScore";
 import { useToast } from "@/hooks/use-toast";
 import { generateClientDossierPDF } from "@/lib/generateDossierPDF";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
-const statusStyles = {
-  Ativo: "bg-success/20 text-success border-success/30",
-  Atraso: "bg-destructive/20 text-destructive border-destructive/30",
-  Quitado: "bg-accent/20 text-accent border-accent/30",
+const statusConfig = {
+  Ativo: { label: "Ativo", className: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:text-emerald-400", icon: CheckCircle2 },
+  Atraso: { label: "Em Atraso", className: "bg-red-500/15 text-red-600 border-red-500/30 dark:text-red-400", icon: AlertTriangle },
+  Quitado: { label: "Quitado", className: "bg-blue-500/15 text-blue-600 border-blue-500/30 dark:text-blue-400", icon: CheckCircle2 },
 };
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
 const ClienteDossie = () => {
   const { id } = useParams();
@@ -72,12 +92,10 @@ const ClienteDossie = () => {
   const [selectedInstallment, setSelectedInstallment] = useState<any>(null);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
-  const [showContractSelector, setShowContractSelector] = useState(false);
 
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Fetch real data
   const { clients, isLoading: isLoadingClients, deleteClient } = useClients();
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
@@ -86,31 +104,22 @@ const ClienteDossie = () => {
 
   const isLoading = isLoadingClients || isLoadingContracts || isLoadingInstallments;
 
-  // Find client by ID
-  const client = useMemo(() => {
-    return clients.find(c => c.id === id);
-  }, [clients, id]);
+  const client = useMemo(() => clients.find(c => c.id === id), [clients, id]);
 
-  // Get client contracts
   const clientContracts = useMemo(() => {
     if (!client) return [];
     return contracts.filter(c => c.client_id === client.id);
   }, [contracts, client]);
 
-  // Get all active contracts (Ativo or Atraso)
   const activeContracts = useMemo(() => {
     return clientContracts.filter(c => c.status === "Ativo" || c.status === "Atraso");
   }, [clientContracts]);
 
-  // Get selected or default active contract
   const activeContract = useMemo(() => {
-    if (selectedContractId) {
-      return clientContracts.find(c => c.id === selectedContractId);
-    }
+    if (selectedContractId) return clientContracts.find(c => c.id === selectedContractId);
     return activeContracts[0] || clientContracts[0];
   }, [clientContracts, activeContracts, selectedContractId]);
 
-  // Get client installments for selected contract
   const clientInstallments = useMemo(() => {
     if (!activeContract) return [];
     return installments
@@ -118,42 +127,25 @@ const ClienteDossie = () => {
       .sort((a, b) => a.installment_number - b.installment_number);
   }, [installments, activeContract]);
 
-  // Calculate financial summary
   const financialSummary = useMemo(() => {
     if (!activeContract || clientInstallments.length === 0) {
-      return {
-        totalLoan: 0,
-        totalProfit: 0,
-        totalAmount: 0,
-        paidAmount: 0,
-        pendingAmount: 0,
-        installmentValue: 0,
-        totalInstallments: 0,
-        paidInstallments: 0,
-        interestRate: 0,
-      };
+      return { totalLoan: 0, totalProfit: 0, totalAmount: 0, paidAmount: 0, pendingAmount: 0, installmentValue: 0, totalInstallments: 0, paidInstallments: 0, interestRate: 0 };
     }
-
-    const paidInstallments = clientInstallments.filter(i => i.status === "Pago");
-    const pendingInstallments = clientInstallments.filter(i => i.status !== "Pago");
-
-    const paidAmount = paidInstallments.reduce((sum, i) => sum + (Number(i.amount_paid) || Number(i.amount_due)), 0);
-    const pendingAmount = pendingInstallments.reduce((sum, i) => sum + Number(i.amount_due), 0);
-
+    const paidInst = clientInstallments.filter(i => i.status === "Pago");
+    const pendingInst = clientInstallments.filter(i => i.status !== "Pago");
     return {
       totalLoan: Number(activeContract.capital),
       totalProfit: Number(activeContract.total_profit),
       totalAmount: Number(activeContract.total_amount),
-      paidAmount,
-      pendingAmount,
+      paidAmount: paidInst.reduce((sum, i) => sum + (Number(i.amount_paid) || Number(i.amount_due)), 0),
+      pendingAmount: pendingInst.reduce((sum, i) => sum + Number(i.amount_due), 0),
       installmentValue: Number(activeContract.installment_value),
       totalInstallments: activeContract.installments,
-      paidInstallments: paidInstallments.length,
+      paidInstallments: paidInst.length,
       interestRate: Number(activeContract.interest_rate),
     };
   }, [activeContract, clientInstallments]);
 
-  // Map installments to UI format
   const mappedInstallments = useMemo(() => {
     return clientInstallments.map(inst => ({
       id: inst.id,
@@ -169,7 +161,6 @@ const ClienteDossie = () => {
     }));
   }, [clientInstallments]);
 
-  // Map activities
   const activities = useMemo(() => {
     if (!activityData?.activities) return [];
     return activityData.activities
@@ -184,9 +175,12 @@ const ClienteDossie = () => {
       }));
   }, [activityData, id]);
 
-  const progress = financialSummary.totalInstallments > 0 
-    ? Math.round((financialSummary.paidInstallments / financialSummary.totalInstallments) * 100) 
+  const progress = financialSummary.totalInstallments > 0
+    ? Math.round((financialSummary.paidInstallments / financialSummary.totalInstallments) * 100)
     : 0;
+
+  const overdueCount = clientInstallments.filter(i => i.status === "Atrasado").length;
+  const nextInstallment = clientInstallments.find(i => i.status === "Pendente" || i.status === "Atrasado");
 
   const handlePayment = (installment: any) => {
     setSelectedInstallment(installment);
@@ -195,56 +189,21 @@ const ClienteDossie = () => {
 
   const handleExportPDF = () => {
     if (!client) return;
-    
     generateClientDossierPDF({
-      client: {
-        name: client.name,
-        cpf: client.cpf,
-        email: client.email || undefined,
-        whatsapp: client.whatsapp || undefined,
-        street: client.street || undefined,
-        number: client.number || undefined,
-        complement: client.complement || undefined,
-        neighborhood: client.neighborhood || undefined,
-        city: client.city || undefined,
-        state: client.state || undefined,
-        cep: client.cep || undefined,
-        status: client.status,
-      },
-      contract: activeContract ? {
-        id: activeContract.id,
-        capital: Number(activeContract.capital),
-        interest_rate: Number(activeContract.interest_rate),
-        installments: activeContract.installments,
-        installment_value: Number(activeContract.installment_value),
-        total_amount: Number(activeContract.total_amount),
-        total_profit: Number(activeContract.total_profit),
-        frequency: activeContract.frequency,
-        start_date: activeContract.start_date,
-        first_due_date: activeContract.first_due_date,
-        status: activeContract.status,
-      } : undefined,
-      installments: clientInstallments.map(i => ({
-        installment_number: i.installment_number,
-        due_date: i.due_date,
-        amount_due: Number(i.amount_due),
-        amount_paid: i.amount_paid ? Number(i.amount_paid) : undefined,
-        status: i.status,
-        payment_date: i.payment_date || undefined,
-        fine: i.fine ? Number(i.fine) : undefined,
-      })),
-      activities: activities.map(a => ({
-        type: a.type,
-        description: a.description,
-        created_at: a.date,
-      })),
+      client: { name: client.name, cpf: client.cpf, email: client.email || undefined, whatsapp: client.whatsapp || undefined, street: client.street || undefined, number: client.number || undefined, complement: client.complement || undefined, neighborhood: client.neighborhood || undefined, city: client.city || undefined, state: client.state || undefined, cep: client.cep || undefined, status: client.status },
+      contract: activeContract ? { id: activeContract.id, capital: Number(activeContract.capital), interest_rate: Number(activeContract.interest_rate), installments: activeContract.installments, installment_value: Number(activeContract.installment_value), total_amount: Number(activeContract.total_amount), total_profit: Number(activeContract.total_profit), frequency: activeContract.frequency, start_date: activeContract.start_date, first_due_date: activeContract.first_due_date, status: activeContract.status } : undefined,
+      installments: clientInstallments.map(i => ({ installment_number: i.installment_number, due_date: i.due_date, amount_due: Number(i.amount_due), amount_paid: i.amount_paid ? Number(i.amount_paid) : undefined, status: i.status, payment_date: i.payment_date || undefined, fine: i.fine ? Number(i.fine) : undefined })),
+      activities: activities.map(a => ({ type: a.type, description: a.description, created_at: a.date })),
       score,
     });
-    
-    toast({
-      title: "PDF Gerado!",
-      description: "O dossiê foi exportado com sucesso.",
-    });
+    toast({ title: "PDF Gerado!", description: "O dossiê foi exportado com sucesso." });
+  };
+
+  const handleCopyCPF = () => {
+    if (client) {
+      navigator.clipboard.writeText(client.cpf);
+      toast({ title: "CPF copiado!" });
+    }
   };
 
   if (isLoading) {
@@ -264,552 +223,355 @@ const ClienteDossie = () => {
           <User className="h-16 w-16 text-muted-foreground mb-4" />
           <h2 className="text-xl font-semibold text-foreground mb-2">Cliente não encontrado</h2>
           <p className="text-muted-foreground mb-4">O cliente solicitado não foi encontrado.</p>
-          <Link to="/clientes" className="text-primary hover:underline">
-            Voltar para Clientes
-          </Link>
+          <Link to="/clientes" className="text-primary hover:underline">Voltar para Clientes</Link>
         </div>
       </MainLayout>
     );
   }
 
+  const avatar = client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+  const statusInfo = statusConfig[client.status as keyof typeof statusConfig] || statusConfig.Ativo;
+  const StatusIcon = statusInfo.icon;
+
   const clientForDialogs = {
-    id: client.id,
-    name: client.name,
-    cpf: client.cpf,
-    email: client.email || "",
-    whatsApp: client.whatsapp || "",
-    phone: client.whatsapp || "",
-    avatar: client.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase(),
-    status: client.status as "Ativo" | "Atraso" | "Quitado",
-    createdAt: client.created_at,
-    contractId: activeContract?.id, // Full contract ID for renegotiation
-    address: {
-      street: client.street || "",
-      number: client.number || "",
-      complement: client.complement || "",
-      neighborhood: client.neighborhood || "",
-      city: client.city || "",
-      state: client.state || "",
-      cep: client.cep || "",
-    },
+    id: client.id, name: client.name, cpf: client.cpf, email: client.email || "", whatsApp: client.whatsapp || "", phone: client.whatsapp || "", avatar, status: client.status as "Ativo" | "Atraso" | "Quitado", createdAt: client.created_at, contractId: activeContract?.id,
+    address: { street: client.street || "", number: client.number || "", complement: client.complement || "", neighborhood: client.neighborhood || "", city: client.city || "", state: client.state || "", cep: client.cep || "" },
     financialSummary,
-    contract: activeContract ? {
-      id: activeContract.id.slice(0, 8),
-      startDate: activeContract.start_date,
-      frequency: activeContract.frequency,
-      firstDueDate: activeContract.first_due_date,
-    } : undefined,
+    contract: activeContract ? { id: activeContract.id.slice(0, 8), startDate: activeContract.start_date, frequency: activeContract.frequency, firstDueDate: activeContract.first_due_date } : undefined,
   };
 
   return (
     <MainLayout>
-      {/* Header with Back Button */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
-      >
-        <Link
-          to="/clientes"
-          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar para Clientes
-        </Link>
+      <TooltipProvider delayDuration={300}>
+        {/* Compact Header */}
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <Link to="/clientes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Clientes
+          </Link>
 
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {client.avatar_url ? (
-              <img
-                src={client.avatar_url}
-                alt={client.name}
-                className="h-16 w-16 rounded-full object-cover border-2 border-primary/30"
-              />
-            ) : (
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-gold font-display text-xl font-bold text-primary-foreground">
-                {clientForDialogs.avatar}
-              </div>
-            )}
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="font-display text-2xl font-bold text-foreground">
-                  {client.name}
-                </h1>
-                <ClientScoreBadge clientId={id || ""} size="md" />
-                <span
-                  className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-medium",
-                    statusStyles[client.status as keyof typeof statusStyles] || statusStyles.Ativo
-                  )}
-                >
-                  {client.status}
-                </span>
-              </div>
-              <p className="text-muted-foreground">CPF: {client.cpf}</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate(`/contratos/novo?clientId=${client.id}`)}
-              className="flex items-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90"
-            >
-              <PlusCircle className="h-4 w-4" />
-              Novo Contrato
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsPaymentOpen(true)}
-              className="flex items-center gap-2 rounded-xl bg-success px-4 py-2.5 text-sm font-medium text-success-foreground transition-colors hover:bg-success/90"
-            >
-              <DollarSign className="h-4 w-4" />
-              Pagamento
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsBulkPaymentOpen(true)}
-              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Banknote className="h-4 w-4" />
-              Parcial
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsRenegotiationOpen(true)}
-              className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Renegociar
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsAIMessageOpen(true)}
-              className="flex items-center gap-2 rounded-xl bg-gradient-gold px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-gold transition-shadow hover:shadow-gold"
-            >
-              <Sparkles className="h-4 w-4" />
-              IA
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleExportPDF}
-              className="flex items-center gap-2 rounded-xl border border-primary/50 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
-            >
-              <Download className="h-4 w-4" />
-              PDF
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsEditClientOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-            >
-              <Edit className="h-4 w-4" />
-              Editar
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsManageInstallmentsOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-            >
-              <Settings className="h-4 w-4" />
-              Parcelas
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsArchiveClientOpen(true)}
-              className={cn(
-                "flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors",
-                client.archived_at
-                  ? "border-success/50 bg-success/10 text-success hover:bg-success/20"
-                  : "border-warning/50 bg-warning/10 text-warning hover:bg-warning/20"
-              )}
-            >
-              {client.archived_at ? (
-                <>
-                  <ArchiveRestore className="h-4 w-4" />
-                  Restaurar
-                </>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Client Identity */}
+            <div className="flex items-center gap-3">
+              {client.avatar_url ? (
+                <img src={client.avatar_url} alt={client.name} className="h-14 w-14 rounded-xl object-cover border-2 border-border" />
               ) : (
-                <>
-                  <Archive className="h-4 w-4" />
-                  Arquivar
-                </>
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 font-display text-lg font-bold text-primary">
+                  {avatar}
+                </div>
               )}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsDeleteClientOpen(true)}
-              className="flex items-center gap-2 rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
-            >
-              <Trash2 className="h-4 w-4" />
-              Excluir
-            </motion.button>
-          </div>
-        </div>
-      </motion.div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column - Client Info */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="space-y-4"
-        >
-          {/* Contact Card */}
-          <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5">
-            <h3 className="mb-4 font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Contato
-            </h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="font-display text-xl font-bold text-foreground">{client.name}</h1>
+                  <div className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium", statusInfo.className)}>
+                    <StatusIcon className="h-3 w-3" />
+                    {statusInfo.label}
+                  </div>
+                  <ClientScoreBadge clientId={id || ""} size="md" />
                 </div>
-                <span className="text-foreground">{client.whatsapp || "Não informado"}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
-                  <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-sm text-muted-foreground">CPF: {client.cpf}</span>
+                  <button onClick={handleCopyCPF} className="text-muted-foreground hover:text-foreground transition-colors">
+                    <Copy className="h-3 w-3" />
+                  </button>
                 </div>
-                <span className="text-foreground">{client.whatsapp || "Não informado"}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <span className="text-foreground">{client.email || "Não informado"}</span>
               </div>
             </div>
-          </div>
 
-          {/* Address Card */}
-          <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5">
-            <h3 className="mb-4 font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Endereço
-            </h3>
-            <div className="flex gap-3 text-sm">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="text-foreground">
-                {client.street ? (
-                  <>
-                    <p>{client.street}, {client.number}</p>
-                    {client.complement && <p>{client.complement}</p>}
-                    <p>{client.neighborhood}</p>
-                    <p>{client.city} - {client.state}</p>
-                    <p className="text-muted-foreground">CEP: {client.cep}</p>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground">Endereço não informado</p>
+            {/* Actions - Primary visible, secondary in dropdown */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Primary Actions */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setIsPaymentOpen(true)} className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="hidden sm:inline">Pagamento</span>
+                  </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>Registrar pagamento</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setIsAIMessageOpen(true)} className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+                    <Sparkles className="h-4 w-4" />
+                    <span className="hidden sm:inline">Mensagem IA</span>
+                  </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>Gerar mensagem com IA</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setIsEditClientOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary">
+                    <Edit className="h-4 w-4" />
+                    <span className="hidden sm:inline">Editar</span>
+                  </motion.button>
+                </TooltipTrigger>
+                <TooltipContent>Editar dossiê</TooltipContent>
+              </Tooltip>
+
+              {/* Secondary Actions Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-center rounded-lg border border-border bg-card h-9 w-9 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </motion.button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={() => navigate(`/contratos/novo?clientId=${client.id}`)}>
+                    <PlusCircle className="h-4 w-4 mr-2" /> Novo Contrato
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsBulkPaymentOpen(true)}>
+                    <Banknote className="h-4 w-4 mr-2" /> Pagamento Parcial
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsRenegotiationOpen(true)}>
+                    <RefreshCw className="h-4 w-4 mr-2" /> Renegociar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsManageInstallmentsOpen(true)}>
+                    <Settings className="h-4 w-4 mr-2" /> Gerenciar Parcelas
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleExportPDF}>
+                    <Download className="h-4 w-4 mr-2" /> Exportar PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setIsArchiveClientOpen(true)}>
+                    {client.archived_at ? <><ArchiveRestore className="h-4 w-4 mr-2" /> Restaurar</> : <><Archive className="h-4 w-4 mr-2" /> Arquivar</>}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsDeleteClientOpen(true)} className="text-destructive focus:text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" /> Excluir Cliente
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Alert Banner for overdue */}
+        {overdueCount > 0 && (
+          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mb-4 flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+            <p className="text-sm text-destructive">
+              <span className="font-semibold">{overdueCount} parcela{overdueCount > 1 ? "s" : ""} em atraso</span>
+              {nextInstallment && <> — próximo vencimento: {new Date(nextInstallment.due_date).toLocaleDateString("pt-BR")}</>}
+            </p>
+            <button onClick={() => setIsPaymentOpen(true)} className="ml-auto text-xs font-medium text-destructive hover:underline shrink-0">
+              Registrar pagamento →
+            </button>
+          </motion.div>
+        )}
+
+        <div className="grid gap-5 lg:grid-cols-3">
+          {/* Left Column */}
+          <motion.div initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="space-y-4">
+            
+            {/* Quick Info Card */}
+            <div className="rounded-xl border border-border/50 bg-card p-4 space-y-4">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Informações</h3>
+              
+              {/* Contact Info */}
+              <div className="space-y-2.5">
+                {client.whatsapp && (
+                  <a href={`https://wa.me/55${client.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 text-sm text-foreground hover:text-primary transition-colors group">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500/20 transition-colors">
+                      <MessageCircle className="h-3.5 w-3.5" />
+                    </div>
+                    <span>{client.whatsapp}</span>
+                    <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                  </a>
+                )}
+                {client.email && (
+                  <a href={`mailto:${client.email}`} className="flex items-center gap-2.5 text-sm text-foreground hover:text-primary transition-colors group">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10 text-blue-600">
+                      <Mail className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="truncate">{client.email}</span>
+                  </a>
+                )}
+                {!client.whatsapp && !client.email && (
+                  <p className="text-sm text-muted-foreground italic">Nenhum contato cadastrado</p>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* Contract Selector (when multiple active contracts) */}
-          {activeContracts.length > 1 && (
-            <div className="rounded-2xl border border-primary/50 bg-gradient-to-br from-primary/10 to-primary/5 p-5">
-              <h3 className="mb-3 font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Contratos Ativos ({activeContracts.length})
-              </h3>
-              <div className="space-y-2">
-                {activeContracts.map((contract) => (
+              {/* Address */}
+              {client.street && (
+                <>
+                  <div className="border-t border-border/50" />
+                  <div className="flex gap-2.5 text-sm">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-orange-500/10 text-orange-600">
+                      <MapPin className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="text-foreground text-sm leading-relaxed">
+                      <p>{client.street}, {client.number}{client.complement ? ` - ${client.complement}` : ""}</p>
+                      <p className="text-muted-foreground">{client.neighborhood} • {client.city}/{client.state}</p>
+                      {client.cep && <p className="text-muted-foreground text-xs mt-0.5">CEP {client.cep}</p>}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Member Since */}
+              <div className="border-t border-border/50" />
+              <div className="flex items-center gap-2.5 text-sm">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-purple-500/10 text-purple-600">
+                  <Calendar className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-muted-foreground">Cliente desde <span className="text-foreground font-medium">{new Date(client.created_at).toLocaleDateString("pt-BR")}</span></span>
+              </div>
+            </div>
+
+            {/* Contract Selector */}
+            {activeContracts.length > 1 && (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  Contratos Ativos ({activeContracts.length})
+                </h3>
+                <div className="space-y-1.5">
+                  {activeContracts.map((contract) => (
+                    <button
+                      key={contract.id}
+                      onClick={() => setSelectedContractId(contract.id)}
+                      className={cn(
+                        "w-full flex items-center justify-between p-2.5 rounded-lg border text-left transition-all text-sm",
+                        activeContract?.id === contract.id
+                          ? "border-primary bg-primary/10 text-foreground shadow-sm"
+                          : "border-transparent hover:bg-secondary/50 text-muted-foreground"
+                      )}
+                    >
+                      <div>
+                        <p className="font-medium">#{contract.id.slice(0, 8)}</p>
+                        <p className="text-xs text-muted-foreground">{formatCurrency(Number(contract.capital))}</p>
+                      </div>
+                      <Badge variant={contract.status === "Atraso" ? "destructive" : "default"} className="text-[10px] h-5">
+                        {contract.status}
+                      </Badge>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Contract Details */}
+            {activeContract && (
+              <div className="rounded-xl border border-border/50 bg-card p-4">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Contrato</h3>
+                <div className="space-y-2.5 text-sm">
+                  {[
+                    { label: "Nº Contrato", value: `#${activeContract.id.slice(0, 8)}` },
+                    { label: "Início", value: new Date(activeContract.start_date).toLocaleDateString("pt-BR") },
+                    { label: "Frequência", value: activeContract.frequency, capitalize: true },
+                    { label: "Juros", value: `${activeContract.interest_rate}% a.m.`, highlight: true },
+                    { label: "Parcela", value: formatCurrency(Number(activeContract.installment_value)) },
+                  ].map(item => (
+                    <div key={item.label} className="flex justify-between items-center">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className={cn("font-medium", item.highlight ? "text-primary" : "text-foreground", item.capitalize && "capitalize")}>
+                        {item.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+
+          {/* Right Column */}
+          <motion.div initial={{ opacity: 0, x: 15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }} className="lg:col-span-2 space-y-4">
+            
+            {/* Financial Summary - Compact Grid */}
+            <div className="rounded-xl border border-border/50 bg-card p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumo Financeiro</h3>
+                {activeContract && (
+                  <span className="text-xs text-muted-foreground">
+                    {financialSummary.paidInstallments}/{financialSummary.totalInstallments} parcelas pagas
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                {[
+                  { label: "Capital", value: financialSummary.totalLoan, icon: CreditCard, color: "text-foreground" },
+                  { label: "Lucro", value: financialSummary.totalProfit, icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400" },
+                  { label: "Recebido", value: financialSummary.paidAmount, icon: CheckCircle2, color: "text-primary" },
+                  { label: "Pendente", value: financialSummary.pendingAmount, icon: Clock, color: "text-orange-600 dark:text-orange-400" },
+                ].map(item => (
+                  <div key={item.label} className="rounded-lg bg-secondary/40 p-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <item.icon className={cn("h-3.5 w-3.5", item.color)} />
+                      <span className="text-[11px] text-muted-foreground font-medium">{item.label}</span>
+                    </div>
+                    <p className={cn("font-display text-base font-bold", item.color)}>
+                      {formatCurrency(item.value)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Progress */}
+              <div className="space-y-1.5">
+                <Progress value={progress} className="h-2" />
+                <p className="text-right text-[11px] text-muted-foreground">{progress}% concluído</p>
+              </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+              <div className="flex border-b border-border/50">
+                {[
+                  { key: "parcelas", label: "Parcelas", icon: Calendar, count: clientInstallments.filter(i => i.status !== "Pago").length },
+                  { key: "historico", label: "Histórico", icon: FileText },
+                  { key: "documentos", label: "Documentos", icon: FolderOpen },
+                ].map(tab => (
                   <button
-                    key={contract.id}
-                    onClick={() => setSelectedContractId(contract.id)}
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as any)}
                     className={cn(
-                      "w-full flex items-center justify-between p-3 rounded-lg border transition-colors text-left",
-                      activeContract?.id === contract.id
-                        ? "border-primary bg-primary/20 text-foreground"
-                        : "border-border/50 bg-card hover:bg-secondary/50 text-muted-foreground"
+                      "flex-1 flex items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium transition-all relative",
+                      activeTab === tab.key
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    <div>
-                      <p className="text-sm font-medium">
-                        #{contract.id.slice(0, 8)}
-                      </p>
-                      <p className="text-xs">
-                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(contract.capital))}
-                      </p>
-                    </div>
-                    <span className={cn(
-                      "text-xs px-2 py-0.5 rounded-full",
-                      contract.status === "Atraso" 
-                        ? "bg-destructive/20 text-destructive"
-                        : "bg-success/20 text-success"
-                    )}>
-                      {contract.status}
-                    </span>
+                    <tab.icon className="h-4 w-4" />
+                    {tab.label}
+                    {tab.count !== undefined && tab.count > 0 && (
+                      <span className="ml-1 text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5 font-semibold">
+                        {tab.count}
+                      </span>
+                    )}
+                    {activeTab === tab.key && (
+                      <motion.div layoutId="tab-indicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                    )}
                   </button>
                 ))}
               </div>
-            </div>
-          )}
 
-          {/* Contract Info */}
-          {activeContract && (
-            <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  Dados do Contrato
-                </h3>
-                {activeContracts.length > 1 && (
-                  <span className="text-xs text-primary">Selecionado</span>
+              <div className="p-4">
+                {activeTab === "parcelas" && <InstallmentSchedule installments={mappedInstallments} onPayment={handlePayment} />}
+                {activeTab === "historico" && <ActivityHistory activities={activities} />}
+                {activeTab === "documentos" && (
+                  <div className="space-y-4">
+                    <DocumentUpload clientId={id} />
+                    <DocumentList clientId={id} />
+                  </div>
                 )}
               </div>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Nº Contrato</span>
-                  <span className="font-medium text-foreground">{activeContract.id.slice(0, 8)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Data Início</span>
-                  <span className="font-medium text-foreground">
-                    {new Date(activeContract.start_date).toLocaleDateString("pt-BR")}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Frequência</span>
-                  <span className="font-medium text-foreground capitalize">{activeContract.frequency}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Taxa de Juros</span>
-                  <span className="font-medium text-primary">{activeContract.interest_rate}% a.m.</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Cliente desde</span>
-                  <span className="font-medium text-foreground">
-                    {new Date(client.created_at).toLocaleDateString("pt-BR")}
-                  </span>
-                </div>
-              </div>
             </div>
-          )}
-        </motion.div>
+          </motion.div>
+        </div>
 
-        {/* Right Column - Financial Summary & Tabs */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="lg:col-span-2 space-y-4"
-        >
-          {/* Financial Summary */}
-          <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-5">
-            <h3 className="mb-4 font-display text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Resumo Financeiro
-            </h3>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="rounded-xl bg-secondary/50 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Capital</span>
-                </div>
-                <p className="font-display text-lg font-bold text-foreground">
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.totalLoan)}
-                </p>
-              </div>
-              
-              <div className="rounded-xl bg-secondary/50 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-4 w-4 text-success" />
-                  <span className="text-xs text-muted-foreground">Lucro</span>
-                </div>
-                <p className="font-display text-lg font-bold text-success">
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.totalProfit)}
-                </p>
-              </div>
-              
-              <div className="rounded-xl bg-secondary/50 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle2 className="h-4 w-4 text-primary" />
-                  <span className="text-xs text-muted-foreground">Pago</span>
-                </div>
-                <p className="font-display text-lg font-bold text-primary">
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.paidAmount)}
-                </p>
-              </div>
-              
-              <div className="rounded-xl bg-secondary/50 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="h-4 w-4 text-destructive" />
-                  <span className="text-xs text-muted-foreground">Pendente</span>
-                </div>
-                <p className="font-display text-lg font-bold text-destructive">
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(financialSummary.pendingAmount)}
-                </p>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Progresso do Contrato</span>
-                <span className="font-medium text-foreground">
-                  {financialSummary.paidInstallments} de {financialSummary.totalInstallments} parcelas
-                </span>
-              </div>
-              <div className="relative h-3 w-full overflow-hidden rounded-full bg-secondary">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 1, delay: 0.3 }}
-                  className="absolute left-0 top-0 h-full rounded-full bg-gradient-gold"
-                />
-              </div>
-              <p className="text-right text-xs text-muted-foreground">{progress}% concluído</p>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="rounded-2xl border border-border/50 bg-gradient-to-br from-card to-card/50 overflow-hidden">
-            <div className="flex border-b border-border/50">
-              <button
-                onClick={() => setActiveTab("parcelas")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium transition-all",
-                  activeTab === "parcelas"
-                    ? "bg-primary/10 text-primary border-b-2 border-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
-                )}
-              >
-                <Calendar className="h-4 w-4" />
-                Parcelas
-              </button>
-              <button
-                onClick={() => setActiveTab("historico")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium transition-all",
-                  activeTab === "historico"
-                    ? "bg-primary/10 text-primary border-b-2 border-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
-                )}
-              >
-                <FileText className="h-4 w-4" />
-                Histórico
-              </button>
-              <button
-                onClick={() => setActiveTab("documentos")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 px-4 py-3.5 text-sm font-medium transition-all",
-                  activeTab === "documentos"
-                    ? "bg-primary/10 text-primary border-b-2 border-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
-                )}
-              >
-                <FolderOpen className="h-4 w-4" />
-                Documentos
-              </button>
-            </div>
-
-            <div className="p-4">
-              {activeTab === "parcelas" && (
-                <InstallmentSchedule 
-                  installments={mappedInstallments} 
-                  onPayment={handlePayment}
-                />
-              )}
-              {activeTab === "historico" && (
-                <ActivityHistory activities={activities} />
-              )}
-              {activeTab === "documentos" && (
-                <div className="space-y-4">
-                  <DocumentUpload clientId={id} />
-                  <DocumentList clientId={id} />
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Dialogs */}
-      <RenegotiationDialog 
-        open={isRenegotiationOpen} 
-        onOpenChange={setIsRenegotiationOpen}
-        client={clientForDialogs}
-      />
-      
-      <PaymentDialog 
-        open={isPaymentOpen} 
-        onOpenChange={setIsPaymentOpen}
-        installment={selectedInstallment}
-        clientName={client.name}
-        clientId={client.id}
-      />
-
-      <BulkPaymentDialog
-        open={isBulkPaymentOpen}
-        onOpenChange={setIsBulkPaymentOpen}
-        installments={clientInstallments}
-        clientName={client.name}
-        clientId={client.id}
-      />
-      
-      <AIMessageDialog 
-        open={isAIMessageOpen} 
-        onOpenChange={setIsAIMessageOpen}
-        client={clientForDialogs}
-      />
-
-      <EditDossierDialog
-        open={isEditClientOpen}
-        onOpenChange={setIsEditClientOpen}
-        client={client as Client}
-        contract={activeContract ? {
-          id: activeContract.id,
-          capital: Number(activeContract.capital),
-          interest_rate: Number(activeContract.interest_rate),
-          installments: activeContract.installments,
-          installment_value: Number(activeContract.installment_value),
-          total_amount: Number(activeContract.total_amount),
-          total_profit: Number(activeContract.total_profit),
-          frequency: activeContract.frequency,
-          start_date: activeContract.start_date,
-          first_due_date: activeContract.first_due_date,
-          status: activeContract.status,
-          fine_percentage: (activeContract as any).fine_percentage ?? 2,
-          daily_interest_rate: (activeContract as any).daily_interest_rate ?? 0.033,
-          daily_type: activeContract.daily_type || undefined,
-        } : null}
-      />
-
-      <ManageInstallmentsDialog
-        open={isManageInstallmentsOpen}
-        onOpenChange={setIsManageInstallmentsOpen}
-        installments={clientInstallments}
-        clientName={client.name}
-        contractId={activeContract?.id || ""}
-      />
-
-      <DeleteClientDialog
-        open={isDeleteClientOpen}
-        onOpenChange={setIsDeleteClientOpen}
-        clientId={client.id}
-        clientName={client.name}
-      />
-
-      <ArchiveClientDialog
-        open={isArchiveClientOpen}
-        onOpenChange={setIsArchiveClientOpen}
-        clientId={client.id}
-        clientName={client.name}
-        isArchived={!!client.archived_at}
-      />
+        {/* Dialogs */}
+        <RenegotiationDialog open={isRenegotiationOpen} onOpenChange={setIsRenegotiationOpen} client={clientForDialogs} />
+        <PaymentDialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen} installment={selectedInstallment} clientName={client.name} clientId={client.id} />
+        <BulkPaymentDialog open={isBulkPaymentOpen} onOpenChange={setIsBulkPaymentOpen} installments={clientInstallments} clientName={client.name} clientId={client.id} />
+        <AIMessageDialog open={isAIMessageOpen} onOpenChange={setIsAIMessageOpen} client={clientForDialogs} />
+        <EditDossierDialog open={isEditClientOpen} onOpenChange={setIsEditClientOpen} client={client as Client} contract={activeContract ? { id: activeContract.id, capital: Number(activeContract.capital), interest_rate: Number(activeContract.interest_rate), installments: activeContract.installments, installment_value: Number(activeContract.installment_value), total_amount: Number(activeContract.total_amount), total_profit: Number(activeContract.total_profit), frequency: activeContract.frequency, start_date: activeContract.start_date, first_due_date: activeContract.first_due_date, status: activeContract.status, fine_percentage: (activeContract as any).fine_percentage ?? 2, daily_interest_rate: (activeContract as any).daily_interest_rate ?? 0.033, daily_type: activeContract.daily_type || undefined } : null} />
+        <ManageInstallmentsDialog open={isManageInstallmentsOpen} onOpenChange={setIsManageInstallmentsOpen} installments={clientInstallments} clientName={client.name} contractId={activeContract?.id || ""} />
+        <DeleteClientDialog open={isDeleteClientOpen} onOpenChange={setIsDeleteClientOpen} clientId={client.id} clientName={client.name} />
+        <ArchiveClientDialog open={isArchiveClientOpen} onOpenChange={setIsArchiveClientOpen} clientId={client.id} clientName={client.name} isArchived={!!client.archived_at} />
+      </TooltipProvider>
     </MainLayout>
   );
 };
