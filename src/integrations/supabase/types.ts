@@ -62,6 +62,137 @@ export type Database = {
           },
         ]
       }
+      ai_agent_metrics: {
+        Row: {
+          avg_response_time_ms: number | null
+          created_at: string
+          date: string
+          escalations: number | null
+          failed_tool_calls: number | null
+          id: string
+          messages_sent_whatsapp: number | null
+          operator_id: string
+          promises_registered: number | null
+          successful_tool_calls: number | null
+          total_conversations: number | null
+          total_messages: number | null
+          total_tokens: number | null
+          total_tool_calls: number | null
+          updated_at: string
+        }
+        Insert: {
+          avg_response_time_ms?: number | null
+          created_at?: string
+          date?: string
+          escalations?: number | null
+          failed_tool_calls?: number | null
+          id?: string
+          messages_sent_whatsapp?: number | null
+          operator_id: string
+          promises_registered?: number | null
+          successful_tool_calls?: number | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          total_tokens?: number | null
+          total_tool_calls?: number | null
+          updated_at?: string
+        }
+        Update: {
+          avg_response_time_ms?: number | null
+          created_at?: string
+          date?: string
+          escalations?: number | null
+          failed_tool_calls?: number | null
+          id?: string
+          messages_sent_whatsapp?: number | null
+          operator_id?: string
+          promises_registered?: number | null
+          successful_tool_calls?: number | null
+          total_conversations?: number | null
+          total_messages?: number | null
+          total_tokens?: number | null
+          total_tool_calls?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          operator_id: string
+          status: string | null
+          title: string | null
+          total_messages: number | null
+          total_tokens_used: number | null
+          total_tool_calls: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          operator_id: string
+          status?: string | null
+          title?: string | null
+          total_messages?: number | null
+          total_tokens_used?: number | null
+          total_tool_calls?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          operator_id?: string
+          status?: string | null
+          title?: string | null
+          total_messages?: number | null
+          total_tokens_used?: number | null
+          total_tool_calls?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          response_time_ms: number | null
+          role: string
+          tokens_used: number | null
+          tool_calls: Json | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          response_time_ms?: number | null
+          role: string
+          tokens_used?: number | null
+          tool_calls?: Json | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          response_time_ms?: number | null
+          role?: string
+          tokens_used?: number | null
+          tool_calls?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           archived_at: string | null
