@@ -39,6 +39,20 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "get_client_contracts",
+      description: "Lista todos os contratos de um cliente com detalhes: capital, juros, parcelas, status, datas e valores.",
+      parameters: {
+        type: "object",
+        properties: {
+          whatsapp: { type: "string", description: "WhatsApp do cliente" },
+        },
+        required: ["whatsapp"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "get_renegotiation_options",
       description: "Calcula e retorna 3 opções de renegociação personalizadas para o cliente: à vista com desconto, parcelamento sem juros e parcelamento com juros.",
       parameters: {
@@ -235,12 +249,29 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "schedule_followup",
+      description: "Agenda um acompanhamento/follow-up para um cliente. Registra na atividade para lembrar o operador de acompanhar o caso.",
+      parameters: {
+        type: "object",
+        properties: {
+          whatsapp: { type: "string", description: "WhatsApp do cliente" },
+          followup_date: { type: "string", description: "Data do follow-up no formato YYYY-MM-DD" },
+          reason: { type: "string", description: "Motivo do follow-up (ex: verificar pagamento prometido, reavaliar renegociação)" },
+        },
+        required: ["whatsapp", "followup_date", "reason"],
+      },
+    },
+  },
 ];
 
-const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFácil**, um assistente especializado em gestão de cobranças e atendimento financeiro.
+const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFácil**, um assistente especializado em gestão de cobranças e atendimento financeiro. Powered by GPT-5 Mini.
 
-## Suas Capacidades (14 ferramentas)
+## Suas Capacidades (17 ferramentas)
 - Consultar dados de clientes e suas dívidas em tempo real (por WhatsApp ou nome)
+- Listar contratos detalhados de um cliente
 - Enviar mensagens de cobrança personalizadas via WhatsApp
 - Oferecer opções de renegociação inteligentes
 - Registrar promessas de pagamento e pagamentos recebidos
@@ -251,6 +282,7 @@ const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFác
 - **MEMÓRIA**: Consultar e salvar notas/preferências sobre clientes para personalizar interações futuras
 - **PREDIÇÃO**: Identificar clientes com alta probabilidade de inadimplência antes do vencimento
 - **RELATÓRIOS**: Gerar relatórios com insights e recomendações estratégicas
+- **FOLLOW-UP**: Agendar acompanhamentos para clientes específicos
 
 ## Regras de Comportamento
 1. **Tom adaptativo**: Use tom amigável para atrasos leves, formal para moderados e firme (nunca agressivo) para críticos
@@ -265,6 +297,7 @@ const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFác
 10. **Segurança**: Nunca revele dados sensíveis de outros clientes
 11. **Memória**: Use save_client_memory para registrar informações úteis sobre o cliente (motivo do atraso, preferência de contato, etc.)
 12. **Predição**: Quando solicitado, analise padrões de pagamento para prever inadimplência
+13. **Multi-tool**: Quando precisar de dados de múltiplas fontes, chame várias ferramentas em paralelo
 
 ## Estratégia de Cobrança
 - **1-7 dias**: Lembrete gentil, pergunte se esqueceu ou precisa de ajuda
@@ -276,7 +309,8 @@ const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFác
 - Use markdown para formatar listas, tabelas e destaques
 - Seja conciso mas completo
 - Quando o operador pedir para cobrar um cliente, busque os dados primeiro, depois sugira a mensagem para aprovação
-- Para relatórios, apresente dados em formato visual com tabelas e gráficos emoji`;
+- Para relatórios, apresente dados em formato visual com tabelas e gráficos emoji
+- Quando apresentar dados financeiros, use tabelas markdown para organizar`;
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -366,7 +400,6 @@ async function executeToolCall(
 
         if (!clients || clients.length === 0) return { success: false, message: `Nenhum cliente encontrado com nome "${searchName}"` };
 
-        // For each client, get pending summary
         const results = await Promise.all(clients.map(async (c: any) => {
           const { data: installments } = await supabase
             .from("installments")
@@ -376,7 +409,7 @@ async function executeToolCall(
           
           const pending = installments || [];
           const total = pending.reduce((s: number, i: any) => s + (i.amount_due || 0) + (i.fine || 0), 0);
-          const overdue = pending.filter((i: any) => i.status === "Atrasado").length;
+          const overdueCount = pending.filter((i: any) => i.status === "Atrasado").length;
 
           return {
             nome: c.name,
@@ -384,7 +417,7 @@ async function executeToolCall(
             cpf: c.cpf?.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.***.***-$4"),
             status: c.status,
             parcelas_pendentes: pending.length,
-            parcelas_atrasadas: overdue,
+            parcelas_atrasadas: overdueCount,
             total_pendente: fmt(total),
           };
         }));
@@ -393,6 +426,42 @@ async function executeToolCall(
           success: true,
           total_encontrados: results.length,
           clientes: results,
+          execution_time_ms: Date.now() - startTime,
+        };
+      }
+
+      case "get_client_contracts": {
+        const { data: clients } = await findClientByPhone(supabase, String(args.whatsapp));
+        const client = clients?.[0];
+        if (!client) return { success: false, message: "Cliente não encontrado" };
+
+        const { data: contracts } = await supabase
+          .from("contracts")
+          .select("id, capital, interest_rate, installments, installment_value, total_amount, total_profit, start_date, first_due_date, frequency, status, fine_percentage, daily_interest_rate, created_at")
+          .eq("client_id", client.id)
+          .order("created_at", { ascending: false });
+
+        if (!contracts || contracts.length === 0) return { success: true, client_name: client.name, message: "Nenhum contrato encontrado", contratos: [] };
+
+        return {
+          success: true,
+          client_name: client.name,
+          total_contratos: contracts.length,
+          contratos: contracts.map((c: any) => ({
+            id: c.id.substring(0, 8),
+            capital: fmt(c.capital),
+            juros: `${c.interest_rate}%`,
+            parcelas: c.installments,
+            valor_parcela: fmt(c.installment_value),
+            total: fmt(c.total_amount),
+            lucro: fmt(c.total_profit),
+            inicio: fmtDate(c.start_date),
+            primeiro_vencimento: fmtDate(c.first_due_date),
+            frequencia: c.frequency,
+            status: c.status,
+            multa: `${c.fine_percentage || 2}%`,
+            juros_diarios: `${c.daily_interest_rate || 0.033}%`,
+          })),
           execution_time_ms: Date.now() - startTime,
         };
       }
@@ -428,7 +497,6 @@ async function executeToolCall(
 
         if (error) return { success: false, message: "Erro ao atualizar parcela: " + error.message };
 
-        // Register treasury transaction
         await supabase.from("treasury_transactions").insert({
           operator_id: client.operator_id,
           type: "receita",
@@ -440,14 +508,13 @@ async function executeToolCall(
           date: paymentDate,
         });
 
-        // Log activity
         await supabase.from("activity_log").insert({
           operator_id: client.operator_id,
           client_id: client.id,
           contract_id: inst.contract_id,
           type: "payment_registered",
           description: `Pagamento registrado via Agente IA: Parcela ${inst.installment_number}/${inst.total_installments} - ${fmt(amountPaid)}`,
-          metadata: { source: "agente-ia-v2", installment_id: inst.id, amount_paid: amountPaid },
+          metadata: { source: "agente-ia-v3", installment_id: inst.id, amount_paid: amountPaid },
         });
 
         return {
@@ -504,7 +571,7 @@ async function executeToolCall(
           client_id: client.id,
           type: "payment_promise",
           description: `Promessa de pagamento: ${promiseDate}${args.amount ? ` | Valor: ${fmt(Number(args.amount))}` : ""}${args.notes ? ` | Obs: ${args.notes}` : ""}`,
-          metadata: { source: "agente-ia-v2", ...args, client_name: client.name },
+          metadata: { source: "agente-ia-v3", ...args, client_name: client.name },
         });
 
         return {
@@ -583,7 +650,7 @@ async function executeToolCall(
           client_id: client?.id || null,
           type: "escalation_request",
           description: `🚨 Escalação (${args.priority || "medium"}): ${args.reason}`,
-          metadata: { source: "agente-ia-v2", ...args, client_name: client?.name || "Não identificado" },
+          metadata: { source: "agente-ia-v3", ...args, client_name: client?.name || "Não identificado" },
         });
 
         return { success: true, message: "🚨 Conversa escalada para atendimento humano", prioridade: args.priority || "medium", execution_time_ms: Date.now() - startTime };
@@ -698,10 +765,11 @@ async function executeToolCall(
       }
 
       case "get_dashboard_summary": {
-        const [clientsRes, pendingRes, paidThisMonthRes] = await Promise.all([
+        const [clientsRes, pendingRes, paidThisMonthRes, contractsRes] = await Promise.all([
           supabase.from("clients").select("id, status", { count: "exact" }),
           supabase.from("installments").select("amount_due, fine, status").in("status", ["Pendente", "Atrasado"]),
           supabase.from("installments").select("amount_paid").eq("status", "Pago").gte("payment_date", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+          supabase.from("contracts").select("id, status, capital", { count: "exact" }),
         ]);
 
         const totalClients = clientsRes.count || 0;
@@ -710,14 +778,20 @@ async function executeToolCall(
 
         const pendingTotal = (pendingRes.data || []).reduce((s: number, i: any) => s + (i.amount_due || 0) + (i.fine || 0), 0);
         const overdueCount = (pendingRes.data || []).filter((i: any) => i.status === "Atrasado").length;
+        const pendingCount = (pendingRes.data || []).filter((i: any) => i.status === "Pendente").length;
         const paidThisMonth = (paidThisMonthRes.data || []).reduce((s: number, i: any) => s + (i.amount_paid || 0), 0);
+        const totalContracts = contractsRes.count || 0;
+        const activeCapital = (contractsRes.data || []).filter((c: any) => c.status === "Ativo").reduce((s: number, c: any) => s + (c.capital || 0), 0);
 
         return {
           success: true,
           resumo: {
             total_clientes: totalClients,
             clientes_por_status: statusCounts,
+            total_contratos: totalContracts,
+            capital_ativo: fmt(activeCapital),
             valor_pendente_total: fmt(pendingTotal),
+            parcelas_pendentes: pendingCount,
             parcelas_atrasadas: overdueCount,
             recebido_este_mes: fmt(paidThisMonth),
             taxa_inadimplencia: totalClients > 0 ? `${(((statusCounts["Atraso"] || 0) / totalClients) * 100).toFixed(1)}%` : "0%",
@@ -937,6 +1011,49 @@ async function executeToolCall(
         return { success: true, ...reportData, execution_time_ms: Date.now() - startTime };
       }
 
+      case "schedule_followup": {
+        const { data: clients } = await findClientByPhone(supabase, String(args.whatsapp));
+        const client = clients?.[0];
+        if (!client) return { success: false, message: "Cliente não encontrado" };
+
+        const followupDate = String(args.followup_date);
+        const reason = String(args.reason);
+
+        await supabase.from("activity_log").insert({
+          operator_id: client.operator_id,
+          client_id: client.id,
+          type: "followup_scheduled",
+          description: `📅 Follow-up agendado para ${fmtDate(followupDate)}: ${reason}`,
+          metadata: { 
+            source: "agente-ia-v3", 
+            followup_date: followupDate, 
+            reason, 
+            client_name: client.name,
+            scheduled_at: new Date().toISOString(),
+          },
+        });
+
+        // Save to memory for context
+        await supabase.from("client_memory").upsert({
+          client_id: client.id,
+          operator_id: client.operator_id,
+          key: "next_followup",
+          value: `${fmtDate(followupDate)} - ${reason}`,
+          category: "interaction",
+        }, { onConflict: "client_id,key" });
+
+        return {
+          success: true,
+          message: `📅 Follow-up agendado para ${client.name}`,
+          detalhes: {
+            cliente: client.name,
+            data: fmtDate(followupDate),
+            motivo: reason,
+          },
+          execution_time_ms: Date.now() - startTime,
+        };
+      }
+
       default:
         return { error: `Ferramenta desconhecida: ${toolName}` };
     }
@@ -1007,9 +1124,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
-  if (!DEEPSEEK_API_KEY) {
-    return new Response(JSON.stringify({ error: "DEEPSEEK_API_KEY not configured" }), {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -1019,48 +1136,47 @@ serve(async (req) => {
   const requestStart = Date.now();
 
   try {
-    const { messages, conversation_id, operator_id = "system", stream = false } = await req.json();
+    const { messages, conversation_id, operator_id = "system" } = await req.json();
 
     const allMessages = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
-    // First call - always non-streaming to handle tool calls
-    let response = await fetch("https://api.deepseek.com/chat/completions", {
+    // Use Lovable AI (OpenAI-compatible endpoint) with GPT-5 Mini
+    let response = await fetch("https://ai.lovable.dev/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
+        model: "openai/gpt-5-mini",
         messages: allMessages,
         tools: TOOLS,
         tool_choice: "auto",
         stream: false,
         temperature: 0.7,
         max_tokens: 4096,
-        top_p: 0.95,
       }),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("DeepSeek error:", response.status, errText);
+      console.error("Lovable AI error:", response.status, errText);
 
       if (response.status >= 500) {
-        console.log("Retrying DeepSeek call...");
+        console.log("Retrying with fallback model...");
         await new Promise(r => setTimeout(r, 2000));
-        response = await fetch("https://api.deepseek.com/chat/completions", {
+        response = await fetch("https://ai.lovable.dev/chat/completions", {
           method: "POST",
-          headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "deepseek-chat", messages: allMessages, tools: TOOLS, tool_choice: "auto", stream: false, temperature: 0.7, max_tokens: 4096 }),
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: allMessages, tools: TOOLS, tool_choice: "auto", stream: false, temperature: 0.7, max_tokens: 4096 }),
         });
         if (!response.ok) {
-          return new Response(JSON.stringify({ error: "DeepSeek API indisponível após retry" }), {
+          return new Response(JSON.stringify({ error: "AI API indisponível após retry" }), {
             status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
       } else {
-        return new Response(JSON.stringify({ error: "Erro na API DeepSeek", details: errText }), {
+        return new Response(JSON.stringify({ error: "Erro na AI API", details: errText }), {
           status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -1095,16 +1211,11 @@ serve(async (req) => {
         });
       }
 
-      // If streaming is requested and this is the last tool call iteration, stream the final response
-      if (stream && !assistantMessage.tool_calls?.some((tc: any) => tc.function.name)) {
-        // Non-streaming for tool loop continuation
-      }
-
-      response = await fetch("https://api.deepseek.com/chat/completions", {
+      response = await fetch("https://ai.lovable.dev/chat/completions", {
         method: "POST",
-        headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "deepseek-chat",
+          model: "openai/gpt-5-mini",
           messages: toolCallMessages,
           tools: TOOLS,
           tool_choice: "auto",
@@ -1115,7 +1226,7 @@ serve(async (req) => {
       });
 
       if (!response.ok) {
-        console.error("DeepSeek tool loop error:", await response.text());
+        console.error("AI tool loop error:", await response.text());
         break;
       }
 
@@ -1140,7 +1251,6 @@ serve(async (req) => {
         tokens_used: tokensUsed,
         response_time_ms: responseTimeMs,
       });
-      // Update conversation stats
       const { count } = await supabase.from("ai_messages").select("id", { count: "exact", head: true }).eq("conversation_id", conversation_id);
       await supabase.from("ai_conversations").update({
         total_messages: count || 0,
