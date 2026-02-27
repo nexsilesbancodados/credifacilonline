@@ -193,6 +193,83 @@ export type Database = {
           },
         ]
       }
+      ai_reports: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          insights: Json | null
+          operator_id: string
+          period_end: string
+          period_start: string
+          report_type: string
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          insights?: Json | null
+          operator_id: string
+          period_end: string
+          period_start: string
+          report_type?: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          insights?: Json | null
+          operator_id?: string
+          period_end?: string
+          period_start?: string
+          report_type?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      client_memory: {
+        Row: {
+          category: string
+          client_id: string
+          created_at: string
+          id: string
+          key: string
+          operator_id: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          category?: string
+          client_id: string
+          created_at?: string
+          id?: string
+          key: string
+          operator_id: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          category?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          key?: string
+          operator_id?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_memory_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           archived_at: string | null
