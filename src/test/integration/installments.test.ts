@@ -47,9 +47,9 @@ describe("Installment Due Date Calculations", () => {
     });
 
     it("should only return true for weekdays with seg-sex", () => {
-      const sunday = new Date(2026, 0, 12); // Sunday
-      const saturday = new Date(2026, 0, 17); // Saturday
-      const monday = new Date(2026, 0, 13); // Monday
+      const sunday = new Date(2026, 0, 11); // Sunday
+      const saturday = new Date(2026, 0, 10); // Saturday
+      const monday = new Date(2026, 0, 12); // Monday
       const friday = new Date(2026, 0, 16); // Friday
 
       expect(isValidCollectionDay(sunday, "seg-sex")).toBe(false);
@@ -59,9 +59,9 @@ describe("Installment Due Date Calculations", () => {
     });
 
     it("should exclude only Sunday with seg-sab", () => {
-      const sunday = new Date(2026, 0, 12); // Sunday
-      const saturday = new Date(2026, 0, 17); // Saturday
-      const monday = new Date(2026, 0, 13); // Monday
+      const sunday = new Date(2026, 0, 11); // Sunday
+      const saturday = new Date(2026, 0, 10); // Saturday
+      const monday = new Date(2026, 0, 12); // Monday
 
       expect(isValidCollectionDay(sunday, "seg-sab")).toBe(false);
       expect(isValidCollectionDay(saturday, "seg-sab")).toBe(true);

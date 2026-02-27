@@ -69,7 +69,8 @@ describe("Form Validation", () => {
     };
 
     const parseCurrency = (value: string): number => {
-      const cleaned = value.replace(/[^\d,.-]/g, "").replace(",", ".");
+      // Remove currency symbol and whitespace, handle Brazilian format
+      const cleaned = value.replace(/[R$\s\u00a0]/g, "").replace(/\./g, "").replace(",", ".");
       return parseFloat(cleaned) || 0;
     };
 
@@ -86,8 +87,10 @@ describe("Form Validation", () => {
     });
 
     it("should format currency correctly", () => {
-      expect(formatCurrency(1234.56)).toBe("R$ 1.234,56");
-      expect(formatCurrency(0)).toBe("R$ 0,00");
+      const formatted = formatCurrency(1234.56);
+      // toLocaleString may use non-breaking space (\u00a0) depending on environment
+      expect(formatted.replace(/\u00a0/g, " ")).toBe("R$ 1.234,56");
+      expect(formatCurrency(0).replace(/\u00a0/g, " ")).toBe("R$ 0,00");
     });
 
     it("should parse currency strings", () => {
