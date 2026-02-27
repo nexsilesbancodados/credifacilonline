@@ -129,71 +129,22 @@ const Tesouraria = () => {
 
   return (
     <MainLayout>
-      {/* Quick Stats Bar */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border/50 bg-card/50 p-4"
-      >
-        <div className="flex flex-wrap items-center gap-6">
-          {/* Wallet Balance */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
-              <Wallet className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Carteira</p>
-              <p className="font-display text-lg font-bold text-foreground">
-                {isLoading ? "..." : formatCurrency(summary.balance)}
-              </p>
-            </div>
-          </div>
-
-          <div className="h-8 w-px bg-border/50 hidden sm:block" />
-
-          {/* Profit */}
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-success/20">
-              <PiggyBank className="h-5 w-5 text-success" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Lucro a Receber</p>
-              <p className="font-display text-lg font-bold text-success">
-                {isLoading ? "..." : formatCurrency(pendingProfit)}
-              </p>
-            </div>
-          </div>
-
-          <div className="h-8 w-px bg-border/50 hidden sm:block" />
-
-          {/* Notifications */}
-          <div className="flex items-center gap-3">
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20">
-              <Bell className="h-5 w-5 text-amber-500" />
-              {overdueCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
-                  {overdueCount}
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Alertas</p>
-              <p className="font-display text-lg font-bold text-amber-500">
-                {overdueCount} pendentes
-              </p>
-            </div>
-          </div>
+      {/* Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Tesouraria</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Saldo: <span className="font-semibold text-foreground">{isLoading ? "..." : formatCurrency(summary.balance)}</span> · 
+            A receber: <span className="font-semibold text-success">{isLoading ? "..." : formatCurrency(totalToReceive)}</span>
+          </p>
         </div>
-
-        {/* Quick Actions */}
         <PermissionGate permission="canManageTreasury">
           <div className="flex gap-2">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowAddModal("aporte")}
-              className="flex items-center gap-2 rounded-xl bg-success px-4 py-2.5 font-medium text-white shadow-lg shadow-success/25 transition-all hover:shadow-success/40"
+              className="flex items-center gap-2 rounded-xl bg-success px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-success/20"
             >
               <Plus className="h-4 w-4" />
               Aporte
@@ -202,33 +153,14 @@ const Tesouraria = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowAddModal("sangria")}
-              className="flex items-center gap-2 rounded-xl bg-destructive px-4 py-2.5 font-medium text-white shadow-lg shadow-destructive/25 transition-all hover:shadow-destructive/40"
+              className="flex items-center gap-2 rounded-xl bg-destructive px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-destructive/20"
             >
               <Minus className="h-4 w-4" />
               Sangria
             </motion.button>
           </div>
         </PermissionGate>
-      </motion.div>
-
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-foreground">
-              Tesouraria
-            </h1>
-            <p className="mt-1 text-muted-foreground">
-              Controle seu fluxo de caixa
-            </p>
-          </div>
-        </div>
-      </motion.div>
+      </div>
 
       {/* Summary Cards - Principal */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6">
