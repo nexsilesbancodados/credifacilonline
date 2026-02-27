@@ -34,8 +34,13 @@ import {
   LayoutDashboard,
   Plus,
   MessagesSquare,
+  Copy,
+  Check,
+  Search,
+  CreditCard,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
   id: string;
@@ -67,8 +72,10 @@ interface AgentMetrics {
 
 const TOOL_ICONS: Record<string, typeof Phone> = {
   get_client_info: Users,
+  search_client_by_name: Search,
   get_renegotiation_options: DollarSign,
   register_payment_promise: CheckCircle2,
+  mark_installment_paid: CreditCard,
   get_conversation_history: History,
   send_whatsapp_message: Phone,
   escalate_to_human: AlertTriangle,
@@ -79,8 +86,10 @@ const TOOL_ICONS: Record<string, typeof Phone> = {
 
 const TOOL_LABELS: Record<string, string> = {
   get_client_info: "Consultar Cliente",
+  search_client_by_name: "Buscar por Nome",
   get_renegotiation_options: "Renegociação",
   register_payment_promise: "Promessa de Pagamento",
+  mark_installment_paid: "Registrar Pagamento",
   get_conversation_history: "Histórico",
   send_whatsapp_message: "Enviar WhatsApp",
   escalate_to_human: "Escalar para Humano",
@@ -94,8 +103,10 @@ const QUICK_ACTIONS = [
   { label: "🟡 Atrasos leves (1-7d)", message: "Liste os clientes com atraso de 1 a 7 dias e sugira a melhor abordagem" },
   { label: "🟠 Atrasos moderados", message: "Quais clientes estão com 8 a 30 dias de atraso? Sugira ações." },
   { label: "🔴 Atrasos críticos", message: "Liste os clientes com mais de 30 dias de atraso com análise de risco" },
-  { label: "🔍 Consultar cliente", message: "Consulte as informações e dívidas do cliente com WhatsApp " },
+  { label: "🔍 Buscar cliente", message: "Busque o cliente pelo nome " },
   { label: "💰 Renegociar dívida", message: "Quais opções de renegociação temos para o cliente " },
+  { label: "💳 Registrar pagamento", message: "Registre o pagamento da parcela do cliente com WhatsApp " },
+  { label: "📱 Cobrança em lote", message: "Envie cobrança em lote para todos os clientes com atraso moderado" },
 ];
 
 const MetricCard = ({ icon: Icon, label, value, sub }: { icon: typeof Activity; label: string; value: string | number; sub?: string }) => (
@@ -115,6 +126,28 @@ interface ConversationItem {
   created_at: string;
   total_messages: number;
 }
+
+const TypingIndicator = () => (
+  <div className="flex gap-1 items-center px-2">
+    <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0 }} className="w-2 h-2 rounded-full bg-primary/60" />
+    <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.15 }} className="w-2 h-2 rounded-full bg-primary/60" />
+    <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.3 }} className="w-2 h-2 rounded-full bg-primary/60" />
+  </div>
+);
+
+const CopyButton = ({ text }: { text: string }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button onClick={handleCopy} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted/50" title="Copiar">
+      {copied ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3 text-muted-foreground" />}
+    </button>
+  );
+};
 
 const AgenteIA = () => {
   const { profile } = useAuth();
@@ -162,11 +195,11 @@ const AgenteIA = () => {
     fetchConversations();
   }, [fetchMetrics, fetchConversations]);
 
-  const createConversation = async (): Promise<string | null> => {
+  const createConversation = async (title?: string): Promise<string | null> => {
     if (!profile?.user_id) return null;
     const { data, error } = await supabase
       .from("ai_conversations")
-      .insert({ operator_id: profile.user_id, title: "Nova Conversa" })
+      .insert({ operator_id: profile.user_id, title: title || "Nova Conversa" })
       .select("id")
       .single();
     if (error || !data) { console.error("Create conversation error:", error); return null; }
@@ -194,6 +227,17 @@ const AgenteIA = () => {
     setShowHistory(false);
   };
 
+  const deleteConversation = async (convId: string) => {
+    await supabase.from("ai_messages").delete().eq("conversation_id", convId);
+    await supabase.from("ai_conversations").delete().eq("id", convId);
+    if (conversationId === convId) {
+      setMessages([]);
+      setConversationId(null);
+    }
+    fetchConversations();
+    toast.success("Conversa excluída");
+  };
+
   const saveMessage = async (convId: string, role: string, content: string, toolCalls?: ToolCallResult[], tokensUsed?: number, responseTimeMs?: number) => {
     await supabase.from("ai_messages").insert({
       conversation_id: convId,
@@ -203,22 +247,17 @@ const AgenteIA = () => {
       tokens_used: tokensUsed || 0,
       response_time_ms: responseTimeMs || 0,
     });
-    // Update conversation
-    const { data: msgs } = await supabase.from("ai_messages").select("id", { count: "exact" }).eq("conversation_id", convId);
-    await supabase.from("ai_conversations").update({
-      total_messages: msgs?.length || 0,
-      title: content.substring(0, 50),
-    }).eq("id", convId);
   };
 
   const sendMessage = async (messageText?: string) => {
     const text = messageText || input.trim();
     if (!text || isLoading) return;
 
-    // Create conversation if needed
+    // Create conversation with auto-title from first message
     let activeConvId = conversationId;
     if (!activeConvId) {
-      activeConvId = await createConversation();
+      const autoTitle = text.length > 50 ? text.substring(0, 47) + "..." : text;
+      activeConvId = await createConversation(autoTitle);
       if (!activeConvId) { toast.error("Erro ao criar conversa"); return; }
       setConversationId(activeConvId);
     }
@@ -234,7 +273,6 @@ const AgenteIA = () => {
     setInput("");
     setIsLoading(true);
 
-    // Save user message
     saveMessage(activeConvId, "user", text);
 
     try {
@@ -298,7 +336,13 @@ const AgenteIA = () => {
     const execTime = resultData?.execution_time_ms;
 
     return (
-      <div key={index} className="flex items-start gap-2 rounded-lg border border-border/50 bg-muted/30 p-2.5 text-xs">
+      <motion.div
+        key={index}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.1 }}
+        className="flex items-start gap-2 rounded-lg border border-border/50 bg-muted/30 p-2.5 text-xs"
+      >
         <div className={`mt-0.5 rounded-md p-1 ${success ? "bg-primary/10" : "bg-destructive/10"}`}>
           <Icon className={`h-3.5 w-3.5 ${success ? "text-primary" : "text-destructive"}`} />
         </div>
@@ -318,7 +362,7 @@ const AgenteIA = () => {
             </p>
           )}
         </div>
-      </div>
+      </motion.div>
     );
   };
 
@@ -333,7 +377,7 @@ const AgenteIA = () => {
               Agente IA de Cobrança
             </h1>
             <p className="text-muted-foreground text-sm mt-0.5">
-              DeepSeek + Evolution API • 9 ferramentas • Cobrança inteligente
+              DeepSeek + Evolution API • 11 ferramentas • Cobrança inteligente
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -362,156 +406,204 @@ const AgenteIA = () => {
 
           <TabsContent value="chat" className="flex-1 flex flex-col overflow-hidden mt-3">
             <div className="flex flex-1 gap-3 overflow-hidden">
-              {showHistory && (
-                <Card className="w-64 shrink-0 flex flex-col overflow-hidden">
-                  <div className="p-3 border-b border-border/50">
-                    <p className="text-sm font-medium text-foreground">Conversas</p>
-                  </div>
-                  <ScrollArea className="flex-1">
-                    {conversations.length === 0 ? (
-                      <p className="text-xs text-muted-foreground p-3">Nenhuma conversa salva</p>
-                    ) : (
-                      <div className="p-1 space-y-0.5">
-                        {conversations.map((conv) => (
-                          <button
-                            key={conv.id}
-                            onClick={() => loadConversation(conv.id)}
-                            className={`w-full text-left rounded-md px-2.5 py-2 text-xs hover:bg-muted/50 transition-colors ${
-                              conversationId === conv.id ? "bg-muted" : ""
-                            }`}
+              <AnimatePresence>
+                {showHistory && (
+                  <motion.div
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 256, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="shrink-0 overflow-hidden"
+                  >
+                    <Card className="w-64 h-full flex flex-col overflow-hidden">
+                      <div className="p-3 border-b border-border/50">
+                        <p className="text-sm font-medium text-foreground">Conversas</p>
+                      </div>
+                      <ScrollArea className="flex-1">
+                        {conversations.length === 0 ? (
+                          <p className="text-xs text-muted-foreground p-3">Nenhuma conversa salva</p>
+                        ) : (
+                          <div className="p-1 space-y-0.5">
+                            {conversations.map((conv) => (
+                              <div
+                                key={conv.id}
+                                className={`group flex items-center rounded-md hover:bg-muted/50 transition-colors ${
+                                  conversationId === conv.id ? "bg-muted" : ""
+                                }`}
+                              >
+                                <button
+                                  onClick={() => loadConversation(conv.id)}
+                                  className="flex-1 text-left px-2.5 py-2 text-xs min-w-0"
+                                >
+                                  <p className="font-medium text-foreground truncate">{conv.title || "Nova Conversa"}</p>
+                                  <p className="text-muted-foreground mt-0.5">
+                                    {new Date(conv.created_at).toLocaleDateString("pt-BR")} • {conv.total_messages} msgs
+                                  </p>
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
+                                  className="opacity-0 group-hover:opacity-100 p-1.5 mr-1 rounded hover:bg-destructive/10 transition-all"
+                                  title="Excluir conversa"
+                                >
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <Card className="flex-1 flex flex-col overflow-hidden">
+                <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+                  {messages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+                      <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="rounded-full bg-primary/10 p-5 mb-4"
+                      >
+                        <Bot className="h-10 w-10 text-primary" />
+                      </motion.div>
+                      <h3 className="text-lg font-semibold text-foreground mb-1">Agente IA Pronto</h3>
+                      <p className="text-muted-foreground text-sm max-w-md mb-6">
+                        11 ferramentas: consulta, busca, pagamento, cobrança, renegociação, WhatsApp em lote, escalação e mais.
+                      </p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-3xl w-full">
+                        {QUICK_ACTIONS.map((action, i) => (
+                          <motion.div
+                            key={action.label}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
                           >
-                            <p className="font-medium text-foreground truncate">{conv.title || "Nova Conversa"}</p>
-                            <p className="text-muted-foreground mt-0.5">
-                              {new Date(conv.created_at).toLocaleDateString("pt-BR")} • {conv.total_messages} msgs
-                            </p>
-                          </button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-auto py-2.5 justify-start text-left w-full hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                              onClick={() => sendMessage(action.message)}
+                            >
+                              {action.label}
+                            </Button>
+                          </motion.div>
                         ))}
                       </div>
-                    )}
-                  </ScrollArea>
-                </Card>
-              )}
-            <Card className="flex-1 flex flex-col overflow-hidden">
-              <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-                {messages.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                    <div className="rounded-full bg-primary/10 p-5 mb-4">
-                      <Bot className="h-10 w-10 text-primary" />
                     </div>
-                    <h3 className="text-lg font-semibold text-foreground mb-1">Agente IA Pronto</h3>
-                    <p className="text-muted-foreground text-sm max-w-md mb-6">
-                      9 ferramentas: consulta, cobrança, renegociação, WhatsApp em lote, escalação e mais.
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-w-2xl w-full">
-                      {QUICK_ACTIONS.map((action) => (
-                        <Button
-                          key={action.label}
-                          variant="outline"
-                          size="sm"
-                          className="text-xs h-auto py-2 justify-start text-left"
-                          onClick={() => sendMessage(action.message)}
+                  ) : (
+                    <div className="space-y-4">
+                      <AnimatePresence initial={false}>
+                        {messages.map((msg) => (
+                          <motion.div
+                            key={msg.id}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`group flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                          >
+                            {msg.role === "assistant" && (
+                              <div className="shrink-0 rounded-full bg-primary/10 p-2 h-8 w-8 flex items-center justify-center">
+                                <Bot className="h-4 w-4 text-primary" />
+                              </div>
+                            )}
+                            <div className={`max-w-[75%] space-y-2 ${msg.role === "user" ? "order-1" : ""}`}>
+                              <div className={`rounded-2xl px-4 py-3 relative ${
+                                msg.role === "user"
+                                  ? "bg-primary text-primary-foreground rounded-br-md"
+                                  : "bg-muted rounded-bl-md"
+                              }`}>
+                                {msg.role === "assistant" ? (
+                                  <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
+                                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm">{msg.content}</p>
+                                )}
+                                {msg.role === "assistant" && (
+                                  <div className="absolute -top-2 -right-2">
+                                    <CopyButton text={msg.content} />
+                                  </div>
+                                )}
+                              </div>
+
+                              {msg.toolCalls && msg.toolCalls.length > 0 && (
+                                <div className="space-y-1.5">
+                                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Wrench className="h-3 w-3" /> {msg.toolCalls.length} ferramenta(s):
+                                  </p>
+                                  {msg.toolCalls.map((tc, i) => renderToolCall(tc, i))}
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{msg.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
+                                {msg.usage && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> {msg.usage.response_time_ms}ms</span>
+                                    <span>•</span>
+                                    <span>{msg.usage.tokens} tokens</span>
+                                    {msg.usage.tool_iterations > 0 && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{msg.usage.tool_iterations} iterações</span>
+                                      </>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {msg.role === "user" && (
+                              <div className="shrink-0 rounded-full bg-secondary p-2 h-8 w-8 flex items-center justify-center order-2">
+                                <User className="h-4 w-4 text-secondary-foreground" />
+                              </div>
+                            )}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+
+                      {isLoading && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex gap-3 justify-start"
                         >
-                          {action.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {messages.map((msg) => (
-                      <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                        {msg.role === "assistant" && (
                           <div className="shrink-0 rounded-full bg-primary/10 p-2 h-8 w-8 flex items-center justify-center">
                             <Bot className="h-4 w-4 text-primary" />
                           </div>
-                        )}
-                        <div className={`max-w-[75%] space-y-2 ${msg.role === "user" ? "order-1" : ""}`}>
-                          <div className={`rounded-2xl px-4 py-3 ${
-                            msg.role === "user"
-                              ? "bg-primary text-primary-foreground rounded-br-md"
-                              : "bg-muted rounded-bl-md"
-                          }`}>
-                            {msg.role === "assistant" ? (
-                              <div className="prose prose-sm dark:prose-invert max-w-none text-sm">
-                                <ReactMarkdown>{msg.content}</ReactMarkdown>
-                              </div>
-                            ) : (
-                              <p className="text-sm">{msg.content}</p>
-                            )}
-                          </div>
-
-                          {msg.toolCalls && msg.toolCalls.length > 0 && (
-                            <div className="space-y-1.5">
-                              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Wrench className="h-3 w-3" /> {msg.toolCalls.length} ferramenta(s):
-                              </p>
-                              {msg.toolCalls.map((tc, i) => renderToolCall(tc, i))}
+                          <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
+                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                              <TypingIndicator />
+                              <span className="text-xs">Analisando...</span>
                             </div>
-                          )}
-
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{msg.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
-                            {msg.usage && (
-                              <>
-                                <span>•</span>
-                                <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" /> {msg.usage.response_time_ms}ms</span>
-                                <span>•</span>
-                                <span>{msg.usage.tokens} tokens</span>
-                                {msg.usage.tool_iterations > 0 && (
-                                  <>
-                                    <span>•</span>
-                                    <span>{msg.usage.tool_iterations} iterações</span>
-                                  </>
-                                )}
-                              </>
-                            )}
                           </div>
-                        </div>
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+                </ScrollArea>
 
-                        {msg.role === "user" && (
-                          <div className="shrink-0 rounded-full bg-secondary p-2 h-8 w-8 flex items-center justify-center order-2">
-                            <User className="h-4 w-4 text-secondary-foreground" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                <Separator />
 
-                    {isLoading && (
-                      <div className="flex gap-3 justify-start">
-                        <div className="shrink-0 rounded-full bg-primary/10 p-2 h-8 w-8 flex items-center justify-center">
-                          <Bot className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Analisando e executando ferramentas...
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                <div className="p-3">
+                  <div className="flex gap-2">
+                    <Input
+                      ref={inputRef}
+                      placeholder="Ex: Busque o cliente João e envie uma cobrança..."
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                      disabled={isLoading}
+                      className="flex-1"
+                    />
+                    <Button onClick={() => sendMessage()} disabled={isLoading || !input.trim()} size="icon">
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </Button>
                   </div>
-                )}
-              </ScrollArea>
-
-              <Separator />
-
-              <div className="p-3">
-                <div className="flex gap-2">
-                  <Input
-                    ref={inputRef}
-                    placeholder="Ex: Consulte o cliente 11999999999 e envie uma cobrança..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
-                    disabled={isLoading}
-                    className="flex-1"
-                  />
-                  <Button onClick={() => sendMessage()} disabled={isLoading || !input.trim()}>
-                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  </Button>
                 </div>
-              </div>
-            </Card>
+              </Card>
             </div>
           </TabsContent>
 
@@ -550,12 +642,11 @@ const AgenteIA = () => {
               </CardContent>
             </Card>
 
-            {/* Capabilities Card */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Wrench className="h-5 w-5 text-primary" />
-                  Ferramentas Disponíveis
+                  Ferramentas Disponíveis ({Object.keys(TOOL_LABELS).length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
