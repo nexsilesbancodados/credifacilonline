@@ -108,48 +108,52 @@ const Configuracoes = () => {
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Configurações</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie suas preferências e integrações
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Configurações</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gerencie suas preferências e integrações
+            </p>
+          </div>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1 flex-wrap h-auto">
-            <TabsTrigger value="profile" className="gap-2">
-              <User className="w-4 h-4" />
-              Perfil
-            </TabsTrigger>
-            <TabsTrigger value="company" className="gap-2">
-              <Building2 className="w-4 h-4" />
-              Empresa
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="gap-2">
-              <Bell className="w-4 h-4" />
-              Notificações
-            </TabsTrigger>
-            <TabsTrigger value="collection-rules" className="gap-2">
-              <Ruler className="w-4 h-4" />
-              Régua
-            </TabsTrigger>
-            <TabsTrigger value="templates" className="gap-2">
-              <FileText className="w-4 h-4" />
-              Templates
-            </TabsTrigger>
-            <TabsTrigger value="backup" className="gap-2">
-              <Database className="w-4 h-4" />
-              Backup
-            </TabsTrigger>
-            <TabsTrigger value="ai-agent" className="gap-2">
-              <Bot className="w-4 h-4" />
-              Agente IA
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="gap-2">
-              <Webhook className="w-4 h-4" />
-              Integrações
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+            <TabsList className="bg-secondary/50 p-1 h-auto inline-flex min-w-max">
+              <TabsTrigger value="profile" className="gap-2 text-xs sm:text-sm">
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">Perfil</span>
+              </TabsTrigger>
+              <TabsTrigger value="company" className="gap-2 text-xs sm:text-sm">
+                <Building2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Empresa</span>
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="gap-2 text-xs sm:text-sm">
+                <Bell className="w-4 h-4" />
+                <span className="hidden sm:inline">Notificações</span>
+              </TabsTrigger>
+              <TabsTrigger value="collection-rules" className="gap-2 text-xs sm:text-sm">
+                <Ruler className="w-4 h-4" />
+                <span className="hidden sm:inline">Régua</span>
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="gap-2 text-xs sm:text-sm">
+                <FileText className="w-4 h-4" />
+                <span className="hidden sm:inline">Templates</span>
+              </TabsTrigger>
+              <TabsTrigger value="backup" className="gap-2 text-xs sm:text-sm">
+                <Database className="w-4 h-4" />
+                <span className="hidden sm:inline">Backup</span>
+              </TabsTrigger>
+              <TabsTrigger value="ai-agent" className="gap-2 text-xs sm:text-sm">
+                <Bot className="w-4 h-4" />
+                <span className="hidden sm:inline">Agente IA</span>
+              </TabsTrigger>
+              <TabsTrigger value="integrations" className="gap-2 text-xs sm:text-sm">
+                <Webhook className="w-4 h-4" />
+                <span className="hidden sm:inline">Integrações</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Profile Tab */}
           <TabsContent value="profile">

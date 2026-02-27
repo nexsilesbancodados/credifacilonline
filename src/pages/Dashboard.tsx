@@ -9,17 +9,22 @@ import { ReceivableForecastWidget } from "@/components/dashboard/ReceivableForec
 import { LoanFrequencyChart } from "@/components/dashboard/LoanFrequencyChart";
 import { OnboardingTour, useOnboardingTour } from "@/components/tour/OnboardingTour";
 import { Link } from "react-router-dom";
-import { Sparkles, Loader2, Users, FileText, Calculator, BarChart3 } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Sparkles, Loader2, Users, FileText, Calculator, BarChart3,
+  TrendingUp, DollarSign, AlertTriangle, Clock,
+} from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
 import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
 import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 const quickActions = [
-  { icon: Sparkles, label: "Novo Contrato", path: "/contratos/novo", color: "bg-gradient-gold text-primary-foreground shadow-gold" },
-  { icon: Users, label: "Clientes", path: "/clientes", color: "bg-secondary text-secondary-foreground" },
-  { icon: Calculator, label: "Simulador", path: "/simulador", color: "bg-secondary text-secondary-foreground" },
-  { icon: BarChart3, label: "Análises", path: "/analises", color: "bg-secondary text-secondary-foreground" },
+  { icon: Sparkles, label: "Novo Contrato", path: "/contratos/novo", primary: true },
+  { icon: Users, label: "Clientes", path: "/clientes", primary: false },
+  { icon: Calculator, label: "Simulador", path: "/simulador", primary: false },
+  { icon: BarChart3, label: "Análises", path: "/analises", primary: false },
 ];
 
 const Dashboard = () => {
@@ -40,16 +45,32 @@ const Dashboard = () => {
     return "Boa noite";
   };
 
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  // Quick summary stats from dashboardStats
+  const totalCapital = dashboardStats?.capitalOnStreet || 0;
+  const totalProfit = dashboardStats?.realizedProfit || 0;
+  const overdueCount = dashboardStats?.overdueContracts || 0;
+  const activeContracts = dashboardStats?.activeContracts || 0;
+
   return (
     <MainLayout>
       {/* Header with greeting */}
-      <div className="mb-6">
-        <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
-          {getGreeting()}{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}! 👋
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Aqui está o resumo da sua carteira de hoje.
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <motion.h1
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="font-display text-2xl md:text-3xl font-bold text-foreground"
+          >
+            {getGreeting()}{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}! 👋
+          </motion.h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Aqui está o resumo da sua carteira de hoje.
+          </p>
+        </div>
+        <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
       {/* Quick Actions */}
@@ -58,7 +79,12 @@ const Dashboard = () => {
           <Link
             key={action.path}
             to={action.path}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98] ${action.color}`}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]",
+              action.primary
+                ? "bg-gradient-gold text-primary-foreground shadow-gold"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            )}
           >
             <action.icon className="h-4 w-4" />
             {action.label}
@@ -66,10 +92,46 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Period Filter */}
-      <div className="mb-6">
-        <PeriodSelector value={period} onChange={setPeriod} />
-      </div>
+      {/* Quick Summary Strip */}
+      {!isLoading && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3"
+        >
+          <div className="rounded-xl border border-border/50 bg-card p-3.5">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs text-muted-foreground">Capital Ativo</span>
+            </div>
+            <p className="font-display text-lg font-bold text-foreground">{fmt(totalCapital)}</p>
+          </div>
+          <div className="rounded-xl border border-border/50 bg-card p-3.5">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="h-3.5 w-3.5 text-success" />
+              <span className="text-xs text-muted-foreground">Lucro Total</span>
+            </div>
+            <p className="font-display text-lg font-bold text-success">{fmt(totalProfit)}</p>
+          </div>
+          <div className="rounded-xl border border-border/50 bg-card p-3.5">
+            <div className="flex items-center gap-2 mb-1">
+              <FileText className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs text-muted-foreground">Contratos</span>
+            </div>
+            <p className="font-display text-lg font-bold text-foreground">{activeContracts}</p>
+          </div>
+          <div className={cn(
+            "rounded-xl border p-3.5",
+            overdueCount > 0 ? "border-destructive/30 bg-destructive/5" : "border-border/50 bg-card"
+          )}>
+            <div className="flex items-center gap-2 mb-1">
+              <AlertTriangle className={cn("h-3.5 w-3.5", overdueCount > 0 ? "text-destructive" : "text-muted-foreground")} />
+              <span className="text-xs text-muted-foreground">Atrasados</span>
+            </div>
+            <p className={cn("font-display text-lg font-bold", overdueCount > 0 ? "text-destructive" : "text-foreground")}>{overdueCount}</p>
+          </div>
+        </motion.div>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
