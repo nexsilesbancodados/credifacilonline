@@ -32,6 +32,8 @@ import {
   TrendingUp,
   Activity,
   LayoutDashboard,
+  Plus,
+  MessagesSquare,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -107,6 +109,13 @@ const MetricCard = ({ icon: Icon, label, value, sub }: { icon: typeof Activity; 
   </div>
 );
 
+interface ConversationItem {
+  id: string;
+  title: string;
+  created_at: string;
+  total_messages: number;
+}
+
 const AgenteIA = () => {
   const { profile } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -114,6 +123,9 @@ const AgenteIA = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [metrics, setMetrics] = useState<AgentMetrics | null>(null);
   const [activeTab, setActiveTab] = useState("chat");
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -133,13 +145,83 @@ const AgenteIA = () => {
     if (data?.[0]) setMetrics(data[0] as unknown as AgentMetrics);
   }, []);
 
+  const fetchConversations = useCallback(async () => {
+    if (!profile?.user_id) return;
+    const { data } = await supabase
+      .from("ai_conversations")
+      .select("id, title, created_at, total_messages")
+      .eq("operator_id", profile.user_id)
+      .eq("status", "active")
+      .order("updated_at", { ascending: false })
+      .limit(20);
+    if (data) setConversations(data as unknown as ConversationItem[]);
+  }, [profile?.user_id]);
+
   useEffect(() => {
     fetchMetrics();
-  }, [fetchMetrics]);
+    fetchConversations();
+  }, [fetchMetrics, fetchConversations]);
+
+  const createConversation = async (): Promise<string | null> => {
+    if (!profile?.user_id) return null;
+    const { data, error } = await supabase
+      .from("ai_conversations")
+      .insert({ operator_id: profile.user_id, title: "Nova Conversa" })
+      .select("id")
+      .single();
+    if (error || !data) { console.error("Create conversation error:", error); return null; }
+    return data.id;
+  };
+
+  const loadConversation = async (convId: string) => {
+    const { data } = await supabase
+      .from("ai_messages")
+      .select("id, role, content, tool_calls, tokens_used, response_time_ms, created_at")
+      .eq("conversation_id", convId)
+      .order("created_at", { ascending: true });
+
+    if (data) {
+      setMessages(data.map((m: any) => ({
+        id: m.id,
+        role: m.role as "user" | "assistant",
+        content: m.content,
+        timestamp: new Date(m.created_at),
+        toolCalls: m.tool_calls as ToolCallResult[] | undefined,
+        usage: m.tokens_used ? { tokens: m.tokens_used, response_time_ms: m.response_time_ms || 0, tool_iterations: 0 } : undefined,
+      })));
+    }
+    setConversationId(convId);
+    setShowHistory(false);
+  };
+
+  const saveMessage = async (convId: string, role: string, content: string, toolCalls?: ToolCallResult[], tokensUsed?: number, responseTimeMs?: number) => {
+    await supabase.from("ai_messages").insert({
+      conversation_id: convId,
+      role,
+      content,
+      tool_calls: toolCalls ? (toolCalls as any) : null,
+      tokens_used: tokensUsed || 0,
+      response_time_ms: responseTimeMs || 0,
+    });
+    // Update conversation
+    const { data: msgs } = await supabase.from("ai_messages").select("id", { count: "exact" }).eq("conversation_id", convId);
+    await supabase.from("ai_conversations").update({
+      total_messages: msgs?.length || 0,
+      title: content.substring(0, 50),
+    }).eq("id", convId);
+  };
 
   const sendMessage = async (messageText?: string) => {
     const text = messageText || input.trim();
     if (!text || isLoading) return;
+
+    // Create conversation if needed
+    let activeConvId = conversationId;
+    if (!activeConvId) {
+      activeConvId = await createConversation();
+      if (!activeConvId) { toast.error("Erro ao criar conversa"); return; }
+      setConversationId(activeConvId);
+    }
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -152,6 +234,9 @@ const AgenteIA = () => {
     setInput("");
     setIsLoading(true);
 
+    // Save user message
+    saveMessage(activeConvId, "user", text);
+
     try {
       const conversationMessages = [...messages, userMessage].map((m) => ({
         role: m.role,
@@ -161,6 +246,7 @@ const AgenteIA = () => {
       const { data, error } = await supabase.functions.invoke("ai-agent-chat", {
         body: {
           messages: conversationMessages,
+          conversation_id: activeConvId,
           operator_id: profile?.user_id || "system",
         },
       });
@@ -177,7 +263,8 @@ const AgenteIA = () => {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-      fetchMetrics(); // Refresh metrics after each interaction
+      fetchMetrics();
+      fetchConversations();
     } catch (err: any) {
       console.error("AI Agent error:", err);
       toast.error("Erro: " + (err.message || "Erro desconhecido"));
@@ -191,8 +278,15 @@ const AgenteIA = () => {
     }
   };
 
+  const newChat = () => {
+    setMessages([]);
+    setConversationId(null);
+    toast.success("Nova conversa iniciada");
+  };
+
   const clearChat = () => {
     setMessages([]);
+    setConversationId(null);
     toast.success("Conversa limpa");
   };
 
@@ -246,9 +340,15 @@ const AgenteIA = () => {
             <Badge variant="outline" className="gap-1">
               <Sparkles className="h-3 w-3" /> DeepSeek V3
             </Badge>
+            <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
+              <MessagesSquare className="h-4 w-4 mr-1" /> Histórico
+            </Button>
+            <Button variant="outline" size="sm" onClick={newChat}>
+              <Plus className="h-4 w-4 mr-1" /> Nova
+            </Button>
             {messages.length > 0 && (
-              <Button variant="outline" size="sm" onClick={clearChat}>
-                <Trash2 className="h-4 w-4 mr-1" /> Limpar
+              <Button variant="ghost" size="sm" onClick={clearChat}>
+                <Trash2 className="h-4 w-4" />
               </Button>
             )}
           </div>
@@ -261,6 +361,36 @@ const AgenteIA = () => {
           </TabsList>
 
           <TabsContent value="chat" className="flex-1 flex flex-col overflow-hidden mt-3">
+            <div className="flex flex-1 gap-3 overflow-hidden">
+              {showHistory && (
+                <Card className="w-64 shrink-0 flex flex-col overflow-hidden">
+                  <div className="p-3 border-b border-border/50">
+                    <p className="text-sm font-medium text-foreground">Conversas</p>
+                  </div>
+                  <ScrollArea className="flex-1">
+                    {conversations.length === 0 ? (
+                      <p className="text-xs text-muted-foreground p-3">Nenhuma conversa salva</p>
+                    ) : (
+                      <div className="p-1 space-y-0.5">
+                        {conversations.map((conv) => (
+                          <button
+                            key={conv.id}
+                            onClick={() => loadConversation(conv.id)}
+                            className={`w-full text-left rounded-md px-2.5 py-2 text-xs hover:bg-muted/50 transition-colors ${
+                              conversationId === conv.id ? "bg-muted" : ""
+                            }`}
+                          >
+                            <p className="font-medium text-foreground truncate">{conv.title || "Nova Conversa"}</p>
+                            <p className="text-muted-foreground mt-0.5">
+                              {new Date(conv.created_at).toLocaleDateString("pt-BR")} • {conv.total_messages} msgs
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </Card>
+              )}
             <Card className="flex-1 flex flex-col overflow-hidden">
               <ScrollArea className="flex-1 p-4" ref={scrollRef}>
                 {messages.length === 0 ? (
@@ -382,6 +512,7 @@ const AgenteIA = () => {
                 </div>
               </div>
             </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="metrics" className="mt-3 space-y-4 overflow-auto">
