@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   LayoutDashboard,
   Users,
@@ -28,36 +28,51 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { ExcelImport } from "@/components/imports/ExcelImport";
 import { usePermissions } from "@/hooks/usePermissions";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-// Animation variants for menu items
-const menuItemVariants = {
-  hidden: { opacity: 0, x: -20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    x: 0,
-    transition: {
-      delay: i * 0.05,
-      duration: 0.3,
-      ease: [0.4, 0, 0.2, 1] as const,
-    },
-  }),
-};
-
-
-const baseMenuItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/", permission: null },
-  { icon: Users, label: "Clientes", path: "/clientes", permission: "canViewClients" as const },
-  { icon: FileText, label: "Contratos", path: "/contratos", permission: "canViewContracts" as const },
-  { icon: Calculator, label: "Simulador", path: "/simulador", permission: null },
-  { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca", permission: "canViewPayments" as const },
-  { icon: Users, label: "Cobradores", path: "/cobradores", permission: "canViewClients" as const },
-  { icon: Wallet, label: "Tesouraria", path: "/tesouraria", permission: "canViewTreasury" as const },
-  { icon: BarChart3, label: "Análises", path: "/analises", permission: "canViewReports" as const },
-  { icon: History, label: "Histórico", path: "/historico", permission: null },
-  { icon: Shield, label: "Auditoria", path: "/auditoria", permission: "canViewAuditLog" as const },
-  { icon: QrCode, label: "WhatsApp", path: "/qrcode", permission: null },
-  { icon: Bot, label: "Agente IA", path: "/agente-ia", permission: null },
-  { icon: Settings, label: "Configurações", path: "/configuracoes", permission: "canViewSettings" as const },
+const menuGroups = [
+  {
+    label: "Principal",
+    items: [
+      { icon: LayoutDashboard, label: "Dashboard", path: "/", permission: null },
+      { icon: Calculator, label: "Simulador", path: "/simulador", permission: null },
+    ],
+  },
+  {
+    label: "Gestão",
+    items: [
+      { icon: Users, label: "Clientes", path: "/clientes", permission: "canViewClients" as const },
+      { icon: FileText, label: "Contratos", path: "/contratos", permission: "canViewContracts" as const },
+      { icon: Users, label: "Cobradores", path: "/cobradores", permission: "canViewClients" as const },
+    ],
+  },
+  {
+    label: "Financeiro",
+    items: [
+      { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca", permission: "canViewPayments" as const },
+      { icon: Wallet, label: "Tesouraria", path: "/tesouraria", permission: "canViewTreasury" as const },
+    ],
+  },
+  {
+    label: "Relatórios",
+    items: [
+      { icon: BarChart3, label: "Análises", path: "/analises", permission: "canViewReports" as const },
+      { icon: History, label: "Histórico", path: "/historico", permission: null },
+      { icon: Shield, label: "Auditoria", path: "/auditoria", permission: "canViewAuditLog" as const },
+    ],
+  },
+  {
+    label: "Ferramentas",
+    items: [
+      { icon: QrCode, label: "WhatsApp", path: "/qrcode", permission: null },
+      { icon: Bot, label: "Agente IA", path: "/agente-ia", permission: null },
+      { icon: Settings, label: "Configurações", path: "/configuracoes", permission: "canViewSettings" as const },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -68,11 +83,6 @@ export function Sidebar() {
   const { theme, toggleTheme } = useTheme();
   const { hasPermission } = usePermissions();
   const [isCollapsed, setIsCollapsed] = useState(false);
-
-  // Filter menu items based on permissions
-  const menuItems = baseMenuItems.filter(item => 
-    item.permission === null || hasPermission(item.permission)
-  );
   const [showImport, setShowImport] = useState(false);
 
   const handleLogout = async () => {
@@ -84,7 +94,6 @@ export function Sidebar() {
     navigate("/login");
   };
 
-  // Get user initials from profile name
   const getInitials = (name: string) => {
     if (!name) return "U";
     const names = name.trim().split(" ");
@@ -92,169 +101,175 @@ export function Sidebar() {
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   };
 
+  const SidebarLink = ({ item, isActive }: { item: typeof menuGroups[0]["items"][0]; isActive: boolean }) => {
+    const Icon = item.icon;
+    const linkContent = (
+      <Link
+        to={item.path}
+        className={cn(
+          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition-all duration-200",
+          isActive
+            ? "bg-primary/10 text-primary shadow-sm"
+            : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+        )}
+      >
+        {isActive && (
+          <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
+        )}
+        <Icon className={cn("h-5 w-5 shrink-0 transition-colors", isActive && "text-primary")} />
+        {!isCollapsed && (
+          <span className="text-sm whitespace-nowrap overflow-hidden">{item.label}</span>
+        )}
+      </Link>
+    );
+
+    if (isCollapsed) {
+      return (
+        <Tooltip delayDuration={0}>
+          <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+          <TooltipContent side="right" sideOffset={12} className="font-medium">
+            {item.label}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return linkContent;
+  };
+
   return (
     <motion.aside
       initial={{ x: -100, opacity: 0 }}
-      animate={{ 
-        x: 0, 
-        opacity: 1,
-        width: isCollapsed ? 80 : 256,
-      }}
-      transition={{ 
+      animate={{ x: 0, opacity: 1, width: isCollapsed ? 72 : 256 }}
+      transition={{
         x: { duration: 0.5, ease: "easeOut" },
         opacity: { duration: 0.5, ease: "easeOut" },
         width: { duration: 0.3, ease: "easeInOut" },
       }}
-      className={cn(
-        "fixed left-0 top-0 z-40 h-screen",
-        isCollapsed ? "w-20" : "w-64"
-      )}
-      style={{
-        background: "hsl(var(--sidebar-background))",
-      }}
+      className={cn("fixed left-0 top-0 z-40 h-screen flex flex-col", isCollapsed ? "w-[72px]" : "w-64")}
+      style={{ background: "hsl(var(--sidebar-background))" }}
     >
-      {/* Border gradient right */}
+      {/* Border */}
       <div className="absolute right-0 top-0 h-full w-px bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" />
-      
-      {/* Logo section */}
-      <div className="flex h-20 items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-3">
+
+      {/* Logo */}
+      <div className="flex h-16 items-center justify-between px-3 shrink-0">
+        <Link to="/" className="flex items-center gap-2.5">
           <div className="relative">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-gold shadow-gold">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-gold shadow-gold">
+              <Sparkles className="h-4 w-4 text-primary-foreground" />
             </div>
-            <div className="absolute -inset-1 rounded-xl bg-primary/20 blur-md -z-10" />
           </div>
           {!isCollapsed && (
-            <div>
-              <h1 className="font-display text-lg font-bold text-gradient-gold">
-                Credifacil
-              </h1>
-            </div>
+            <h1 className="font-display text-lg font-bold text-gradient-gold">Credifacil</h1>
           )}
         </Link>
-        
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
+          {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </button>
       </div>
 
-      {/* Navigation - Scrollable area */}
-      <nav className="mt-6 px-3 overflow-y-auto flex-1" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-        <ul className="space-y-1 pb-4">
-          {menuItems.map((item, index) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin">
+        {menuGroups.map((group) => {
+          const visibleItems = group.items.filter(
+            (item) => item.permission === null || hasPermission(item.permission)
+          );
+          if (visibleItems.length === 0) return null;
 
-            return (
-              <motion.li
-                key={item.path}
-                custom={index}
-                initial="hidden"
-                animate="visible"
-                variants={menuItemVariants}
-                whileHover={{ scale: 1.02, x: 4 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Link
-                  to={item.path}
-                  className={cn(
-                    "group relative flex items-center gap-3 rounded-xl px-3 py-3 font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
-                  )}
-                >
-                  {isActive && (
-                    <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
-                  )}
-                  <Icon className={cn(
-                    "h-5 w-5 transition-colors",
-                    isActive && "text-primary"
-                  )} />
-                  {!isCollapsed && (
-                    <span className="text-sm whitespace-nowrap overflow-hidden">
-                      {item.label}
-                    </span>
-                  )}
-                  {isActive && !isCollapsed && (
-                    <div className="absolute right-3 h-1.5 w-1.5 rounded-full bg-primary">
-                      <div className="h-full w-full rounded-full bg-primary animate-pulse" />
-                    </div>
-                  )}
-                </Link>
-              </motion.li>
-            );
-          })}
-        </ul>
+          return (
+            <div key={group.label} className="mb-3">
+              {!isCollapsed && (
+                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                  {group.label}
+                </p>
+              )}
+              {isCollapsed && <div className="mx-auto mb-1 h-px w-6 bg-border/50" />}
+              <ul className="space-y-0.5">
+                {visibleItems.map((item) => (
+                  <li key={item.path}>
+                    <SidebarLink item={item} isActive={location.pathname === item.path} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </nav>
 
       {/* Bottom Section */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 space-y-3">
+      <div className="shrink-0 p-3 space-y-2 border-t border-border/30">
         {/* Quick Actions */}
-        {!isCollapsed && (
-          <div className="flex gap-2">
-            <button
-              onClick={toggleTheme}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-secondary/50 p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-              title={theme === "dark" ? "Tema claro" : "Tema escuro"}
-            >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
-            <button
-              onClick={() => setShowImport(true)}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-secondary/50 p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-              title="Importar Excel"
-            >
-              <Upload className="h-4 w-4" />
-            </button>
-          </div>
-        )}
+        <div className={cn("flex gap-1.5", isCollapsed && "flex-col items-center")}>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={toggleTheme}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side={isCollapsed ? "right" : "top"} sideOffset={8}>
+              {theme === "dark" ? "Tema claro" : "Tema escuro"}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowImport(true)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+              >
+                <Upload className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side={isCollapsed ? "right" : "top"} sideOffset={8}>
+              Importar Excel
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
         {/* User Section */}
-        <div className={cn(
-          "rounded-xl bg-secondary/30 p-3 backdrop-blur-sm",
-          isCollapsed && "flex items-center justify-center"
-        )}>
+        <div className={cn("rounded-xl bg-secondary/30 p-2.5", isCollapsed && "flex items-center justify-center")}>
           {!isCollapsed ? (
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 shrink-0 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold text-sm">
                 {getInitials(profile?.name || "")}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{profile?.name || "Usuário"}</p>
-                <p className="text-xs text-muted-foreground capitalize">{profile?.role || "Operador"}</p>
+                <p className="text-[11px] text-muted-foreground capitalize">{profile?.role || "Operador"}</p>
               </div>
-              <button 
-                onClick={handleLogout}
-                className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-              >
-                <LogOut className="h-4 w-4" />
-              </button>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleLogout}
+                    className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={8}>Sair</TooltipContent>
+              </Tooltip>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={toggleTheme}
-                className="h-8 w-8 rounded-lg bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </button>
-              <button 
-                onClick={handleLogout}
-                className="h-10 w-10 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold hover:opacity-80 transition-opacity"
-                title="Sair"
-              >
-                {getInitials(profile?.name || "")}
-              </button>
-            </div>
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleLogout}
+                  className="h-9 w-9 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold text-sm hover:opacity-80 transition-opacity"
+                >
+                  {getInitials(profile?.name || "")}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={12}>
+                <p className="font-medium">{profile?.name || "Usuário"}</p>
+                <p className="text-xs text-muted-foreground">Clique para sair</p>
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>
