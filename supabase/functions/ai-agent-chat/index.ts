@@ -267,7 +267,7 @@ const TOOLS = [
   },
 ];
 
-const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFácil**, um assistente especializado em gestão de cobranças e atendimento financeiro. Powered by GPT-5 Mini.
+const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFácil**, um assistente especializado em gestão de cobranças e atendimento financeiro. Powered by DeepSeek.
 
 ## Suas Capacidades (17 ferramentas)
 - Consultar dados de clientes e suas dívidas em tempo real (por WhatsApp ou nome)
@@ -1124,9 +1124,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) {
-    return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+  const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
+  if (!DEEPSEEK_API_KEY) {
+    return new Response(JSON.stringify({ error: "DEEPSEEK_API_KEY not configured" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -1140,15 +1140,15 @@ serve(async (req) => {
 
     const allMessages = [{ role: "system", content: SYSTEM_PROMPT }, ...messages];
 
-    // Use Lovable AI (OpenAI-compatible endpoint) with GPT-5 Mini
-    let response = await fetch("https://ai.lovable.dev/chat/completions", {
+    // Use DeepSeek API
+    let response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5-mini",
+        model: "deepseek-chat",
         messages: allMessages,
         tools: TOOLS,
         tool_choice: "auto",
@@ -1160,26 +1160,10 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Lovable AI error:", response.status, errText);
-
-      if (response.status >= 500) {
-        console.log("Retrying with fallback model...");
-        await new Promise(r => setTimeout(r, 2000));
-        response = await fetch("https://ai.lovable.dev/chat/completions", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: allMessages, tools: TOOLS, tool_choice: "auto", stream: false, temperature: 0.7, max_tokens: 4096 }),
-        });
-        if (!response.ok) {
-          return new Response(JSON.stringify({ error: "AI API indisponível após retry" }), {
-            status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      } else {
-        return new Response(JSON.stringify({ error: "Erro na AI API", details: errText }), {
-          status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      console.error("DeepSeek API error:", response.status, errText);
+      return new Response(JSON.stringify({ error: "Erro na DeepSeek API", details: errText }), {
+        status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     let result = await response.json();
@@ -1211,11 +1195,11 @@ serve(async (req) => {
         });
       }
 
-      response = await fetch("https://ai.lovable.dev/chat/completions", {
+      response = await fetch("https://api.deepseek.com/chat/completions", {
         method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "openai/gpt-5-mini",
+          model: "deepseek-chat",
           messages: toolCallMessages,
           tools: TOOLS,
           tool_choice: "auto",
