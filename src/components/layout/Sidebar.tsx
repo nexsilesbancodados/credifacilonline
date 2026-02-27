@@ -41,10 +41,6 @@ const menuItemVariants = {
   }),
 };
 
-const sidebarVariants = {
-  expanded: { width: 256 },
-  collapsed: { width: 80 },
-};
 
 const baseMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/", permission: null },
