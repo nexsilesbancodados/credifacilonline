@@ -42,6 +42,9 @@ import {
   BookMarked,
   FileBarChart,
   Target,
+  CalendarClock,
+  FileText,
+  ScrollText,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
@@ -74,9 +77,21 @@ interface AgentMetrics {
   messages_sent_whatsapp: number;
 }
 
+interface AIReport {
+  id: string;
+  title: string;
+  report_type: string;
+  content: string;
+  insights: string[];
+  period_start: string;
+  period_end: string;
+  created_at: string;
+}
+
 const TOOL_ICONS: Record<string, typeof Phone> = {
   get_client_info: Users,
   search_client_by_name: Search,
+  get_client_contracts: ScrollText,
   get_renegotiation_options: DollarSign,
   register_payment_promise: CheckCircle2,
   mark_installment_paid: CreditCard,
@@ -90,11 +105,13 @@ const TOOL_ICONS: Record<string, typeof Phone> = {
   save_client_memory: BookMarked,
   predict_defaults: Target,
   generate_report: FileBarChart,
+  schedule_followup: CalendarClock,
 };
 
 const TOOL_LABELS: Record<string, string> = {
   get_client_info: "Consultar Cliente",
   search_client_by_name: "Buscar por Nome",
+  get_client_contracts: "Contratos do Cliente",
   get_renegotiation_options: "Renegociação",
   register_payment_promise: "Promessa de Pagamento",
   mark_installment_paid: "Registrar Pagamento",
@@ -108,6 +125,7 @@ const TOOL_LABELS: Record<string, string> = {
   save_client_memory: "Salvar Memória",
   predict_defaults: "Análise Preditiva",
   generate_report: "Gerar Relatório",
+  schedule_followup: "Agendar Follow-up",
 };
 
 const QUICK_ACTIONS = [
@@ -119,6 +137,8 @@ const QUICK_ACTIONS = [
   { label: "🔍 Buscar cliente", message: "Busque o cliente pelo nome " },
   { label: "💳 Registrar pagamento", message: "Registre o pagamento da parcela do cliente com WhatsApp " },
   { label: "🧠 Memória do cliente", message: "Consulte a memória e histórico do cliente com WhatsApp " },
+  { label: "📋 Ver contratos", message: "Liste os contratos do cliente com WhatsApp " },
+  { label: "📅 Agendar follow-up", message: "Agende um follow-up para o cliente com WhatsApp " },
 ];
 
 const MetricCard = ({ icon: Icon, label, value, sub }: { icon: typeof Activity; label: string; value: string | number; sub?: string }) => (
@@ -171,6 +191,7 @@ const AgenteIA = () => {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [reports, setReports] = useState<AIReport[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -202,10 +223,21 @@ const AgenteIA = () => {
     if (data) setConversations(data as unknown as ConversationItem[]);
   }, [profile?.user_id]);
 
+  const fetchReports = useCallback(async () => {
+    if (!profile?.user_id) return;
+    const { data } = await supabase
+      .from("ai_reports")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (data) setReports(data as unknown as AIReport[]);
+  }, [profile?.user_id]);
+
   useEffect(() => {
     fetchMetrics();
     fetchConversations();
-  }, [fetchMetrics, fetchConversations]);
+    fetchReports();
+  }, [fetchMetrics, fetchConversations, fetchReports]);
 
   const createConversation = async (title?: string): Promise<string | null> => {
     if (!profile?.user_id) return null;
@@ -265,7 +297,6 @@ const AgenteIA = () => {
     const text = messageText || input.trim();
     if (!text || isLoading) return;
 
-    // Create conversation with auto-title from first message
     let activeConvId = conversationId;
     if (!activeConvId) {
       const autoTitle = text.length > 50 ? text.substring(0, 47) + "..." : text;
@@ -315,6 +346,10 @@ const AgenteIA = () => {
       setMessages((prev) => [...prev, assistantMessage]);
       fetchMetrics();
       fetchConversations();
+      // Refresh reports if generate_report was called
+      if (data.tool_calls?.some((tc: any) => tc.tool === "generate_report")) {
+        fetchReports();
+      }
     } catch (err: any) {
       console.error("AI Agent error:", err);
       toast.error("Erro: " + (err.message || "Erro desconhecido"));
@@ -378,6 +413,57 @@ const AgenteIA = () => {
     );
   };
 
+  const renderReport = (report: AIReport) => {
+    let parsed: any = {};
+    try { parsed = JSON.parse(report.content); } catch {}
+    const insights = (report.insights || parsed.insights || []) as string[];
+
+    return (
+      <motion.div
+        key={report.id}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Card className="mb-3">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <FileBarChart className="h-4 w-4 text-primary" />
+                {report.title}
+              </CardTitle>
+              <Badge variant="outline" className="text-xs">
+                {report.report_type === "weekly" ? "Semanal" : report.report_type === "monthly" ? "Mensal" : "Personalizado"}
+              </Badge>
+            </div>
+            <CardDescription className="text-xs">
+              {new Date(report.period_start).toLocaleDateString("pt-BR")} — {new Date(report.period_end).toLocaleDateString("pt-BR")}
+              {" • "}Gerado em {new Date(report.created_at).toLocaleDateString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {parsed.metricas && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                {Object.entries(parsed.metricas).map(([key, val]) => (
+                  <div key={key} className="rounded-md border border-border/40 bg-muted/20 p-2 text-center">
+                    <p className="text-xs text-muted-foreground">{key.replace(/_/g, " ")}</p>
+                    <p className="text-sm font-semibold text-foreground">{String(val)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {insights.length > 0 && (
+              <div className="space-y-1">
+                {insights.map((insight, i) => (
+                  <p key={i} className="text-xs text-foreground">{String(insight)}</p>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  };
+
   return (
     <MainLayout>
       <div className="flex flex-col h-[calc(100vh-6rem)]">
@@ -389,12 +475,12 @@ const AgenteIA = () => {
               Agente IA de Cobrança
             </h1>
             <p className="text-muted-foreground text-sm mt-0.5">
-              DeepSeek + Evolution API • 11 ferramentas • Cobrança inteligente
+              GPT-5 Mini • 17 ferramentas • Memória + Predição + Relatórios
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="gap-1">
-              <Sparkles className="h-3 w-3" /> DeepSeek V3
+              <Sparkles className="h-3 w-3" /> GPT-5 Mini
             </Badge>
             <Button variant="outline" size="sm" onClick={() => setShowHistory(!showHistory)}>
               <MessagesSquare className="h-4 w-4 mr-1" /> Histórico
@@ -414,6 +500,7 @@ const AgenteIA = () => {
           <TabsList className="w-fit">
             <TabsTrigger value="chat" className="gap-1"><MessageSquare className="h-4 w-4" /> Chat</TabsTrigger>
             <TabsTrigger value="metrics" className="gap-1"><BarChart3 className="h-4 w-4" /> Métricas</TabsTrigger>
+            <TabsTrigger value="reports" className="gap-1"><FileText className="h-4 w-4" /> Relatórios</TabsTrigger>
           </TabsList>
 
           <TabsContent value="chat" className="flex-1 flex flex-col overflow-hidden mt-3">
@@ -482,15 +569,15 @@ const AgenteIA = () => {
                       </motion.div>
                       <h3 className="text-lg font-semibold text-foreground mb-1">Agente IA Pronto</h3>
                       <p className="text-muted-foreground text-sm max-w-md mb-6">
-                        11 ferramentas: consulta, busca, pagamento, cobrança, renegociação, WhatsApp em lote, escalação e mais.
+                        17 ferramentas: consulta, contratos, pagamento, cobrança, renegociação, WhatsApp, memória, predição, relatórios e mais.
                       </p>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-3xl w-full">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 max-w-4xl w-full">
                         {QUICK_ACTIONS.map((action, i) => (
                           <motion.div
                             key={action.label}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.05 }}
+                            transition={{ delay: i * 0.04 }}
                           >
                             <Button
                               variant="outline"
@@ -680,6 +767,35 @@ const AgenteIA = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-3 overflow-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <FileBarChart className="h-5 w-5 text-primary" />
+                  Relatórios Gerados pela IA
+                </h2>
+                <p className="text-sm text-muted-foreground">Histórico de relatórios com insights e métricas</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => { setActiveTab("chat"); sendMessage("Gere um relatório semanal com insights e recomendações"); }}>
+                <Plus className="h-4 w-4 mr-1" /> Novo Relatório
+              </Button>
+            </div>
+
+            {reports.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <FileBarChart className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                  <p>Nenhum relatório gerado ainda.</p>
+                  <p className="text-sm mt-1">Use o chat para pedir um relatório semanal ou mensal.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div>
+                {reports.map(renderReport)}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
