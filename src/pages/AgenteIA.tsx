@@ -38,6 +38,10 @@ import {
   Check,
   Search,
   CreditCard,
+  Brain,
+  BookMarked,
+  FileBarChart,
+  Target,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
@@ -82,6 +86,10 @@ const TOOL_ICONS: Record<string, typeof Phone> = {
   get_pending_by_tier: Users,
   bulk_send_collection: Zap,
   get_dashboard_summary: LayoutDashboard,
+  get_client_memory: Brain,
+  save_client_memory: BookMarked,
+  predict_defaults: Target,
+  generate_report: FileBarChart,
 };
 
 const TOOL_LABELS: Record<string, string> = {
@@ -96,17 +104,21 @@ const TOOL_LABELS: Record<string, string> = {
   get_pending_by_tier: "Inadimplentes por Faixa",
   bulk_send_collection: "Cobrança em Lote",
   get_dashboard_summary: "Resumo Dashboard",
+  get_client_memory: "Memória do Cliente",
+  save_client_memory: "Salvar Memória",
+  predict_defaults: "Análise Preditiva",
+  generate_report: "Gerar Relatório",
 };
 
 const QUICK_ACTIONS = [
   { label: "📊 Resumo da carteira", message: "Me dê um resumo completo da carteira de clientes" },
-  { label: "🟡 Atrasos leves (1-7d)", message: "Liste os clientes com atraso de 1 a 7 dias e sugira a melhor abordagem" },
-  { label: "🟠 Atrasos moderados", message: "Quais clientes estão com 8 a 30 dias de atraso? Sugira ações." },
-  { label: "🔴 Atrasos críticos", message: "Liste os clientes com mais de 30 dias de atraso com análise de risco" },
+  { label: "🔮 Análise preditiva", message: "Faça uma análise preditiva e identifique os clientes com maior risco de inadimplência" },
+  { label: "📈 Relatório semanal", message: "Gere um relatório semanal com insights e recomendações" },
+  { label: "🟡 Atrasos leves", message: "Liste os clientes com atraso de 1 a 7 dias" },
+  { label: "🔴 Atrasos críticos", message: "Liste os clientes com mais de 30 dias de atraso" },
   { label: "🔍 Buscar cliente", message: "Busque o cliente pelo nome " },
-  { label: "💰 Renegociar dívida", message: "Quais opções de renegociação temos para o cliente " },
   { label: "💳 Registrar pagamento", message: "Registre o pagamento da parcela do cliente com WhatsApp " },
-  { label: "📱 Cobrança em lote", message: "Envie cobrança em lote para todos os clientes com atraso moderado" },
+  { label: "🧠 Memória do cliente", message: "Consulte a memória e histórico do cliente com WhatsApp " },
 ];
 
 const MetricCard = ({ icon: Icon, label, value, sub }: { icon: typeof Activity; label: string; value: string | number; sub?: string }) => (

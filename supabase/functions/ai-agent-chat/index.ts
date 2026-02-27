@@ -174,20 +174,83 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "get_client_memory",
+      description: "Recupera a memória persistente de um cliente: preferências, sentimento, histórico de interações, padrões comportamentais e notas do operador.",
+      parameters: {
+        type: "object",
+        properties: {
+          whatsapp: { type: "string", description: "WhatsApp do cliente" },
+        },
+        required: ["whatsapp"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "save_client_memory",
+      description: "Salva uma nota ou informação na memória persistente do cliente para personalizar futuras interações.",
+      parameters: {
+        type: "object",
+        properties: {
+          whatsapp: { type: "string", description: "WhatsApp do cliente" },
+          key: { type: "string", description: "Chave da informação (ex: preferencia_contato, observacao, motivo_atraso)" },
+          value: { type: "string", description: "Valor/conteúdo da informação" },
+          category: { type: "string", enum: ["preference", "behavior", "note", "interaction"], description: "Categoria da memória" },
+        },
+        required: ["whatsapp", "key", "value"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "predict_defaults",
+      description: "Análise preditiva: identifica clientes com alta probabilidade de inadimplência com base no histórico de pagamentos, padrões de atraso e comportamento.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Número máximo de clientes a analisar (padrão: 10)" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "generate_report",
+      description: "Gera um relatório inteligente com insights, tendências e recomendações estratégicas para o período especificado.",
+      parameters: {
+        type: "object",
+        properties: {
+          period: { type: "string", enum: ["weekly", "monthly", "custom"], description: "Período do relatório" },
+          start_date: { type: "string", description: "Data início (YYYY-MM-DD), obrigatório se period=custom" },
+          end_date: { type: "string", description: "Data fim (YYYY-MM-DD), obrigatório se period=custom" },
+        },
+        required: ["period"],
+      },
+    },
+  },
 ];
 
 const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFácil**, um assistente especializado em gestão de cobranças e atendimento financeiro.
 
-## Suas Capacidades
+## Suas Capacidades (14 ferramentas)
 - Consultar dados de clientes e suas dívidas em tempo real (por WhatsApp ou nome)
 - Enviar mensagens de cobrança personalizadas via WhatsApp
 - Oferecer opções de renegociação inteligentes
-- Registrar promessas de pagamento
-- Registrar pagamentos recebidos
+- Registrar promessas de pagamento e pagamentos recebidos
 - Analisar a carteira de inadimplentes por gravidade
 - Enviar cobranças em lote segmentadas
 - Escalar para atendimento humano quando necessário
 - Fornecer resumo dashboard da operação
+- **MEMÓRIA**: Consultar e salvar notas/preferências sobre clientes para personalizar interações futuras
+- **PREDIÇÃO**: Identificar clientes com alta probabilidade de inadimplência antes do vencimento
+- **RELATÓRIOS**: Gerar relatórios com insights e recomendações estratégicas
 
 ## Regras de Comportamento
 1. **Tom adaptativo**: Use tom amigável para atrasos leves, formal para moderados e firme (nunca agressivo) para críticos
@@ -197,9 +260,11 @@ const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFác
 5. **Formatação**: Valores em R$ (Real brasileiro), datas em DD/MM/AAAA
 6. **Escalação inteligente**: Escale quando detectar: ameaças, questões jurídicas, pedidos repetidos de prazo, ou situações fora do seu escopo
 7. **Confirmação**: Sempre confirme ações importantes antes de executar (envio de mensagem, registro de promessa)
-8. **Contexto**: Sempre consulte o histórico do cliente antes de enviar cobrança
+8. **Contexto**: Sempre consulte o histórico e memória do cliente antes de enviar cobrança
 9. **Eficiência**: Agrupe informações para evitar múltiplas ferramentas quando possível
 10. **Segurança**: Nunca revele dados sensíveis de outros clientes
+11. **Memória**: Use save_client_memory para registrar informações úteis sobre o cliente (motivo do atraso, preferência de contato, etc.)
+12. **Predição**: Quando solicitado, analise padrões de pagamento para prever inadimplência
 
 ## Estratégia de Cobrança
 - **1-7 dias**: Lembrete gentil, pergunte se esqueceu ou precisa de ajuda
@@ -210,7 +275,8 @@ const SYSTEM_PROMPT = `Você é o **Agente de Cobrança Inteligente da CrediFác
 - Responda sempre em português brasileiro
 - Use markdown para formatar listas, tabelas e destaques
 - Seja conciso mas completo
-- Quando o operador pedir para cobrar um cliente, busque os dados primeiro, depois sugira a mensagem para aprovação`;
+- Quando o operador pedir para cobrar um cliente, busque os dados primeiro, depois sugira a mensagem para aprovação
+- Para relatórios, apresente dados em formato visual com tabelas e gráficos emoji`;
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -658,6 +724,217 @@ async function executeToolCall(
           },
           execution_time_ms: Date.now() - startTime,
         };
+      }
+
+      case "get_client_memory": {
+        const { data: clients } = await findClientByPhone(supabase, String(args.whatsapp));
+        const client = clients?.[0];
+        if (!client) return { success: false, message: "Cliente não encontrado" };
+
+        const { data: memories } = await supabase
+          .from("client_memory")
+          .select("key, value, category, updated_at")
+          .eq("client_id", client.id)
+          .order("updated_at", { ascending: false });
+
+        if (!memories || memories.length === 0) {
+          return { success: true, client_name: client.name, message: "Nenhuma memória registrada para este cliente", memories: [], execution_time_ms: Date.now() - startTime };
+        }
+
+        const grouped: Record<string, any[]> = {};
+        memories.forEach((m: any) => {
+          if (!grouped[m.category]) grouped[m.category] = [];
+          grouped[m.category].push({ chave: m.key, valor: m.value, atualizado: fmtDate(m.updated_at) });
+        });
+
+        return {
+          success: true,
+          client_name: client.name,
+          total_memorias: memories.length,
+          memorias_por_categoria: grouped,
+          execution_time_ms: Date.now() - startTime,
+        };
+      }
+
+      case "save_client_memory": {
+        const { data: clients } = await findClientByPhone(supabase, String(args.whatsapp));
+        const client = clients?.[0];
+        if (!client) return { success: false, message: "Cliente não encontrado" };
+
+        await supabase.from("client_memory").upsert({
+          client_id: client.id,
+          operator_id: client.operator_id,
+          key: String(args.key),
+          value: String(args.value),
+          category: String(args.category || "note"),
+        }, { onConflict: "client_id,key" });
+
+        return {
+          success: true,
+          message: `✅ Memória salva para ${client.name}: ${args.key} = ${args.value}`,
+          execution_time_ms: Date.now() - startTime,
+        };
+      }
+
+      case "predict_defaults": {
+        const limit = Number(args.limit) || 10;
+        const today = new Date();
+        
+        const { data: activeClients } = await supabase
+          .from("clients")
+          .select("id, name, whatsapp, status")
+          .in("status", ["Ativo", "Atraso"])
+          .limit(100);
+
+        if (!activeClients || activeClients.length === 0) {
+          return { success: true, message: "Nenhum cliente ativo encontrado", predictions: [] };
+        }
+
+        const predictions: any[] = [];
+
+        for (const client of activeClients) {
+          const { data: allInst } = await supabase
+            .from("installments")
+            .select("status, due_date, payment_date, amount_due")
+            .eq("client_id", client.id)
+            .order("due_date", { ascending: true });
+
+          if (!allInst || allInst.length < 2) continue;
+
+          const total = allInst.length;
+          const paid = allInst.filter((i: any) => i.status === "Pago").length;
+          const overdue = allInst.filter((i: any) => i.status === "Atrasado").length;
+
+          const lateDays = allInst
+            .filter((i: any) => i.status === "Pago" && i.payment_date)
+            .map((i: any) => Math.max(0, Math.floor((new Date(i.payment_date).getTime() - new Date(i.due_date).getTime()) / 86400000)));
+
+          const avgLateDays = lateDays.length > 0 ? lateDays.reduce((s, d) => s + d, 0) / lateDays.length : 0;
+          const maxLateDays = lateDays.length > 0 ? Math.max(...lateDays) : 0;
+          
+          let riskScore = 0;
+          riskScore += (overdue / total) * 30;
+          if (avgLateDays > 15) riskScore += 25;
+          else if (avgLateDays > 7) riskScore += 15;
+          else if (avgLateDays > 3) riskScore += 8;
+          
+          if (lateDays.length >= 3) {
+            const recentAvg = lateDays.slice(-3).reduce((s, d) => s + d, 0) / 3;
+            const olderAvg = lateDays.slice(0, -3).reduce((s, d) => s + d, 0) / Math.max(1, lateDays.length - 3);
+            if (recentAvg > olderAvg * 1.5) riskScore += 20;
+            else if (recentAvg > olderAvg) riskScore += 10;
+          }
+          
+          const completionRate = paid / total;
+          if (completionRate < 0.5) riskScore += 15;
+          else if (completionRate < 0.7) riskScore += 8;
+          if (client.status === "Atraso") riskScore += 10;
+
+          const pendingValue = allInst.filter((i: any) => i.status !== "Pago").reduce((s: number, i: any) => s + (i.amount_due || 0), 0);
+          const nextDue = allInst.find((i: any) => i.status === "Pendente");
+
+          if (riskScore >= 20) {
+            predictions.push({
+              cliente: client.name,
+              whatsapp: client.whatsapp || "N/A",
+              score_risco: Math.min(100, Math.round(riskScore)),
+              nivel: riskScore >= 60 ? "🔴 Alto" : riskScore >= 40 ? "🟠 Médio" : "🟡 Baixo",
+              fatores: {
+                parcelas_atrasadas: overdue,
+                media_dias_atraso: Math.round(avgLateDays),
+                max_dias_atraso: maxLateDays,
+                taxa_pagamento: `${Math.round(completionRate * 100)}%`,
+                tendencia: lateDays.length >= 3 ? (lateDays.slice(-1)[0] > avgLateDays ? "📈 Piorando" : "📉 Melhorando") : "➡️ Insuficiente",
+              },
+              valor_em_risco: fmt(pendingValue),
+              proxima_parcela: nextDue ? fmtDate(nextDue.due_date) : "N/A",
+              recomendacao: riskScore >= 60 ? "Ação urgente: contato proativo, oferecer renegociação" : riskScore >= 40 ? "Monitorar: enviar lembrete preventivo" : "Atenção: acompanhar próximo vencimento",
+            });
+          }
+        }
+
+        predictions.sort((a, b) => b.score_risco - a.score_risco);
+
+        return {
+          success: true,
+          total_analisados: activeClients.length,
+          total_em_risco: predictions.length,
+          predictions: predictions.slice(0, limit),
+          execution_time_ms: Date.now() - startTime,
+        };
+      }
+
+      case "generate_report": {
+        const period = String(args.period);
+        const today = new Date();
+        let startDate: Date, endDate: Date;
+
+        if (period === "weekly") {
+          startDate = new Date(today); startDate.setDate(startDate.getDate() - 7);
+          endDate = today;
+        } else if (period === "monthly") {
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          endDate = today;
+        } else {
+          startDate = new Date(String(args.start_date));
+          endDate = new Date(String(args.end_date));
+        }
+
+        const startStr = startDate.toISOString().split("T")[0];
+        const endStr = endDate.toISOString().split("T")[0];
+
+        const [paymentsRes, newContractsRes, newClientsRes, collectionsRes, overdueRes] = await Promise.all([
+          supabase.from("installments").select("amount_paid, payment_date, status").eq("status", "Pago").gte("payment_date", startStr).lte("payment_date", endStr),
+          supabase.from("contracts").select("id, capital, total_amount, created_at").gte("created_at", startStr).lte("created_at", endStr + "T23:59:59"),
+          supabase.from("clients").select("id, created_at").gte("created_at", startStr).lte("created_at", endStr + "T23:59:59"),
+          supabase.from("collection_logs").select("id, status, channel").gte("sent_at", startStr).lte("sent_at", endStr + "T23:59:59"),
+          supabase.from("installments").select("amount_due, fine, status").eq("status", "Atrasado"),
+        ]);
+
+        const totalReceived = (paymentsRes.data || []).reduce((s: number, i: any) => s + (i.amount_paid || 0), 0);
+        const totalPayments = paymentsRes.data?.length || 0;
+        const newContracts = newContractsRes.data?.length || 0;
+        const newCapital = (newContractsRes.data || []).reduce((s: number, c: any) => s + (c.capital || 0), 0);
+        const newClients = newClientsRes.data?.length || 0;
+        const totalCollections = collectionsRes.data?.length || 0;
+        const sentCollections = (collectionsRes.data || []).filter((c: any) => c.status === "sent").length;
+        const currentOverdue = (overdueRes.data || []).reduce((s: number, i: any) => s + (i.amount_due || 0) + (i.fine || 0), 0);
+
+        const insights = [
+          totalReceived > 0 ? `💰 Recebimento total: ${fmt(totalReceived)} em ${totalPayments} pagamentos` : "⚠️ Nenhum pagamento registrado no período",
+          newContracts > 0 ? `📝 ${newContracts} novos contratos totalizando ${fmt(newCapital)} em capital` : "📝 Nenhum novo contrato no período",
+          newClients > 0 ? `👥 ${newClients} novos clientes cadastrados` : null,
+          totalCollections > 0 ? `📨 ${totalCollections} cobranças enviadas (${sentCollections} entregues, taxa: ${Math.round((sentCollections / totalCollections) * 100)}%)` : null,
+          `🔴 Inadimplência atual: ${fmt(currentOverdue)}`,
+        ].filter(Boolean);
+
+        const reportData = {
+          periodo: `${fmtDate(startStr)} a ${fmtDate(endStr)}`,
+          tipo: period === "weekly" ? "Semanal" : period === "monthly" ? "Mensal" : "Personalizado",
+          metricas: {
+            recebimentos: fmt(totalReceived),
+            total_pagamentos: totalPayments,
+            novos_contratos: newContracts,
+            capital_novos_contratos: fmt(newCapital),
+            novos_clientes: newClients,
+            cobrancas_enviadas: totalCollections,
+            taxa_entrega: totalCollections > 0 ? `${Math.round((sentCollections / totalCollections) * 100)}%` : "N/A",
+            inadimplencia_atual: fmt(currentOverdue),
+          },
+          insights,
+        };
+
+        await supabase.from("ai_reports").insert({
+          operator_id: "system",
+          report_type: period,
+          title: `Relatório ${reportData.tipo} - ${reportData.periodo}`,
+          content: JSON.stringify(reportData),
+          insights: insights,
+          period_start: startStr,
+          period_end: endStr,
+        });
+
+        return { success: true, ...reportData, execution_time_ms: Date.now() - startTime };
       }
 
       default:

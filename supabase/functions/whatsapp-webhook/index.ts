@@ -32,12 +32,10 @@ serve(async (req) => {
     const payload = await req.json();
     console.log("Webhook received:", JSON.stringify(payload).substring(0, 500));
 
-    // Evolution API webhook format
     const event = payload.event || payload.type;
     const data = payload.data || payload;
     const instanceName = payload.instance || payload.instanceName || data.instance;
 
-    // Only process incoming text messages
     if (event !== "messages.upsert" && event !== "MESSAGES_UPSERT") {
       return new Response(JSON.stringify({ status: "ignored", event }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -64,7 +62,6 @@ serve(async (req) => {
       });
     }
 
-    // Check if group message (skip)
     if (remoteJid.includes("@g.us")) {
       return new Response(JSON.stringify({ status: "ignored", reason: "group_message" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -77,7 +74,7 @@ serve(async (req) => {
     const cleanPhone = phone.replace(/\D/g, "").slice(-11);
     const { data: clients } = await supabase
       .from("clients")
-      .select("id, name, operator_id")
+      .select("id, name, operator_id, status")
       .or(`whatsapp.ilike.%${cleanPhone},whatsapp.ilike.%${cleanPhone.slice(-9)}`)
       .limit(1);
 
@@ -100,7 +97,6 @@ serve(async (req) => {
         });
       }
 
-      // Check time window
       if (s?.ai_agent_start_time && s?.ai_agent_end_time) {
         const now = new Date();
         const hour = now.getHours();
@@ -115,7 +111,61 @@ serve(async (req) => {
       }
     }
 
-    // Call AI agent
+    // Build context with memory
+    let contextParts: string[] = [];
+    
+    // Load client memory for personalization
+    if (client) {
+      const { data: memories } = await supabase
+        .from("client_memory")
+        .select("key, value, category")
+        .eq("client_id", client.id)
+        .order("updated_at", { ascending: false })
+        .limit(10);
+
+      if (memories && memories.length > 0) {
+        const memoryContext = memories.map((m: any) => `- ${m.key}: ${m.value}`).join("\n");
+        contextParts.push(`[Memória do cliente ${client.name}]\n${memoryContext}`);
+      }
+
+      // Load recent conversation history for continuity
+      const { data: recentLogs } = await supabase
+        .from("collection_logs")
+        .select("message_sent, sent_at, status")
+        .eq("client_id", client.id)
+        .eq("channel", "whatsapp")
+        .order("sent_at", { ascending: false })
+        .limit(5);
+
+      if (recentLogs && recentLogs.length > 0) {
+        const recentContext = recentLogs.map((l: any) => 
+          `[${new Date(l.sent_at).toLocaleDateString("pt-BR")}] Bot: ${l.message_sent?.substring(0, 100)}`
+        ).join("\n");
+        contextParts.push(`[Últimas interações com este cliente]\n${recentContext}`);
+      }
+
+      // Load pending installments summary
+      const { data: installments } = await supabase
+        .from("installments")
+        .select("amount_due, due_date, status, fine, installment_number, total_installments")
+        .eq("client_id", client.id)
+        .in("status", ["Pendente", "Atrasado"])
+        .order("due_date", { ascending: true })
+        .limit(5);
+
+      if (installments && installments.length > 0) {
+        const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+        const total = installments.reduce((s: number, i: any) => s + (i.amount_due || 0) + (i.fine || 0), 0);
+        const instContext = installments.map((i: any) => 
+          `  Parcela ${i.installment_number}/${i.total_installments}: ${fmt(i.amount_due)} venc. ${new Date(i.due_date).toLocaleDateString("pt-BR")} (${i.status})`
+        ).join("\n");
+        contextParts.push(`[Dívida pendente: ${fmt(total)}]\n${instContext}`);
+      }
+    }
+
+    const enrichedContext = contextParts.length > 0 ? `\n\n${contextParts.join("\n\n")}` : "";
+
+    // Call AI agent with enriched context
     const aiResponse = await fetch(`${supabaseUrl}/functions/v1/ai-agent-chat`, {
       method: "POST",
       headers: {
@@ -126,7 +176,7 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `[Mensagem recebida via WhatsApp do número ${phone}${client ? ` (Cliente: ${client.name})` : ""}]\n\n${textContent}`,
+            content: `[Mensagem recebida via WhatsApp do número ${phone}${client ? ` (Cliente: ${client.name}, Status: ${client.status})` : " (Cliente não cadastrado)"}]${enrichedContext}\n\nMensagem do cliente: "${textContent}"\n\nResponda diretamente ao cliente de forma empática e profissional. Se ele perguntar sobre sua dívida, use as ferramentas para consultar. Se ele quiser negociar, ofereça opções. Mantenha a resposta curta e adequada para WhatsApp.`,
           },
         ],
         operator_id: operatorId,
@@ -142,7 +192,14 @@ serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const responseText = aiData.response || "Desculpe, não consegui processar sua mensagem. Um atendente entrará em contato.";
+    const responseText = aiData.response || "Desculpe, não consegui processar sua mensagem. Um atendente entrará em contato em breve.";
+
+    // Clean markdown from WhatsApp response (remove ** bold markers etc)
+    const cleanResponse = responseText
+      .replace(/\*\*(.*?)\*\*/g, "*$1*")  // Convert markdown bold to WhatsApp bold
+      .replace(/#{1,3}\s/g, "")           // Remove headers
+      .replace(/```[\s\S]*?```/g, "")      // Remove code blocks
+      .trim();
 
     // Send reply via Evolution API
     const formattedPhone = phone.startsWith("55") ? phone : `55${phone}`;
@@ -151,20 +208,21 @@ serve(async (req) => {
     const sendResponse = await fetch(`${baseUrl}/message/sendText/${instanceName}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: EVOLUTION_API_KEY },
-      body: JSON.stringify({ number: formattedPhone, text: responseText }),
+      body: JSON.stringify({ number: formattedPhone, text: cleanResponse }),
     });
 
     if (!sendResponse.ok) {
       console.error("Failed to send reply:", await sendResponse.text());
     }
 
-    // Log the interaction
+    // Log and save memory
     if (client) {
+      // Log interaction
       await supabase.from("collection_logs").insert({
         user_id: operatorId,
         client_id: client.id,
         channel: "whatsapp",
-        message_sent: responseText,
+        message_sent: cleanResponse,
         status: sendResponse.ok ? "sent" : "failed",
       });
 
@@ -174,12 +232,54 @@ serve(async (req) => {
         type: "ai_auto_reply",
         description: `Resposta automática IA para: "${textContent.substring(0, 50)}..."`,
         metadata: {
-          source: "whatsapp-webhook",
+          source: "whatsapp-webhook-v2",
           phone,
+          incoming_message: textContent.substring(0, 200),
           ai_tokens: aiData.usage?.tokens || 0,
           tool_calls: aiData.tool_calls?.length || 0,
         },
       });
+
+      // Save conversation context to memory
+      await supabase.from("client_memory").upsert({
+        client_id: client.id,
+        operator_id: operatorId,
+        key: "last_whatsapp_interaction",
+        value: new Date().toISOString(),
+        category: "interaction",
+      }, { onConflict: "client_id,key" });
+
+      // Detect sentiment and save
+      const lowerText = textContent.toLowerCase();
+      let sentiment = "neutro";
+      if (lowerText.match(/obrigad|agradeç|valeu|perfeito|ótimo|bom/)) sentiment = "positivo";
+      else if (lowerText.match(/raiva|absurd|vergonha|advogado|procon|reclamar|palhaçada|roubo/)) sentiment = "negativo";
+      else if (lowerText.match(/pagar|vou pagar|posso|quando|boleto|pix/)) sentiment = "interessado";
+
+      await supabase.from("client_memory").upsert({
+        client_id: client.id,
+        operator_id: operatorId,
+        key: "last_sentiment",
+        value: sentiment,
+        category: "behavior",
+      }, { onConflict: "client_id,key" });
+
+      // Track interaction count
+      const { data: countMem } = await supabase
+        .from("client_memory")
+        .select("value")
+        .eq("client_id", client.id)
+        .eq("key", "whatsapp_interaction_count")
+        .limit(1);
+
+      const currentCount = countMem?.[0] ? parseInt(countMem[0].value) : 0;
+      await supabase.from("client_memory").upsert({
+        client_id: client.id,
+        operator_id: operatorId,
+        key: "whatsapp_interaction_count",
+        value: String(currentCount + 1),
+        category: "behavior",
+      }, { onConflict: "client_id,key" });
     }
 
     return new Response(
@@ -187,6 +287,7 @@ serve(async (req) => {
         status: "processed",
         client_found: !!client,
         response_sent: sendResponse.ok,
+        context_used: contextParts.length > 0,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
