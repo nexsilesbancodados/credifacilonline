@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useClients } from "@/hooks/useClients";
 import { useTreasury } from "@/hooks/useTreasury";
-import { parseISO, differenceInDays, startOfMonth, subMonths, subDays, startOfQuarter, startOfYear, isWithinInterval } from "date-fns";
+import { parseISO, differenceInDays, startOfMonth, subMonths, subDays, startOfQuarter, startOfYear } from "date-fns";
 
 export type PeriodFilter = "7d" | "month" | "quarter" | "year" | "all";
 
