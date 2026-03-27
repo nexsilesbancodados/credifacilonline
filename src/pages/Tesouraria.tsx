@@ -14,8 +14,6 @@ import {
   Trash2,
   Target,
   DollarSign,
-  Bell,
-  PiggyBank,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTreasury, CreateTransactionData } from "@/hooks/useTreasury";
@@ -123,9 +121,6 @@ const Tesouraria = () => {
       style: "currency",
       currency: "BRL",
     }).format(value);
-
-  // Count pending notifications (overdue installments)
-  const overdueCount = 5; // Placeholder - could be fetched from installments
 
   return (
     <MainLayout>

@@ -2,9 +2,9 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import {
-  Clock, AlertTriangle, CalendarClock, Phone, MessageCircle,
+  Clock, AlertTriangle, CalendarClock, MessageCircle,
   Check, Sparkles, ChevronRight, Loader2, Bell, Settings,
-  DollarSign, Users, TrendingDown,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendingInstallments } from "@/hooks/useContracts";
@@ -15,7 +15,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { PermissionGate } from "@/components/auth/PermissionGate";
-import { Progress } from "@/components/ui/progress";
 
 type TabType = "overdue" | "today" | "upcoming";
 

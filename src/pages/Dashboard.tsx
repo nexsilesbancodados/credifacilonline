@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Sparkles, Loader2, Users, FileText, Calculator, BarChart3,
-  TrendingUp, DollarSign, AlertTriangle, Clock,
+  TrendingUp, DollarSign, AlertTriangle,
 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
 import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";

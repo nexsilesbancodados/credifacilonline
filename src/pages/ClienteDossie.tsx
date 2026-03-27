@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  Phone,
   Mail,
   MessageCircle,
   MapPin,
