@@ -14,8 +14,6 @@ import {
   Trash2,
   Target,
   DollarSign,
-  Bell,
-  PiggyBank,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTreasury, CreateTransactionData } from "@/hooks/useTreasury";

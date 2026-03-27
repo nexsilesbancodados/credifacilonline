@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Search, Plus, FileText, Calendar, DollarSign, TrendingUp,
-  ChevronRight, RefreshCw, Filter, ArrowUpDown, Clock, CheckCircle2,
-  AlertTriangle, XCircle,
+  ChevronRight, RefreshCw, Clock, CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContracts } from "@/hooks/useContracts";

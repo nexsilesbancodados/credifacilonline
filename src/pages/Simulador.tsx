@@ -11,8 +11,6 @@ import {
   Calendar,
   Sparkles,
   ArrowRight,
-  ToggleLeft,
-  ToggleRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
