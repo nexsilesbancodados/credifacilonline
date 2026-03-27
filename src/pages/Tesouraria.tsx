@@ -122,9 +122,6 @@ const Tesouraria = () => {
       currency: "BRL",
     }).format(value);
 
-  // Count pending notifications (overdue installments)
-  const overdueCount = 5; // Placeholder - could be fetched from installments
-
   return (
     <MainLayout>
       {/* Header */}

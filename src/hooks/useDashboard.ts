@@ -104,7 +104,7 @@ export function useDashboardStats() {
       } as DashboardStats;
     },
     enabled: !!user,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 60000, // Refresh every 60 seconds (realtime handles instant updates)
   });
 }
 
