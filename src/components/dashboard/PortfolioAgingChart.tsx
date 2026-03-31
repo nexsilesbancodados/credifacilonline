@@ -22,7 +22,7 @@ export function PortfolioAgingChart() {
   const agingData = useMemo(() => {
     const overdueInstallments = installments.filter(
       inst => inst.status === 'Atrasado' || 
-      (inst.status === 'Pendente' && new Date(inst.due_date) < new Date())
+      (inst.status === 'Pendente' && parseLocalDate(inst.due_date) < new Date())
     );
 
     const buckets: Record<string, { count: number; amount: number }> = {
