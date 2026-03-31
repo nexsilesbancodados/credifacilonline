@@ -1,4 +1,5 @@
 import { AlertTriangle, Phone, MessageCircle, ChevronRight, Loader2 } from "lucide-react";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 import { useOverdueClients } from "@/hooks/useDashboard";
 import { Link } from "react-router-dom";
