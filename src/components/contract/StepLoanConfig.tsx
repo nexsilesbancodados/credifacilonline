@@ -194,8 +194,8 @@ export function StepLoanConfig({ formData, setFormData, mode, setMode, existingC
           </div>
           {formData.frequency !== "programada" ? (
             <div>
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">Primeiro Vencimento *</label>
-              <input type="date" value={formData.firstDueDate} onChange={(e) => setFormData(prev => ({ ...prev, firstDueDate: e.target.value }))} className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary" />
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">Primeiro Vencimento (automático)</label>
+              <input type="date" value={formData.firstDueDate} readOnly className="h-11 w-full rounded-xl border border-border bg-muted/50 px-4 text-foreground cursor-not-allowed opacity-70" />
             </div>
           ) : (
             <div>
