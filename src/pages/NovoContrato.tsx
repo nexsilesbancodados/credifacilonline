@@ -294,18 +294,18 @@ const NovoContrato = () => {
   const calculateInstallment = () => {
     const capital = Number(formData.capital) || 0;
     const interestRate = Number(formData.interestRate) || 0;
-    const installments = Number(formData.installments) || 1;
+    const numInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 1);
     const rate = interestRate / 100;
     const totalAmount = capital * (1 + rate);
-    return totalAmount / installments;
+    return numInstallments > 0 ? totalAmount / numInstallments : 0;
   };
 
   const calculateRate = () => {
     const capital = Number(formData.capital) || 0;
     const installmentValue = Number(formData.installmentValue) || 0;
-    const installments = Number(formData.installments) || 1;
+    const numInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 1);
     if (installmentValue <= 0 || capital <= 0) return 0;
-    const totalAmount = installmentValue * installments;
+    const totalAmount = installmentValue * numInstallments;
     const profit = totalAmount - capital;
     const rate = (profit / capital) * 100;
     return rate;
