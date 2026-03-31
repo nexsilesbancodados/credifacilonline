@@ -21,9 +21,7 @@ const NovoContrato = () => {
   const existingClientId = searchParams.get("clientId");
   
   const { toast } = useToast();
-  const { data: clients = [], isLoading: _loadingClients } = useAllClients();
-  const createClientPlaceholder = null; // createClient is not needed from paginated hook
-  const isCreatingClient = false;
+  const { data: clients = [] } = useAllClients();
   const { createContract, isCreating: isCreatingContract } = useContracts();
   
   // Fetch specific client when clientId is provided
