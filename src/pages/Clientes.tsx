@@ -690,10 +690,10 @@ const Clientes = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
-              whileHover={{ y: -4 }}
+              whileHover={{ y: -4, scale: 1.02 }}
               onClick={() => selectionMode && toggleSelection(client.id)}
               className={cn(
-                "group relative rounded-2xl border bg-gradient-to-br from-card to-card/50 p-5 transition-all",
+                "group relative rounded-2xl border bg-gradient-to-br from-card to-card/50 p-5 transition-all duration-200 hover:shadow-lg hover:shadow-primary/5",
                 selectionMode ? "cursor-pointer" : "cursor-default",
                 selectedClients.has(client.id)
                   ? "border-primary bg-primary/5"
