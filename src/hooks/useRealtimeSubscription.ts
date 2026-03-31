@@ -8,8 +8,8 @@ type TableName = 'installments' | 'contracts' | 'clients' | 'treasury_transactio
 
 interface RealtimeConfig {
   tables: TableName[];
-  onPaymentReceived?: (payload: any) => void;
-  onContractCreated?: (payload: any) => void;
+  onPaymentReceived?: (payload: Record<string, unknown>) => void;
+  onContractCreated?: (payload: Record<string, unknown>) => void;
 }
 
 export function useRealtimeSubscription(config: RealtimeConfig = { tables: [] }) {
