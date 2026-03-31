@@ -6,10 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Evolution API credentials
-const EVOLUTION_URL = "https://credifacil-evolution-api.uqxoid.easypanel.host";
+// Evolution API credentials from environment
+const EVOLUTION_URL = Deno.env.get("EVOLUTION_API_URL") || "";
 const EVOLUTION_INSTANCE = "credifacil";
-const EVOLUTION_API_KEY = "BB8F1AB90F66-48A6-897C-B092EBFCEA82";
+const EVOLUTION_API_KEY = Deno.env.get("EVOLUTION_API_KEY") || "";
 
 interface CollectionRule {
   id: string;

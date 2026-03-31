@@ -12,6 +12,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { ExcelImport } from "@/components/imports/ExcelImport";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useDashboardStats } from "@/hooks/useDashboard";
 
 const menuGroups = [
   {
@@ -63,6 +64,14 @@ export function Sidebar() {
   const { hasPermission } = usePermissions();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const { data: dashboardStats } = useDashboardStats();
+
+  const overdueCount = dashboardStats?.overdueContracts || 0;
+
+  // Badge map: path -> count (only show when > 0)
+  const badgeCounts: Record<string, number> = {
+    "/cobranca": overdueCount,
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -80,6 +89,7 @@ export function Sidebar() {
 
   const SidebarLink = ({ item, isActive }: { item: typeof menuGroups[0]["items"][0]; isActive: boolean }) => {
     const Icon = item.icon;
+    const badge = badgeCounts[item.path] || 0;
     const linkContent = (
       <Link
         to={item.path}
@@ -94,7 +104,21 @@ export function Sidebar() {
           <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
         )}
         <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
-        {!isCollapsed && <span className="text-sm whitespace-nowrap">{item.label}</span>}
+        {!isCollapsed && (
+          <>
+            <span className="text-sm whitespace-nowrap flex-1">{item.label}</span>
+            {badge > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                {badge}
+              </span>
+            )}
+          </>
+        )}
+        {isCollapsed && badge > 0 && (
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+            {badge}
+          </span>
+        )}
       </Link>
     );
 

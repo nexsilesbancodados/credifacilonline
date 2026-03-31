@@ -108,7 +108,7 @@ const QRCodeGenerator = () => {
         instanceName: newInstanceName.trim(),
       });
 
-      console.log("Create instance response:", JSON.stringify(data, null, 2));
+      
 
       const qr = extractQrCode(data);
       if (qr) {
@@ -131,7 +131,7 @@ const QRCodeGenerator = () => {
   const handleConnect = async (instanceName: string) => {
     try {
       const data = await callEvolutionApi({ action: "connect_instance", instanceName });
-      console.log("Connect instance response:", JSON.stringify(data, null, 2));
+      
       
       const qr = extractQrCode(data);
       if (qr) {

@@ -29,6 +29,7 @@ import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 
 type Status = "Todos" | "Ativo" | "Atraso" | "Quitado";
@@ -53,7 +54,7 @@ const toneOptions = [
 ];
 
 const Clientes = () => {
-  const { clients, isLoading } = useClients();
+  const { clients, isLoading, isError, refetch } = useClients();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<Status>("Todos");
@@ -623,7 +624,9 @@ const Clientes = () => {
       </motion.div>
 
       {/* Loading State */}
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState message="Erro ao carregar clientes" onRetry={refetch} />
+      ) : isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="mt-4 text-muted-foreground">Carregando clientes...</p>

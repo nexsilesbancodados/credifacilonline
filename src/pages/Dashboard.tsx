@@ -18,6 +18,7 @@ import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
 import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 const quickActions = [
   { icon: Sparkles, label: "Novo Contrato", path: "/contratos/novo", primary: true },
@@ -32,7 +33,7 @@ const fmt = (v: number) =>
 const Dashboard = () => {
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const { profile } = useAuth();
-  const { data: dashboardStats, isLoading: isLoadingDashboard } = useDashboardStats();
+  const { data: dashboardStats, isLoading: isLoadingDashboard, isError, refetch } = useDashboardStats();
   const analyticsStats = useAnalyticsStats(period);
   const { isOpen: isTourOpen, setIsOpen: setTourOpen } = useOnboardingTour();
 
@@ -123,7 +124,9 @@ const Dashboard = () => {
         </div>
       )}
 
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState message="Erro ao carregar dashboard" onRetry={refetch} />
+      ) : isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>

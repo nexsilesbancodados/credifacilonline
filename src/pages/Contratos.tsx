@@ -12,6 +12,7 @@ import { useContracts } from "@/hooks/useContracts";
 import { useClients } from "@/hooks/useClients";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { Progress } from "@/components/ui/progress";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 const statusConfig = {
   Ativo: { style: "bg-success/15 text-success border-success/30", icon: CheckCircle2, label: "Ativo" },
@@ -30,7 +31,7 @@ const Contratos = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortKey>("date");
-  const { contracts, isLoading } = useContracts();
+  const { contracts, isLoading, isError, refetch } = useContracts();
   const { clients } = useClients();
 
   const clientsMap = clients.reduce((acc, client) => {
@@ -180,7 +181,9 @@ const Contratos = () => {
 
       {/* Contracts List */}
       <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorState message="Erro ao carregar contratos" onRetry={refetch} />
+        ) : isLoading ? (
           <div className="p-12 text-center">
             <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="mt-3 text-sm text-muted-foreground">Carregando contratos...</p>

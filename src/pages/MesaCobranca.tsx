@@ -15,6 +15,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 type TabType = "overdue" | "today" | "upcoming";
 
@@ -27,7 +28,7 @@ const tabs = [
 const MesaCobranca = () => {
   const [activeTab, setActiveTab] = useState<TabType>("overdue");
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
-  const { data: pendingInstallments, isLoading } = usePendingInstallments();
+  const { data: pendingInstallments, isLoading, isError, refetch } = usePendingInstallments();
   const { settings } = useCompanySettings();
   const navigate = useNavigate();
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; installment: any | null }>({ open: false, installment: null });
@@ -149,8 +150,13 @@ const MesaCobranca = () => {
         })}
       </div>
 
+      {/* Error */}
+      {isError && (
+        <QueryErrorState message="Erro ao carregar cobranças" onRetry={refetch} />
+      )}
+
       {/* Loading */}
-      {isLoading && (
+      {!isError && isLoading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
