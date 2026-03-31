@@ -64,6 +64,14 @@ export function Sidebar() {
   const { hasPermission } = usePermissions();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const { data: dashboardStats } = useDashboardStats();
+
+  const overdueCount = dashboardStats?.overdueContracts || 0;
+
+  // Badge map: path -> count (only show when > 0)
+  const badgeCounts: Record<string, number> = {
+    "/cobranca": overdueCount,
+  };
 
   const handleLogout = async () => {
     await signOut();
