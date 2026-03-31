@@ -389,10 +389,10 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
       });
 
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao renovar empréstimo",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Erro desconhecido",
         variant: "destructive",
       });
     } finally {
