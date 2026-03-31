@@ -89,7 +89,7 @@ function StatCard({
   );
 }
 
-function ActivityRow({ activity }: { activity: any }) {
+function ActivityRow({ activity }: { activity: { type: string; description: string; created_at: string; client_id: string | null; contract_id: string | null; metadata: Record<string, unknown> | null } }) {
   const config = activityTypeConfig[activity.type] || activityTypeConfig.system;
   const Icon = config.icon;
 

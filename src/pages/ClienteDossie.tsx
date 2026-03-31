@@ -183,7 +183,7 @@ const ClienteDossie = () => {
   const overdueCount = clientInstallments.filter(i => i.status === "Atrasado").length;
   const nextInstallment = clientInstallments.find(i => i.status === "Pendente" || i.status === "Atrasado");
 
-  const handlePayment = (installment: any) => {
+  const handlePayment = (installment: typeof clientInstallments[number]) => {
     setSelectedInstallment(installment);
     setIsPaymentOpen(true);
   };
