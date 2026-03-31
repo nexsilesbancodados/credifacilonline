@@ -1,6 +1,8 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { exportToExcel } from "@/lib/exportToExcel";
 import {
   Wallet,
   TrendingUp,
