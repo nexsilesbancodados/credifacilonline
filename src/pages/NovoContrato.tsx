@@ -69,6 +69,7 @@ const NovoContrato = () => {
     installmentValue: "" as unknown as number,
     frequency: "mensal",
     dailyType: "seg-seg",
+    scheduledDays: [] as number[],
     startDate: "",
     firstDueDate: "",
     paidInstallments: "" as unknown as number,
@@ -293,27 +294,28 @@ const NovoContrato = () => {
   const calculateInstallment = () => {
     const capital = Number(formData.capital) || 0;
     const interestRate = Number(formData.interestRate) || 0;
-    const installments = Number(formData.installments) || 1;
+    const numInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 1);
     const rate = interestRate / 100;
     const totalAmount = capital * (1 + rate);
-    return totalAmount / installments;
+    return numInstallments > 0 ? totalAmount / numInstallments : 0;
   };
 
   const calculateRate = () => {
     const capital = Number(formData.capital) || 0;
     const installmentValue = Number(formData.installmentValue) || 0;
-    const installments = Number(formData.installments) || 1;
+    const numInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 1);
     if (installmentValue <= 0 || capital <= 0) return 0;
-    const totalAmount = installmentValue * installments;
+    const totalAmount = installmentValue * numInstallments;
     const profit = totalAmount - capital;
     const rate = (profit / capital) * 100;
     return rate;
   };
 
+  const effectiveInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 0);
   const installmentResult = mode === "rate" ? calculateInstallment() : (Number(formData.installmentValue) || 0);
   const rateResult = mode === "installment" ? calculateRate() : (Number(formData.interestRate) || 0);
   const capitalNum = Number(formData.capital) || 0;
-  const installmentsNum = Number(formData.installments) || 0;
+  const installmentsNum = effectiveInstallments;
   const totalAmount = installmentResult * installmentsNum;
   const totalProfit = totalAmount - capitalNum;
 
@@ -322,6 +324,7 @@ const NovoContrato = () => {
     { value: "semanal", label: "Semanal" },
     { value: "quinzenal", label: "Quinzenal" },
     { value: "mensal", label: "Mensal" },
+    { value: "programada", label: "Programada" },
   ];
 
   const dailyTypes = [
@@ -354,12 +357,17 @@ const NovoContrato = () => {
       }
     }
     
-    if (!formData.startDate || !formData.firstDueDate) {
+    if (!formData.startDate || (!formData.firstDueDate && formData.frequency !== "programada")) {
       toast({ title: "Erro", description: "Preencha as datas do contrato.", variant: "destructive" });
       return;
     }
     
-    if (!formData.capital || !formData.installments) {
+    if (formData.frequency === "programada" && formData.scheduledDays.length === 0) {
+      toast({ title: "Erro", description: "Selecione pelo menos um dia do mês para pagamento.", variant: "destructive" });
+      return;
+    }
+    
+    if (!formData.capital || (formData.frequency !== "programada" && !formData.installments)) {
       toast({ title: "Erro", description: "Preencha o capital e número de parcelas.", variant: "destructive" });
       return;
     }
@@ -416,17 +424,18 @@ const NovoContrato = () => {
         client_id: clientId,
         capital: formData.capital,
         interest_rate: rateResult,
-        installments: formData.installments,
+        installments: formData.frequency === "programada" ? formData.scheduledDays.length : formData.installments,
         installment_value: installmentResult,
         total_amount: totalAmount,
         total_profit: totalProfit,
         frequency: formData.frequency as any,
         daily_type: formData.frequency === "diario" ? formData.dailyType as any : undefined,
+        scheduled_days: formData.frequency === "programada" ? formData.scheduledDays : undefined,
         start_date: formData.startDate,
-        first_due_date: formData.firstDueDate,
+        first_due_date: formData.frequency === "programada" ? formData.startDate : formData.firstDueDate,
         paid_installments: formData.paidInstallments,
-        fine_percentage: 10, // Default from example
-        daily_interest_rate: 2, // Default from example  
+        fine_percentage: 10,
+        daily_interest_rate: 2,
         // Client data for contract PDF
         client_name: clientForPdf.name,
         client_cpf: clientForPdf.cpf,
@@ -985,6 +994,7 @@ const NovoContrato = () => {
                 </div>
               )}
 
+              {formData.frequency !== "programada" && (
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
                   Nº de Parcelas *
@@ -1002,6 +1012,18 @@ const NovoContrato = () => {
                   className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              )}
+              {formData.frequency === "programada" && (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Nº de Parcelas
+                </label>
+                <div className="h-12 w-full rounded-xl border border-border bg-secondary/30 px-4 flex items-center font-display text-lg font-semibold text-muted-foreground">
+                  {formData.scheduledDays.length || "—"}
+                  <span className="ml-2 text-xs font-normal">(definido pelos dias selecionados)</span>
+                </div>
+              </div>
+              )}
             </div>
           </motion.div>
 
@@ -1093,6 +1115,79 @@ const NovoContrato = () => {
               </motion.div>
             )}
 
+            {/* Programada - Scheduled Days Selector */}
+            {formData.frequency === "programada" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-4"
+              >
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Dias do mês para pagamento
+                </label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Selecione os dias em que o cliente fará os pagamentos. O total será dividido igualmente entre esses dias.
+                </p>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                    const isSelected = formData.scheduledDays.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => {
+                          const newDays = isSelected
+                            ? formData.scheduledDays.filter(d => d !== day)
+                            : [...formData.scheduledDays, day].sort((a, b) => a - b);
+                          setFormData({
+                            ...formData,
+                            scheduledDays: newDays,
+                            installments: newDays.length as unknown as number,
+                          });
+                        }}
+                        className={cn(
+                          "h-10 w-full rounded-lg text-sm font-medium transition-all",
+                          isSelected
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-secondary/50 text-foreground hover:bg-secondary border border-border/50"
+                        )}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+                {formData.scheduledDays.length > 0 && (
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">Dias selecionados:</span>
+                    {formData.scheduledDays.map(day => (
+                      <span key={day} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
+                        Dia {day}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newDays = formData.scheduledDays.filter(d => d !== day);
+                            setFormData({
+                              ...formData,
+                              scheduledDays: newDays,
+                              installments: newDays.length as unknown as number,
+                            });
+                          }}
+                          className="ml-0.5 hover:text-destructive transition-colors"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <span className="text-xs text-primary font-medium ml-auto">
+                      {formData.scheduledDays.length} parcela{formData.scheduledDays.length > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
@@ -1107,6 +1202,7 @@ const NovoContrato = () => {
                   className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              {formData.frequency !== "programada" && (
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
                   Primeiro Vencimento *
@@ -1120,6 +1216,19 @@ const NovoContrato = () => {
                   className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              )}
+              {formData.frequency === "programada" && (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Dias de pagamento
+                </label>
+                <div className="h-11 w-full rounded-xl border border-border bg-secondary/30 px-4 flex items-center text-sm text-muted-foreground">
+                  {formData.scheduledDays.length > 0
+                    ? formData.scheduledDays.map(d => `dia ${d}`).join(", ")
+                    : "Selecione os dias acima"}
+                </div>
+              </div>
+              )}
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
                   Parcelas Já Pagas
@@ -1200,13 +1309,14 @@ const NovoContrato = () => {
                 <span className="font-display font-semibold text-foreground">
                   {frequencies.find(f => f.value === formData.frequency)?.label}
                   {formData.frequency === "diario" && ` (${dailyTypes.find(d => d.value === formData.dailyType)?.label})`}
+                  {formData.frequency === "programada" && formData.scheduledDays.length > 0 && ` (dias ${formData.scheduledDays.join(", ")})`}
                 </span>
               </div>
 
               <div className="flex justify-between items-center py-3 border-b border-border/50">
                 <span className="text-muted-foreground">Parcelas</span>
                 <span className="font-display font-semibold text-foreground">
-                  {formData.installments || 0}x
+                  {effectiveInstallments}x
                 </span>
               </div>
 

@@ -16,8 +16,9 @@ export interface Contract {
   installment_value: number;
   total_amount: number;
   total_profit: number;
-  frequency: "diario" | "semanal" | "mensal";
+  frequency: "diario" | "semanal" | "mensal" | "quinzenal" | "programada";
   daily_type?: "seg-seg" | "seg-sex" | "seg-sab" | null;
+  scheduled_days?: number[] | null;
   start_date: string;
   first_due_date: string;
   status: "Ativo" | "Atraso" | "Quitado" | "Renegociado";
@@ -51,8 +52,9 @@ export interface CreateContractData {
   installment_value: number;
   total_amount: number;
   total_profit: number;
-  frequency: "diario" | "semanal" | "mensal";
+  frequency: "diario" | "semanal" | "mensal" | "quinzenal" | "programada";
   daily_type?: "seg-seg" | "seg-sex" | "seg-sab";
+  scheduled_days?: number[];
   start_date: string;
   first_due_date: string;
   paid_installments?: number;
@@ -142,6 +144,7 @@ export function useContracts(clientId?: string) {
         company_name,
         fine_percentage = 2,
         daily_interest_rate = 0.033,
+        scheduled_days,
         ...contractFields 
       } = contractData;
 
@@ -153,6 +156,7 @@ export function useContracts(clientId?: string) {
           operator_id: user.id,
           fine_percentage,
           daily_interest_rate,
+          scheduled_days: scheduled_days || null,
         })
         .select()
         .single();
@@ -161,24 +165,74 @@ export function useContracts(clientId?: string) {
 
       // Create installments
       const installments = [];
-      let dueDate = new Date(contractData.first_due_date);
 
-      for (let i = 1; i <= contractData.installments; i++) {
-        const isPaid = i <= paid_installments;
-        installments.push({
-          contract_id: contract.id,
-          client_id: contractData.client_id,
-          operator_id: user.id,
-          installment_number: i,
-          total_installments: contractData.installments,
-          due_date: dueDate.toISOString().split("T")[0],
-          amount_due: contractData.installment_value,
-          amount_paid: isPaid ? contractData.installment_value : 0,
-          payment_date: isPaid ? new Date().toISOString().split("T")[0] : null,
-          status: isPaid ? "Pago" : "Pendente",
-          fine: 0,
-        });
-        dueDate = getNextDueDate(dueDate, contractData.frequency, contractData.daily_type);
+      if (contractData.frequency === "programada" && scheduled_days && scheduled_days.length > 0) {
+        // For "programada": generate installments on specific days of the month
+        const sortedDays = [...scheduled_days].sort((a, b) => a - b);
+        const startDate = new Date(contractData.first_due_date);
+        let currentMonth = startDate.getMonth();
+        let currentYear = startDate.getFullYear();
+        
+        // Find the first scheduled day >= start date's day
+        let dayIndex = sortedDays.findIndex(d => d >= startDate.getDate());
+        if (dayIndex === -1) {
+          // All days are before start date's day, go to next month
+          dayIndex = 0;
+          currentMonth++;
+          if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+        }
+
+        for (let i = 1; i <= contractData.installments; i++) {
+          const day = sortedDays[dayIndex];
+          // Clamp day to max days in month
+          const maxDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+          const clampedDay = Math.min(day, maxDay);
+          const dueDate = new Date(currentYear, currentMonth, clampedDay);
+          
+          const isPaid = i <= paid_installments;
+          installments.push({
+            contract_id: contract.id,
+            client_id: contractData.client_id,
+            operator_id: user.id,
+            installment_number: i,
+            total_installments: contractData.installments,
+            due_date: dueDate.toISOString().split("T")[0],
+            amount_due: contractData.installment_value,
+            amount_paid: isPaid ? contractData.installment_value : 0,
+            payment_date: isPaid ? new Date().toISOString().split("T")[0] : null,
+            status: isPaid ? "Pago" : "Pendente",
+            fine: 0,
+          });
+
+          // Advance to next scheduled day
+          dayIndex++;
+          if (dayIndex >= sortedDays.length) {
+            dayIndex = 0;
+            currentMonth++;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+          }
+        }
+      } else {
+        // Standard frequency-based installment generation
+        let dueDate = new Date(contractData.first_due_date);
+
+        for (let i = 1; i <= contractData.installments; i++) {
+          const isPaid = i <= paid_installments;
+          installments.push({
+            contract_id: contract.id,
+            client_id: contractData.client_id,
+            operator_id: user.id,
+            installment_number: i,
+            total_installments: contractData.installments,
+            due_date: dueDate.toISOString().split("T")[0],
+            amount_due: contractData.installment_value,
+            amount_paid: isPaid ? contractData.installment_value : 0,
+            payment_date: isPaid ? new Date().toISOString().split("T")[0] : null,
+            status: isPaid ? "Pago" : "Pendente",
+            fine: 0,
+          });
+          dueDate = getNextDueDate(dueDate, contractData.frequency, contractData.daily_type);
+        }
       }
 
       const { error: installmentsError } = await supabase
