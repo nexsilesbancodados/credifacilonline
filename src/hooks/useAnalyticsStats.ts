@@ -4,7 +4,12 @@ import { useAllClients } from "@/hooks/useClients";
 import { useTreasury } from "@/hooks/useTreasury";
 import { parseISO, differenceInDays, startOfMonth, subMonths, subDays, startOfQuarter, startOfYear } from "date-fns";
 
-export type PeriodFilter = "7d" | "month" | "quarter" | "year" | "all";
+export type PeriodFilter = "7d" | "month" | "quarter" | "year" | "all" | "custom";
+
+export interface CustomDateRange {
+  from: Date;
+  to: Date;
+}
 
 export interface AnalyticsStats {
   // Contratos
@@ -70,13 +75,14 @@ function getPeriodStartDate(period: PeriodFilter): Date | null {
   }
 }
 
-function isInPeriod(dateString: string, periodStart: Date | null): boolean {
+function isInPeriod(dateString: string, periodStart: Date | null, periodEnd?: Date | null): boolean {
   if (!periodStart) return true;
   const date = parseISO(dateString);
+  if (periodEnd) return date >= periodStart && date <= periodEnd;
   return date >= periodStart;
 }
 
-export function useAnalyticsStats(period: PeriodFilter = "all"): AnalyticsStats {
+export function useAnalyticsStats(period: PeriodFilter = "all", customRange?: CustomDateRange): AnalyticsStats {
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
@@ -121,12 +127,13 @@ export function useAnalyticsStats(period: PeriodFilter = "all"): AnalyticsStats 
       };
     }
 
-    const periodStart = getPeriodStartDate(period);
+    const periodStart = period === "custom" && customRange ? customRange.from : getPeriodStartDate(period);
+    const periodEnd = period === "custom" && customRange ? customRange.to : null;
 
     // Filtrar contratos pelo período
-    const filteredContracts = contracts?.filter(c => isInPeriod(c.created_at, periodStart)) || [];
-    const filteredClients = clients?.filter(c => isInPeriod(c.created_at, periodStart)) || [];
-    const filteredInstallments = installments?.filter(i => isInPeriod(i.due_date, periodStart)) || [];
+    const filteredContracts = contracts?.filter(c => isInPeriod(c.created_at, periodStart, periodEnd)) || [];
+    const filteredClients = clients?.filter(c => isInPeriod(c.created_at, periodStart, periodEnd)) || [];
+    const filteredInstallments = installments?.filter(i => isInPeriod(i.due_date, periodStart, periodEnd)) || [];
 
     // Contratos
     const totalContracts = filteredContracts.length;
@@ -263,5 +270,5 @@ export function useAnalyticsStats(period: PeriodFilter = "all"): AnalyticsStats 
       growthRate,
       isLoading: false,
     };
-  }, [contracts, clients, installments, transactions, isLoading, period]);
+  }, [contracts, clients, installments, transactions, isLoading, period, customRange]);
 }

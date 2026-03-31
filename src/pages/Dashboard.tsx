@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { OverdueList } from "@/components/dashboard/OverdueList";
@@ -14,7 +14,7 @@ import {
   TrendingUp, DollarSign, AlertTriangle, FileText,
 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
-import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
+import { useAnalyticsStats, PeriodFilter, CustomDateRange } from "@/hooks/useAnalyticsStats";
 import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -49,9 +49,10 @@ const staggerItem = {
 
 const Dashboard = () => {
   const [period, setPeriod] = useState<PeriodFilter>("all");
+  const [customRange, setCustomRange] = useState<CustomDateRange | undefined>();
   const { profile } = useAuth();
   const { data: dashboardStats, isLoading: isLoadingDashboard, isError, refetch } = useDashboardStats();
-  const analyticsStats = useAnalyticsStats(period);
+  const analyticsStats = useAnalyticsStats(period, customRange);
   const { isOpen: isTourOpen, setIsOpen: setTourOpen } = useOnboardingTour();
 
   useRealtimeDashboard();
@@ -83,7 +84,7 @@ const Dashboard = () => {
               Aqui está o resumo da sua carteira de hoje.
             </p>
           </div>
-          <PeriodSelector value={period} onChange={setPeriod} />
+          <PeriodSelector value={period} onChange={setPeriod} customRange={customRange} onCustomRangeChange={setCustomRange} />
         </div>
 
         {/* Quick Actions */}

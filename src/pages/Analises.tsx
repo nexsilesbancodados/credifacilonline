@@ -29,7 +29,7 @@ import { ptBR } from "date-fns/locale";
 import { useMemo, useState } from "react";
 import { ExportReports } from "@/components/reports/ExportReports";
 import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
-import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
+import { useAnalyticsStats, PeriodFilter, CustomDateRange } from "@/hooks/useAnalyticsStats";
 import { DelinquencyChart } from "@/components/dashboard/DelinquencyChart";
 import { PortfolioAgingChart } from "@/components/dashboard/PortfolioAgingChart";
 import { PerformanceMetrics } from "@/components/dashboard/PerformanceMetrics";
@@ -83,11 +83,12 @@ const reports = [
 const Analises = () => {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [period, setPeriod] = useState<PeriodFilter>("all");
+  const [customRange, setCustomRange] = useState<CustomDateRange | undefined>();
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
   const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
-  const analyticsStats = useAnalyticsStats(period);
+  const analyticsStats = useAnalyticsStats(period, customRange);
 
   const isLoading = isLoadingContracts || isLoadingInstallments || isLoadingTreasury || isLoadingClients;
 
@@ -223,7 +224,7 @@ const Analises = () => {
         <>
           {/* Period Filter */}
           <div className="mb-6">
-            <PeriodSelector value={period} onChange={setPeriod} />
+            <PeriodSelector value={period} onChange={setPeriod} customRange={customRange} onCustomRangeChange={setCustomRange} />
           </div>
 
           {/* Full Analytics Cards */}
