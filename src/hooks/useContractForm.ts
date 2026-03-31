@@ -375,7 +375,7 @@ export function useContractForm() {
     selectedExistingClient, foundClient, showClientSuggestion,
     isSearchingCpf, isLoadingCep, isSaving, isUploadingAvatar,
     avatarPreview, avatarFile, fileInputRef,
-    handleCpfChange, useExistingClient, clearSelectedClient,
+    handleCpfChange, useExistingClient, clearSelectedClient, dismissSuggestion,
     handleAvatarSelect, removeAvatar, fetchAddressByCep,
     handleSave, navigate,
     effectiveInstallments, installmentResult, rateResult,
