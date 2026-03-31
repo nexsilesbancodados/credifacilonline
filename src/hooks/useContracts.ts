@@ -107,6 +107,12 @@ function getNextDueDate(currentDate: Date, frequency: string, dailyType?: string
   }
 }
 
+// Parse date string "YYYY-MM-DD" as local date (avoids UTC timezone shift)
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function useContracts(clientId?: string) {
   const { user } = useAuth();
   const { toast } = useToast();
