@@ -119,6 +119,14 @@ serve(async (req) => {
   }
 
   try {
+    // Validate required env vars
+    if (!EVOLUTION_URL || !EVOLUTION_API_KEY) {
+      return new Response(
+        JSON.stringify({ error: "Missing required environment variables: EVOLUTION_API_URL and/or EVOLUTION_API_KEY" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
