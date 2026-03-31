@@ -1202,6 +1202,7 @@ const NovoContrato = () => {
                   className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              {formData.frequency !== "programada" && (
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
                   Primeiro Vencimento *
@@ -1215,6 +1216,19 @@ const NovoContrato = () => {
                   className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              )}
+              {formData.frequency === "programada" && (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Dias de pagamento
+                </label>
+                <div className="h-11 w-full rounded-xl border border-border bg-secondary/30 px-4 flex items-center text-sm text-muted-foreground">
+                  {formData.scheduledDays.length > 0
+                    ? formData.scheduledDays.map(d => `dia ${d}`).join(", ")
+                    : "Selecione os dias acima"}
+                </div>
+              </div>
+              )}
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
                   Parcelas Já Pagas
