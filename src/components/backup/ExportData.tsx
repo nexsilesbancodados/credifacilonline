@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useTreasury } from "@/hooks/useTreasury";
 import { PermissionGate } from "@/components/auth/PermissionGate";
