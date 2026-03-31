@@ -443,6 +443,10 @@ const Tesouraria = () => {
         </div>
       </motion.div>
 
+      {/* Pagination */}
+      <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
+
+
       {/* Add Transaction Modal */}
       <Dialog open={showAddModal !== null} onOpenChange={() => setShowAddModal(null)}>
         <DialogContent className="sm:max-w-md">

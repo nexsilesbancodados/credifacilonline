@@ -86,7 +86,7 @@ const Analises = () => {
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
   const analyticsStats = useAnalyticsStats(period);
 
   const isLoading = isLoadingContracts || isLoadingInstallments || isLoadingTreasury || isLoadingClients;
