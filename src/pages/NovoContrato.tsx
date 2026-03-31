@@ -1309,6 +1309,7 @@ const NovoContrato = () => {
                 <span className="font-display font-semibold text-foreground">
                   {frequencies.find(f => f.value === formData.frequency)?.label}
                   {formData.frequency === "diario" && ` (${dailyTypes.find(d => d.value === formData.dailyType)?.label})`}
+                  {formData.frequency === "programada" && formData.scheduledDays.length > 0 && ` (dias ${formData.scheduledDays.join(", ")})`}
                 </span>
               </div>
 
