@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { addDays, addWeeks, addMonths, getDay } from "date-fns";
 import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
 import { LoanContractData } from "@/lib/generateLoanContract";
+import { formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
 import { useState } from "react";
 
 export interface Contract {
@@ -96,10 +97,6 @@ function getNextDueDate(currentDate: Date, frequency: string, dailyType?: string
   }
 }
 
-function parseLocalDate(dateStr: string): Date {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
 
 const CONTRACTS_PAGE_SIZE = 20;
 
@@ -196,10 +193,10 @@ export function useContracts(clientId?: string) {
             operator_id: user.id,
             installment_number: i,
             total_installments: contractData.installments,
-            due_date: dueDate.toISOString().split("T")[0],
+            due_date: formatLocalDate(dueDate),
             amount_due: contractData.installment_value,
             amount_paid: isPaid ? contractData.installment_value : 0,
-            payment_date: isPaid ? new Date().toISOString().split("T")[0] : null,
+            payment_date: isPaid ? formatLocalDate(new Date()) : null,
             status: isPaid ? "Pago" : "Pendente",
             fine: 0,
           });
@@ -222,10 +219,10 @@ export function useContracts(clientId?: string) {
             operator_id: user.id,
             installment_number: i,
             total_installments: contractData.installments,
-            due_date: dueDate.toISOString().split("T")[0],
+            due_date: formatLocalDate(dueDate),
             amount_due: contractData.installment_value,
             amount_paid: isPaid ? contractData.installment_value : 0,
-            payment_date: isPaid ? new Date().toISOString().split("T")[0] : null,
+            payment_date: isPaid ? formatLocalDate(new Date()) : null,
             status: isPaid ? "Pago" : "Pendente",
             fine: 0,
           });
@@ -368,7 +365,7 @@ export function useInstallments(clientId?: string, contractId?: string) {
         .from("installments")
         .update({
           amount_paid: amountPaid,
-          payment_date: new Date().toISOString().split("T")[0],
+          payment_date: formatLocalDate(new Date()),
           status: "Pago",
         })
         .eq("id", installmentId)
@@ -379,7 +376,7 @@ export function useInstallments(clientId?: string, contractId?: string) {
 
       await supabase.from("treasury_transactions").insert({
         operator_id: user.id,
-        date: new Date().toISOString().split("T")[0],
+        date: formatLocalDate(new Date()),
         description: `Recebimento de parcela`,
         category: "Recebimento",
         type: "entrada",

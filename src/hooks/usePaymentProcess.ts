@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatLocalDate } from "@/lib/dateUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -53,7 +54,7 @@ export function usePaymentProcess(
   open: boolean,
   clientId?: string,
 ) {
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentDate, setPaymentDate] = useState(formatLocalDate(new Date()));
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [paymentType, setPaymentType] = useState<PaymentType>("full");
   const [showPrintOption, setShowPrintOption] = useState(false);

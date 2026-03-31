@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { addMonths } from "date-fns";
+import { formatLocalDate } from "@/lib/dateUtils";
 
 interface RenegotiationData {
   clientId: string;
@@ -41,8 +42,8 @@ export function useRenegotiation() {
       if (installmentsError) throw installmentsError;
 
       // 3. Create new renegotiated contract
-      const startDate = new Date().toISOString().split("T")[0];
-      const firstDueDate = addMonths(new Date(), 1).toISOString().split("T")[0];
+      const startDate = formatLocalDate(new Date());
+      const firstDueDate = formatLocalDate(addMonths(new Date(), 1));
 
       const { data: newContract, error: contractError } = await supabase
         .from("contracts")
@@ -77,7 +78,7 @@ export function useRenegotiation() {
           operator_id: user.id,
           installment_number: i,
           total_installments: data.newInstallments,
-          due_date: dueDate.toISOString().split("T")[0],
+          due_date: formatLocalDate(dueDate),
           amount_due: data.newInstallmentValue,
           amount_paid: 0,
           payment_date: null,

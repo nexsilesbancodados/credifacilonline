@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { formatLocalDate } from "@/lib/dateUtils";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, DollarSign, Calendar, CheckCircle2, AlertCircle, Printer, Banknote, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,7 +48,7 @@ export const BulkPaymentDialog = ({
   clientName,
   clientId 
 }: BulkPaymentDialogProps) => {
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentDate, setPaymentDate] = useState(formatLocalDate(new Date()));
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);

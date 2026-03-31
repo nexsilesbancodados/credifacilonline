@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { formatLocalDate } from '@/lib/dateUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotificationSound } from './useNotificationSound';
@@ -123,8 +124,8 @@ export function usePushNotifications() {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const todayStr = today.toISOString().split('T')[0];
-      const tomorrowStr = tomorrow.toISOString().split('T')[0];
+      const todayStr = formatLocalDate(today);
+      const tomorrowStr = formatLocalDate(tomorrow);
 
       // Check for installments due today
       if (preferences.dueToday) {
