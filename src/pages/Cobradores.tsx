@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 const Cobradores = () => {
   const { collectorsWithClients, isLoading, createCollector, updateCollector, deleteCollector, assignClient, regenerateToken } = useCollectors();
