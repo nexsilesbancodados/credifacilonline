@@ -108,7 +108,7 @@ const QRCodeGenerator = () => {
         instanceName: newInstanceName.trim(),
       });
 
-      console.log("Create instance response:", JSON.stringify(data, null, 2));
+      
 
       const qr = extractQrCode(data);
       if (qr) {
