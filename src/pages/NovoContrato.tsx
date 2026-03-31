@@ -1316,7 +1316,7 @@ const NovoContrato = () => {
               <div className="flex justify-between items-center py-3 border-b border-border/50">
                 <span className="text-muted-foreground">Parcelas</span>
                 <span className="font-display font-semibold text-foreground">
-                  {formData.installments || 0}x
+                  {effectiveInstallments}x
                 </span>
               </div>
 
