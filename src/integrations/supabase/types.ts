@@ -565,6 +565,7 @@ export type Database = {
           interest_rate: number
           operator_id: string
           renegotiated_from_id: string | null
+          scheduled_days: Json | null
           start_date: string
           status: string
           total_amount: number
@@ -586,6 +587,7 @@ export type Database = {
           interest_rate: number
           operator_id: string
           renegotiated_from_id?: string | null
+          scheduled_days?: Json | null
           start_date: string
           status?: string
           total_amount: number
@@ -607,6 +609,7 @@ export type Database = {
           interest_rate?: number
           operator_id?: string
           renegotiated_from_id?: string | null
+          scheduled_days?: Json | null
           start_date?: string
           status?: string
           total_amount?: number
