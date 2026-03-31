@@ -97,10 +97,6 @@ function getNextDueDate(currentDate: Date, frequency: string, dailyType?: string
   }
 }
 
-function parseLocalDate(dateStr: string): Date {
-  const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
 
 const CONTRACTS_PAGE_SIZE = 20;
 
