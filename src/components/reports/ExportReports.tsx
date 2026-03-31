@@ -186,7 +186,7 @@ export const ExportReports = ({ open, onOpenChange }: ExportReportsProps) => {
     setIsExporting(true);
 
     try {
-      const date = new Date().toISOString().split("T")[0];
+      const date = formatLocalDate(new Date());
       let data: Record<string, unknown>[] = [];
       let filename = "";
       let title = "";

@@ -143,7 +143,7 @@ export function ExportData() {
       XLSX.utils.book_append_sheet(workbook, worksheet, tableName);
     });
 
-    XLSX.writeFile(workbook, `backup-${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `backup-${formatLocalDate(new Date())}.xlsx`);
   };
 
   const handleExport = async () => {
