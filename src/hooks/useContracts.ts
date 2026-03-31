@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { addDays, addWeeks, addMonths, getDay } from "date-fns";
 import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
 import { LoanContractData } from "@/lib/generateLoanContract";
+import { formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
 import { useState } from "react";
 
 export interface Contract {
