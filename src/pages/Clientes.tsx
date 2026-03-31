@@ -59,9 +59,10 @@ const toneOptions = [
 ];
 
 const Clientes = () => {
-  const { clients, isLoading, isError, refetch } = useClients();
+  const { clients, isLoading, isError, refetch, page, setPage, totalPages } = useClients();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [activeFilter, setActiveFilter] = useState<Status>("Todos");
   const [showArchived, setShowArchived] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
