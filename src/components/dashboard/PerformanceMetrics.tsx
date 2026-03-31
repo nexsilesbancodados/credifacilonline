@@ -127,7 +127,7 @@ export function PerformanceMetrics() {
 
     // Collections Efficiency
     const totalDue = installments
-      .filter(i => new Date(i.due_date) <= now)
+      .filter(i => parseLocalDate(i.due_date) <= now)
       .reduce((sum, i) => sum + i.amount_due, 0);
     const totalPaid = installments
       .filter(i => i.status === 'Pago' && new Date(i.due_date) <= now)
