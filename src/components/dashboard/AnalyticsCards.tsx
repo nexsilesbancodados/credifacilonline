@@ -35,6 +35,7 @@ const periodLabels: Record<PeriodFilter, string> = {
   "quarter": "Trimestre",
   "year": "Este ano",
   "all": "Todo período",
+  "custom": "Personalizado",
 };
 
 interface PeriodSelectorProps {
