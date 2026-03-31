@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { useTreasury } from "@/hooks/useTreasury";
 import { parseISO, differenceInDays, startOfMonth, subMonths, subDays, startOfQuarter, startOfYear } from "date-fns";
 
