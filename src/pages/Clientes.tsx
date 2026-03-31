@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Zap,
   Users,
+  Download,
   CheckSquare,
   Square,
   MessageCircle,
