@@ -42,8 +42,8 @@ export function useRenegotiation() {
       if (installmentsError) throw installmentsError;
 
       // 3. Create new renegotiated contract
-      const startDate = new Date().toISOString().split("T")[0];
-      const firstDueDate = addMonths(new Date(), 1).toISOString().split("T")[0];
+      const startDate = formatLocalDate(new Date());
+      const firstDueDate = formatLocalDate(addMonths(new Date(), 1));
 
       const { data: newContract, error: contractError } = await supabase
         .from("contracts")
