@@ -52,8 +52,9 @@ export interface CreateContractData {
   installment_value: number;
   total_amount: number;
   total_profit: number;
-  frequency: "diario" | "semanal" | "mensal";
+  frequency: "diario" | "semanal" | "mensal" | "quinzenal" | "programada";
   daily_type?: "seg-seg" | "seg-sex" | "seg-sab";
+  scheduled_days?: number[];
   start_date: string;
   first_due_date: string;
   paid_installments?: number;
