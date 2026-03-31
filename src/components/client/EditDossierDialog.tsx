@@ -308,7 +308,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           operator_id: user.id,
           installment_number: i,
           total_installments: renewalData.installments,
-          due_date: format(currentDueDate, "yyyy-MM-dd"),
+          due_date: formatLocalDate(currentDueDate),
           amount_due: installmentValue,
           status: "Pendente",
         });
