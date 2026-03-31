@@ -857,6 +857,35 @@ const NovoContrato = () => {
                   className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Estado
+                </label>
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) =>
+                    setFormData({ ...formData, state: e.target.value })
+                  }
+                  placeholder="SP"
+                  maxLength={2}
+                  className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Complemento
+                </label>
+                <input
+                  type="text"
+                  value={formData.complement}
+                  onChange={(e) =>
+                    setFormData({ ...formData, complement: e.target.value })
+                  }
+                  placeholder="Apto 101, Bloco B"
+                  className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
             </div>
           </motion.div>
           )}
@@ -871,9 +900,6 @@ const NovoContrato = () => {
             <div className="flex items-center gap-3 mb-6">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-sm">
                 {existingClient ? 1 : 3}
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
-                <Calculator className="h-5 w-5 text-primary" />
               </div>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
                 <Calculator className="h-5 w-5 text-primary" />
@@ -1123,9 +1149,20 @@ const NovoContrato = () => {
                 exit={{ opacity: 0, height: 0 }}
                 className="mb-4"
               >
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  Dias do mês para pagamento
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground">
+                    Dias do mês para pagamento
+                  </label>
+                  {formData.scheduledDays.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, scheduledDays: [], installments: 0 as unknown as number })}
+                      className="text-xs text-destructive hover:text-destructive/80 transition-colors font-medium"
+                    >
+                      Limpar todos
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mb-3">
                   Selecione os dias em que o cliente fará os pagamentos. O total será dividido igualmente entre esses dias.
                 </p>
@@ -1149,7 +1186,7 @@ const NovoContrato = () => {
                         className={cn(
                           "h-10 w-full rounded-lg text-sm font-medium transition-all",
                           isSelected
-                            ? "bg-primary text-primary-foreground shadow-sm"
+                            ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30"
                             : "bg-secondary/50 text-foreground hover:bg-secondary border border-border/50"
                         )}
                       >
@@ -1159,30 +1196,41 @@ const NovoContrato = () => {
                   })}
                 </div>
                 {formData.scheduledDays.length > 0 && (
-                  <div className="mt-3 flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">Dias selecionados:</span>
-                    {formData.scheduledDays.map(day => (
-                      <span key={day} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
-                        Dia {day}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newDays = formData.scheduledDays.filter(d => d !== day);
-                            setFormData({
-                              ...formData,
-                              scheduledDays: newDays,
-                              installments: newDays.length as unknown as number,
-                            });
-                          }}
-                          className="ml-0.5 hover:text-destructive transition-colors"
-                        >
-                          ×
-                        </button>
+                  <div className="mt-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-foreground">Dias selecionados</span>
+                      <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        {formData.scheduledDays.length} parcela{formData.scheduledDays.length > 1 ? "s" : ""}
                       </span>
-                    ))}
-                    <span className="text-xs text-primary font-medium ml-auto">
-                      {formData.scheduledDays.length} parcela{formData.scheduledDays.length > 1 ? "s" : ""}
-                    </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {formData.scheduledDays.map(day => (
+                        <span key={day} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
+                          {day}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newDays = formData.scheduledDays.filter(d => d !== day);
+                              setFormData({
+                                ...formData,
+                                scheduledDays: newDays,
+                                installments: newDays.length as unknown as number,
+                              });
+                            }}
+                            className="ml-0.5 hover:text-destructive transition-colors"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    {installmentResult > 0 && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Cada parcela: <span className="font-semibold text-primary">
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentResult)}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 )}
               </motion.div>
@@ -1349,12 +1397,50 @@ const NovoContrato = () => {
                   }).format(totalProfit)}
                 </span>
               </div>
+
+              {/* Installment Schedule Preview for Programada */}
+              {formData.frequency === "programada" && formData.scheduledDays.length > 0 && formData.startDate && installmentResult > 0 && (
+                <div className="mt-4 p-3 rounded-xl bg-secondary/30 border border-border/50">
+                  <p className="text-xs font-medium text-foreground mb-2">📅 Cronograma de Parcelas</p>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {(() => {
+                      const sortedDays = [...formData.scheduledDays].sort((a, b) => a - b);
+                      const [year, month] = formData.startDate.split("-").map(Number);
+                      let currentMonth = month - 1;
+                      let currentYear = year;
+                      const startDay = new Date(year, month - 1, Number(formData.startDate.split("-")[2])).getDate();
+                      let dayIndex = sortedDays.findIndex(d => d >= startDay);
+                      if (dayIndex === -1) { dayIndex = 0; currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } }
+                      
+                      return sortedDays.map((_, i) => {
+                        const day = sortedDays[dayIndex];
+                        const maxDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+                        const clampedDay = Math.min(day, maxDay);
+                        const date = new Date(currentYear, currentMonth, clampedDay);
+                        const formatted = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+                        
+                        dayIndex++;
+                        if (dayIndex >= sortedDays.length) { dayIndex = 0; currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } }
+                        
+                        return (
+                          <div key={i} className="flex justify-between items-center text-xs py-1 px-2 rounded-lg hover:bg-secondary/50">
+                            <span className="text-muted-foreground">{i + 1}ª parcela — {formatted}</span>
+                            <span className="font-semibold text-foreground">
+                              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentResult)}
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
 
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              disabled={isSaving || isUploadingAvatar || !formData.name || !formData.cpf || !formData.startDate || !formData.firstDueDate}
+              disabled={isSaving || isUploadingAvatar || !formData.name || !formData.cpf || !formData.startDate || (formData.frequency !== "programada" && !formData.firstDueDate) || (formData.frequency === "programada" && formData.scheduledDays.length === 0)}
               onClick={handleSave}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-gold py-4 font-display font-semibold text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg disabled:opacity-50"
             >
