@@ -14,7 +14,7 @@ import {
   TrendingUp, DollarSign, AlertTriangle, FileText,
 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
-import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
+import { useAnalyticsStats, PeriodFilter, CustomDateRange } from "@/hooks/useAnalyticsStats";
 import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
