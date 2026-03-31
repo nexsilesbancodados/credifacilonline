@@ -153,6 +153,11 @@ export function useContractForm() {
     setAvatarPreview(null);
   };
 
+  const dismissSuggestion = () => {
+    setShowClientSuggestion(false);
+    setFoundClient(null);
+  };
+
   useEffect(() => {
     if (existingClient && !formDataInitialized) {
       setSelectedExistingClient(existingClient);
@@ -370,7 +375,7 @@ export function useContractForm() {
     selectedExistingClient, foundClient, showClientSuggestion,
     isSearchingCpf, isLoadingCep, isSaving, isUploadingAvatar,
     avatarPreview, avatarFile, fileInputRef,
-    handleCpfChange, useExistingClient, clearSelectedClient,
+    handleCpfChange, useExistingClient, clearSelectedClient, dismissSuggestion,
     handleAvatarSelect, removeAvatar, fetchAddressByCep,
     handleSave, navigate,
     effectiveInstallments, installmentResult, rateResult,
