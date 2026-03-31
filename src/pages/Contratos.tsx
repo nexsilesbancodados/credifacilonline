@@ -50,8 +50,8 @@ const Contratos = () => {
     .filter((contract) => {
       const client = clientsMap[contract.client_id];
       const matchesSearch =
-        client?.name.toLowerCase().includes(search.toLowerCase()) ||
-        contract.id.toLowerCase().includes(search.toLowerCase());
+        client?.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        contract.id.toLowerCase().includes(debouncedSearch.toLowerCase());
       const matchesStatus = statusFilter === "all" || contract.status === statusFilter;
       return matchesSearch && matchesStatus;
     })
