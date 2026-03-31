@@ -495,6 +495,7 @@ const Tesouraria = () => {
           </div>
         </DialogContent>
       </Dialog>
+      </motion.div>
     </MainLayout>
   );
 };
