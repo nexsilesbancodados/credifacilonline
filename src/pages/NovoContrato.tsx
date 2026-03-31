@@ -1149,9 +1149,20 @@ const NovoContrato = () => {
                 exit={{ opacity: 0, height: 0 }}
                 className="mb-4"
               >
-                <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                  Dias do mês para pagamento
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground">
+                    Dias do mês para pagamento
+                  </label>
+                  {formData.scheduledDays.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, scheduledDays: [], installments: 0 as unknown as number })}
+                      className="text-xs text-destructive hover:text-destructive/80 transition-colors font-medium"
+                    >
+                      Limpar todos
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground mb-3">
                   Selecione os dias em que o cliente fará os pagamentos. O total será dividido igualmente entre esses dias.
                 </p>
@@ -1175,7 +1186,7 @@ const NovoContrato = () => {
                         className={cn(
                           "h-10 w-full rounded-lg text-sm font-medium transition-all",
                           isSelected
-                            ? "bg-primary text-primary-foreground shadow-sm"
+                            ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30"
                             : "bg-secondary/50 text-foreground hover:bg-secondary border border-border/50"
                         )}
                       >
@@ -1185,19 +1196,43 @@ const NovoContrato = () => {
                   })}
                 </div>
                 {formData.scheduledDays.length > 0 && (
-                  <div className="mt-3 flex items-center gap-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">Dias selecionados:</span>
-                    {formData.scheduledDays.map(day => (
-                      <span key={day} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
-                        Dia {day}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newDays = formData.scheduledDays.filter(d => d !== day);
-                            setFormData({
-                              ...formData,
-                              scheduledDays: newDays,
-                              installments: newDays.length as unknown as number,
+                  <div className="mt-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-foreground">Dias selecionados</span>
+                      <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        {formData.scheduledDays.length} parcela{formData.scheduledDays.length > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {formData.scheduledDays.map(day => (
+                        <span key={day} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
+                          {day}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newDays = formData.scheduledDays.filter(d => d !== day);
+                              setFormData({
+                                ...formData,
+                                scheduledDays: newDays,
+                                installments: newDays.length as unknown as number,
+                              });
+                            }}
+                            className="ml-0.5 hover:text-destructive transition-colors"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    {installmentResult > 0 && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Cada parcela: <span className="font-semibold text-primary">
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentResult)}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                )}
                             });
                           }}
                           className="ml-0.5 hover:text-destructive transition-colors"
