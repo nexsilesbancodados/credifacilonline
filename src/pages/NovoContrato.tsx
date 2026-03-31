@@ -69,6 +69,7 @@ const NovoContrato = () => {
     installmentValue: "" as unknown as number,
     frequency: "mensal",
     dailyType: "seg-seg",
+    scheduledDays: [] as number[],
     startDate: "",
     firstDueDate: "",
     paidInstallments: "" as unknown as number,
