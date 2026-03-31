@@ -219,7 +219,7 @@ export function useContracts(clientId?: string) {
         }
       } else {
         // Standard frequency-based installment generation
-        let dueDate = new Date(contractData.first_due_date);
+        let dueDate = parseLocalDate(contractData.first_due_date);
 
         for (let i = 1; i <= contractData.installments; i++) {
           const isPaid = i <= paid_installments;
