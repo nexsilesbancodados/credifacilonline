@@ -838,7 +838,7 @@ const Clientes = () => {
                     selectionMode ? "cursor-pointer" : "cursor-default",
                     selectedClients.has(client.id)
                       ? "bg-primary/10"
-                      : "hover:bg-secondary/20"
+                      : "odd:bg-muted/30 hover:bg-secondary/30"
                   )}
                 >
                   {selectionMode && (
