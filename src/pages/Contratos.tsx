@@ -181,7 +181,9 @@ const Contratos = () => {
 
       {/* Contracts List */}
       <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
-        {isLoading ? (
+        {isError ? (
+          <QueryErrorState message="Erro ao carregar contratos" onRetry={refetch} />
+        ) : isLoading ? (
           <div className="p-12 text-center">
             <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="mt-3 text-sm text-muted-foreground">Carregando contratos...</p>

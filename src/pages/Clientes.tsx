@@ -624,7 +624,9 @@ const Clientes = () => {
       </motion.div>
 
       {/* Loading State */}
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState message="Erro ao carregar clientes" onRetry={refetch} />
+      ) : isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="mt-4 text-muted-foreground">Carregando clientes...</p>
