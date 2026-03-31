@@ -1380,7 +1380,7 @@ const NovoContrato = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              disabled={isSaving || isUploadingAvatar || !formData.name || !formData.cpf || !formData.startDate || !formData.firstDueDate}
+              disabled={isSaving || isUploadingAvatar || !formData.name || !formData.cpf || !formData.startDate || (formData.frequency !== "programada" && !formData.firstDueDate) || (formData.frequency === "programada" && formData.scheduledDays.length === 0)}
               onClick={handleSave}
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-gold py-4 font-display font-semibold text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg disabled:opacity-50"
             >
