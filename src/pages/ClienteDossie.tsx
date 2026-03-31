@@ -32,6 +32,7 @@ import {
   Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { useState, useMemo } from "react";
 import { InstallmentSchedule } from "@/components/client/InstallmentSchedule";
 import { ActivityHistory } from "@/components/client/ActivityHistory";
