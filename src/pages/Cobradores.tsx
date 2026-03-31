@@ -44,7 +44,7 @@ import { QueryErrorState } from "@/components/QueryErrorState";
 
 const Cobradores = () => {
   const { collectorsWithClients, isLoading, isError, refetch, createCollector, updateCollector, deleteCollector, assignClient, regenerateToken } = useCollectors();
-  const { clients } = useClients();
+  const { data: clients = [] } = useAllClients();
   const { toast } = useToast();
 
   const [showNewCollector, setShowNewCollector] = useState(false);
