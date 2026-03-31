@@ -215,8 +215,8 @@ export function generateContractPDF(data: ContractPDFData): void {
     ["Valor da Parcela", formatCurrency(data.installmentValue)],
     ["Valor Total", formatCurrency(data.totalAmount)],
     ["Frequência", data.frequency.charAt(0).toUpperCase() + data.frequency.slice(1)],
-    ["Data de Início", format(new Date(data.startDate), "dd/MM/yyyy", { locale: ptBR })],
-    ["Primeiro Vencimento", format(new Date(data.firstDueDate), "dd/MM/yyyy", { locale: ptBR })],
+    ["Data de Início", format(parseLocalDate(data.startDate), "dd/MM/yyyy", { locale: ptBR })],
+    ["Primeiro Vencimento", format(parseLocalDate(data.firstDueDate), "dd/MM/yyyy", { locale: ptBR })],
   ];
   
   autoTable(doc, {

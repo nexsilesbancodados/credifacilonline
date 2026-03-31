@@ -173,11 +173,11 @@ export const generateClientDossierPDF = (data: DossierData): void => {
 
     const installmentRows = data.installments.map((inst) => [
       `${inst.installment_number}`,
-      format(new Date(inst.due_date), "dd/MM/yyyy"),
+      format(parseLocalDate(inst.due_date), "dd/MM/yyyy"),
       formatCurrency(inst.amount_due),
       inst.amount_paid ? formatCurrency(inst.amount_paid) : "-",
       inst.status,
-      inst.payment_date ? format(new Date(inst.payment_date), "dd/MM/yyyy") : "-",
+      inst.payment_date ? format(parseLocalDate(inst.payment_date), "dd/MM/yyyy") : "-",
     ]);
 
     autoTable(doc, {

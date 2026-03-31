@@ -480,7 +480,7 @@ const ClienteDossie = () => {
                 <div className="space-y-2.5 text-sm">
                   {[
                     { label: "Nº Contrato", value: `#${activeContract.id.slice(0, 8)}` },
-                    { label: "Início", value: new Date(activeContract.start_date).toLocaleDateString("pt-BR") },
+                    { label: "Início", value: parseLocalDate(activeContract.start_date).toLocaleDateString("pt-BR") },
                     { label: "Frequência", value: activeContract.frequency, capitalize: true },
                     { label: "Juros", value: `${activeContract.interest_rate}% a.m.`, highlight: true },
                     { label: "Parcela", value: formatCurrency(Number(activeContract.installment_value)) },

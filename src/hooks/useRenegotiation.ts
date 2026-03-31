@@ -69,7 +69,7 @@ export function useRenegotiation() {
 
       // 4. Create new installments
       const installments = [];
-      let dueDate = new Date(firstDueDate);
+      let dueDate = parseLocalDate(firstDueDate);
 
       for (let i = 1; i <= data.newInstallments; i++) {
         installments.push({

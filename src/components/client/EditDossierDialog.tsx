@@ -364,7 +364,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           creditorName: "Credifacil Global",
           clientName: client.name,
           clientCpf: client.cpf,
-          startDate: format(new Date(), "yyyy-MM-dd"),
+          startDate: formatLocalDate(new Date()),
           capital,
           installments: renewalData.installments,
           installmentValue,
