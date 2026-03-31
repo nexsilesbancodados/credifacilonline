@@ -86,10 +86,14 @@ const Tesouraria = () => {
     isLoading, 
     isError,
     refetch,
+    page,
+    setPage,
+    totalPages,
     createTransaction, 
     deleteTransaction,
     isCreating 
   } = useTreasury();
+  const { toast } = useToast();
 
   const todayIncome = transactions
     .filter((t) => t.type === "entrada" && isToday(parseISO(t.date)))
