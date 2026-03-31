@@ -51,7 +51,7 @@ export function useRealtimeSubscription(config: RealtimeConfig = { tables: [] })
                 
                 // Notify on new contract
                 if (payload.eventType === 'INSERT' && preferences.enabled) {
-                  const contract = payload.new as any;
+                  const contract = payload.new as Record<string, unknown>;
                   showNotification('📄 Novo Contrato Criado', {
                     body: `Contrato de R$ ${contract.total_amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} criado`,
                     tag: 'new-contract',
