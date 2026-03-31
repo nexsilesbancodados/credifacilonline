@@ -15,7 +15,7 @@ import {
   Pie,
 } from "recharts";
 import { useInstallments } from "@/hooks/useContracts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { format, parseISO, startOfMonth, endOfMonth, subMonths, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertTriangle, TrendingDown, Users, Clock, Loader2 } from "lucide-react";
