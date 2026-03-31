@@ -59,7 +59,7 @@ const QRCodeGenerator = () => {
     try {
       const data = await callEvolutionApi({ action: "list_instances" });
       const list = Array.isArray(data) ? data : data?.instances || [];
-      setInstances(list.map((i: any) => ({
+      setInstances(list.map((i: Record<string, unknown> & { instance?: Record<string, unknown> }) => ({
         instanceName: i.instance?.instanceName || i.instanceName || i.name,
         instanceId: i.instance?.instanceId || i.instanceId,
         status: i.instance?.status || i.status,
