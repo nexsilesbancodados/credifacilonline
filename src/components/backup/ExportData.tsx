@@ -100,7 +100,7 @@ export function ExportData() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `backup-${formatLocalDate(new Date())}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
