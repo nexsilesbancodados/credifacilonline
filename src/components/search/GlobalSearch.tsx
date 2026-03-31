@@ -36,15 +36,12 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     }
   }, [isOpen]);
 
-  // Search logic
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
+  // Memoize search results to avoid infinite re-render loops
+  const searchResults = useMemo(() => {
+    if (!query.trim()) return [];
 
     const searchQuery = query.toLowerCase();
-    const searchResults: SearchResult[] = [];
+    const results: SearchResult[] = [];
 
     // Search clients
     clients
@@ -56,7 +53,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       )
       .slice(0, 5)
       .forEach((c) => {
-        searchResults.push({
+        results.push({
           id: c.id,
           type: "client",
           title: c.name,
@@ -71,7 +68,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       .slice(0, 3)
       .forEach((c) => {
         const client = clients.find((cl) => cl.id === c.client_id);
-        searchResults.push({
+        results.push({
           id: c.id,
           type: "contract",
           title: `Contrato #${c.id.slice(0, 8)}`,
@@ -80,9 +77,13 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         });
       });
 
+    return results;
+  }, [query, clients, contracts]);
+
+  useEffect(() => {
     setResults(searchResults);
     setSelectedIndex(0);
-  }, [query, clients, contracts]);
+  }, [searchResults]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
