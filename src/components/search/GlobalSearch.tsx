@@ -21,7 +21,6 @@ interface GlobalSearchProps {
 
 export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -36,14 +35,13 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     }
   }, [isOpen]);
 
-  // Memoize search results to avoid infinite re-render loops
-  const searchResults = useMemo(() => {
+  // Memoize search results
+  const results = useMemo(() => {
     if (!query.trim()) return [];
 
     const searchQuery = query.toLowerCase();
-    const results: SearchResult[] = [];
+    const searchResults: SearchResult[] = [];
 
-    // Search clients
     clients
       .filter(
         (c) =>
@@ -53,7 +51,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       )
       .slice(0, 5)
       .forEach((c) => {
-        results.push({
+        searchResults.push({
           id: c.id,
           type: "client",
           title: c.name,
@@ -62,13 +60,12 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         });
       });
 
-    // Search contracts
     contracts
       .filter((c) => c.id.includes(searchQuery))
       .slice(0, 3)
       .forEach((c) => {
         const client = clients.find((cl) => cl.id === c.client_id);
-        results.push({
+        searchResults.push({
           id: c.id,
           type: "contract",
           title: `Contrato #${c.id.slice(0, 8)}`,
@@ -77,13 +74,13 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         });
       });
 
-    return results;
+    return searchResults;
   }, [query, clients, contracts]);
 
+  // Reset selected index when query changes
   useEffect(() => {
-    setResults(searchResults);
     setSelectedIndex(0);
-  }, [searchResults]);
+  }, [query]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
