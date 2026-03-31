@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { OverdueList } from "@/components/dashboard/OverdueList";
