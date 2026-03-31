@@ -3,20 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera, X, Search, UserCheck, AlertCircle } from "lucide-react";
-import { useClients, useClient, Client } from "@/hooks/useClients";
-import { useContracts } from "@/hooks/useContracts";
-import { supabase } from "@/integrations/supabase/client";
-import { maskCPF, maskPhone, maskCEP, validateCPF, validatePhone } from "@/lib/masks";
 import {
-  Calculator,
-  User,
-  MapPin,
-  Calendar,
-  DollarSign,
-  Percent,
-  Sparkles,
-  Check,
+  Loader2, Camera, X, Search, UserCheck, AlertCircle,
+  Calculator, User, MapPin, Calendar, DollarSign, Percent, Sparkles, Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
