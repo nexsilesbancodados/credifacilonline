@@ -1095,6 +1095,79 @@ const NovoContrato = () => {
               </motion.div>
             )}
 
+            {/* Programada - Scheduled Days Selector */}
+            {formData.frequency === "programada" && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-4"
+              >
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Dias do mês para pagamento
+                </label>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Selecione os dias em que o cliente fará os pagamentos. O total será dividido igualmente entre esses dias.
+                </p>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
+                    const isSelected = formData.scheduledDays.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => {
+                          const newDays = isSelected
+                            ? formData.scheduledDays.filter(d => d !== day)
+                            : [...formData.scheduledDays, day].sort((a, b) => a - b);
+                          setFormData({
+                            ...formData,
+                            scheduledDays: newDays,
+                            installments: newDays.length as unknown as number,
+                          });
+                        }}
+                        className={cn(
+                          "h-10 w-full rounded-lg text-sm font-medium transition-all",
+                          isSelected
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-secondary/50 text-foreground hover:bg-secondary border border-border/50"
+                        )}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+                {formData.scheduledDays.length > 0 && (
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">Dias selecionados:</span>
+                    {formData.scheduledDays.map(day => (
+                      <span key={day} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
+                        Dia {day}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newDays = formData.scheduledDays.filter(d => d !== day);
+                            setFormData({
+                              ...formData,
+                              scheduledDays: newDays,
+                              installments: newDays.length as unknown as number,
+                            });
+                          }}
+                          className="ml-0.5 hover:text-destructive transition-colors"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <span className="text-xs text-primary font-medium ml-auto">
+                      {formData.scheduledDays.length} parcela{formData.scheduledDays.length > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
