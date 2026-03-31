@@ -193,10 +193,10 @@ export function useContracts(clientId?: string) {
             operator_id: user.id,
             installment_number: i,
             total_installments: contractData.installments,
-            due_date: dueDate.toISOString().split("T")[0],
+            due_date: formatLocalDate(dueDate),
             amount_due: contractData.installment_value,
             amount_paid: isPaid ? contractData.installment_value : 0,
-            payment_date: isPaid ? new Date().toISOString().split("T")[0] : null,
+            payment_date: isPaid ? formatLocalDate(new Date()) : null,
             status: isPaid ? "Pago" : "Pendente",
             fine: 0,
           });
@@ -219,10 +219,10 @@ export function useContracts(clientId?: string) {
             operator_id: user.id,
             installment_number: i,
             total_installments: contractData.installments,
-            due_date: dueDate.toISOString().split("T")[0],
+            due_date: formatLocalDate(dueDate),
             amount_due: contractData.installment_value,
             amount_paid: isPaid ? contractData.installment_value : 0,
-            payment_date: isPaid ? new Date().toISOString().split("T")[0] : null,
+            payment_date: isPaid ? formatLocalDate(new Date()) : null,
             status: isPaid ? "Pago" : "Pendente",
             fine: 0,
           });
@@ -365,7 +365,7 @@ export function useInstallments(clientId?: string, contractId?: string) {
         .from("installments")
         .update({
           amount_paid: amountPaid,
-          payment_date: new Date().toISOString().split("T")[0],
+          payment_date: formatLocalDate(new Date()),
           status: "Pago",
         })
         .eq("id", installmentId)
@@ -376,7 +376,7 @@ export function useInstallments(clientId?: string, contractId?: string) {
 
       await supabase.from("treasury_transactions").insert({
         operator_id: user.id,
-        date: new Date().toISOString().split("T")[0],
+        date: formatLocalDate(new Date()),
         description: `Recebimento de parcela`,
         category: "Recebimento",
         type: "entrada",
