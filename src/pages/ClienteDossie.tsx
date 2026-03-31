@@ -242,107 +242,119 @@ const ClienteDossie = () => {
   return (
     <MainLayout>
       <TooltipProvider delayDuration={300}>
-        {/* Compact Header */}
+        {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <Link to="/clientes" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Clientes
+          <Link to="/clientes" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-4 group">
+            <ArrowLeft className="h-3 w-3 group-hover:-translate-x-0.5 transition-transform" />
+            Voltar para Clientes
           </Link>
 
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Client Identity */}
-            <div className="flex items-center gap-3">
-              {client.avatar_url ? (
-                <img src={client.avatar_url} alt={client.name} className="h-14 w-14 rounded-xl object-cover border-2 border-border" />
-              ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 font-display text-lg font-bold text-primary">
-                  {avatar}
-                </div>
-              )}
-              <div>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="font-display text-xl font-bold text-foreground">{client.name}</h1>
-                  <div className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium", statusInfo.className)}>
-                    <StatusIcon className="h-3 w-3" />
-                    {statusInfo.label}
+          <div className="rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-5 relative overflow-hidden">
+            {/* Subtle gradient accent */}
+            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
+
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              {/* Client Identity */}
+              <div className="flex items-center gap-4">
+                {client.avatar_url ? (
+                  <img src={client.avatar_url} alt={client.name} className="h-14 w-14 rounded-2xl object-cover ring-2 ring-border shadow-md" />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 font-display text-lg font-bold text-primary ring-1 ring-primary/20 shadow-md">
+                    {avatar}
                   </div>
-                  <ClientScoreBadge clientId={id || ""} size="md" />
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-sm text-muted-foreground">CPF: {client.cpf}</span>
-                  <button onClick={handleCopyCPF} className="text-muted-foreground hover:text-foreground transition-colors">
-                    <Copy className="h-3 w-3" />
-                  </button>
+                )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="font-display text-xl font-bold text-foreground truncate">{client.name}</h1>
+                    <div className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold", statusInfo.className)}>
+                      <StatusIcon className="h-3 w-3" />
+                      {statusInfo.label}
+                    </div>
+                    <ClientScoreBadge clientId={id || ""} size="md" />
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="text-xs text-muted-foreground font-mono tracking-wide">CPF: {client.cpf}</span>
+                    <button onClick={handleCopyCPF} className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5 rounded hover:bg-secondary">
+                      <Copy className="h-3 w-3" />
+                    </button>
+                    {client.whatsapp && (
+                      <>
+                        <span className="text-muted-foreground/30 mx-1">|</span>
+                        <a href={`https://wa.me/55${client.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-emerald-500 hover:text-emerald-400 transition-colors">
+                          <MessageCircle className="h-3 w-3" />
+                          {client.whatsapp}
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Actions - Primary visible, secondary in dropdown */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Primary Actions */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setIsPaymentOpen(true)} className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="hidden sm:inline">Pagamento</span>
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent>Registrar pagamento</TooltipContent>
-              </Tooltip>
+              {/* Actions */}
+              <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button onClick={() => setIsPaymentOpen(true)} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition-all shadow-sm shadow-emerald-600/20 hover:shadow-emerald-500/30 active:scale-[0.97]">
+                      <DollarSign className="h-4 w-4" />
+                      <span className="hidden sm:inline">Pagamento</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Registrar pagamento</TooltipContent>
+                </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setIsAIMessageOpen(true)} className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                    <Sparkles className="h-4 w-4" />
-                    <span className="hidden sm:inline">Mensagem IA</span>
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent>Gerar mensagem com IA</TooltipContent>
-              </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button onClick={() => setIsAIMessageOpen(true)} className="inline-flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary/90 px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all shadow-sm shadow-primary/20 active:scale-[0.97]">
+                      <Sparkles className="h-4 w-4" />
+                      <span className="hidden sm:inline">Mensagem IA</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Gerar mensagem com IA</TooltipContent>
+                </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => setIsEditClientOpen(true)} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary">
-                    <Edit className="h-4 w-4" />
-                    <span className="hidden sm:inline">Editar</span>
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent>Editar dossiê</TooltipContent>
-              </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button onClick={() => setIsEditClientOpen(true)} className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card hover:bg-secondary px-3.5 py-2.5 text-sm font-medium text-foreground transition-all active:scale-[0.97]">
+                      <Edit className="h-4 w-4" />
+                      <span className="hidden sm:inline">Editar</span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Editar dossiê</TooltipContent>
+                </Tooltip>
 
-              {/* Secondary Actions Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className="flex items-center justify-center rounded-lg border border-border bg-card h-9 w-9 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </motion.button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuItem onClick={() => navigate(`/contratos/novo?clientId=${client.id}`)}>
-                    <PlusCircle className="h-4 w-4 mr-2" /> Novo Contrato
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsBulkPaymentOpen(true)}>
-                    <Banknote className="h-4 w-4 mr-2" /> Pagamento Parcial
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsRenegotiationOpen(true)}>
-                    <RefreshCw className="h-4 w-4 mr-2" /> Renegociar
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsManageInstallmentsOpen(true)}>
-                    <Settings className="h-4 w-4 mr-2" /> Gerenciar Parcelas
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleExportPDF}>
-                    <Download className="h-4 w-4 mr-2" /> Exportar PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setIsArchiveClientOpen(true)}>
-                    {client.archived_at ? <><ArchiveRestore className="h-4 w-4 mr-2" /> Restaurar</> : <><Archive className="h-4 w-4 mr-2" /> Arquivar</>}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsDeleteClientOpen(true)} className="text-destructive focus:text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" /> Excluir Cliente
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="inline-flex items-center justify-center rounded-xl border border-border bg-card hover:bg-secondary h-10 w-10 text-muted-foreground hover:text-foreground transition-all active:scale-[0.97]">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem onClick={() => navigate(`/contratos/novo?clientId=${client.id}`)}>
+                      <PlusCircle className="h-4 w-4 mr-2" /> Novo Contrato
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsBulkPaymentOpen(true)}>
+                      <Banknote className="h-4 w-4 mr-2" /> Pagamento Parcial
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsRenegotiationOpen(true)}>
+                      <RefreshCw className="h-4 w-4 mr-2" /> Renegociar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsManageInstallmentsOpen(true)}>
+                      <Settings className="h-4 w-4 mr-2" /> Gerenciar Parcelas
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleExportPDF}>
+                      <Download className="h-4 w-4 mr-2" /> Exportar PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setIsArchiveClientOpen(true)}>
+                      {client.archived_at ? <><ArchiveRestore className="h-4 w-4 mr-2" /> Restaurar</> : <><Archive className="h-4 w-4 mr-2" /> Arquivar</>}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsDeleteClientOpen(true)} className="text-destructive focus:text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" /> Excluir Cliente
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </motion.div>
