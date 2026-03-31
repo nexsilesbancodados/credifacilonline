@@ -15,6 +15,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { PermissionGate } from "@/components/auth/PermissionGate";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 type TabType = "overdue" | "today" | "upcoming";
 
