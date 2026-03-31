@@ -75,9 +75,10 @@ function getPeriodStartDate(period: PeriodFilter): Date | null {
   }
 }
 
-function isInPeriod(dateString: string, periodStart: Date | null): boolean {
+function isInPeriod(dateString: string, periodStart: Date | null, periodEnd?: Date | null): boolean {
   if (!periodStart) return true;
   const date = parseISO(dateString);
+  if (periodEnd) return date >= periodStart && date <= periodEnd;
   return date >= periodStart;
 }
 
