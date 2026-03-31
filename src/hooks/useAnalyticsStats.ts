@@ -270,5 +270,5 @@ export function useAnalyticsStats(period: PeriodFilter = "all", customRange?: Cu
       growthRate,
       isLoading: false,
     };
-  }, [contracts, clients, installments, transactions, isLoading, period]);
+  }, [contracts, clients, installments, transactions, isLoading, period, customRange]);
 }
