@@ -6,6 +6,7 @@ import { useContracts } from "@/hooks/useContracts";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF, maskPhone, validateCPF, validatePhone } from "@/lib/masks";
 import { LoanContractData } from "@/lib/generateLoanContract";
+import { advanceDateByFrequency } from "@/lib/dateUtils";
 
 export type CalculationMode = "rate" | "installment";
 
@@ -94,6 +95,23 @@ export function useContractForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formDataInitialized, setFormDataInitialized] = useState(false);
   const [formData, setFormData] = useState<ContractFormData>(initialFormData);
+
+  // Auto-calculate firstDueDate based on startDate + frequency
+  useEffect(() => {
+    if (formData.startDate && formData.frequency && formData.frequency !== "programada") {
+      const startDate = new Date(formData.startDate + "T00:00:00");
+      if (!isNaN(startDate.getTime())) {
+        const nextDue = advanceDateByFrequency(startDate, formData.frequency);
+        const formatted = nextDue.toISOString().split("T")[0];
+        setFormData(prev => {
+          if (prev.firstDueDate !== formatted) {
+            return { ...prev, firstDueDate: formatted };
+          }
+          return prev;
+        });
+      }
+    }
+  }, [formData.startDate, formData.frequency]);
 
   const searchClientByCpf = useCallback((cpf: string) => {
     const cleanCpf = cpf.replace(/\D/g, "");
