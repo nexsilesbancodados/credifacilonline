@@ -302,6 +302,28 @@ const Clientes = () => {
           </div>
 
           <div className="flex gap-2">
+            <PermissionGate permission="canExportData">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  const data = clients.map(c => ({
+                    Nome: c.name,
+                    CPF: c.cpf,
+                    WhatsApp: c.whatsapp || "",
+                    Status: c.status,
+                    Cidade: c.city || "",
+                    "Data Cadastro": format(new Date(c.created_at), "dd/MM/yyyy"),
+                  }));
+                  exportToExcel(data, "clientes", "Clientes");
+                  toast({ title: "Exportado!", description: "Arquivo Excel gerado com sucesso." });
+                }}
+                className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+              >
+                <Download className="h-4 w-4" />
+                Exportar
+              </motion.button>
+            </PermissionGate>
             {!selectionMode ? (
               <>
                 <PermissionGate permission="canEditClients">
