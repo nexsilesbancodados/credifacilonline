@@ -12,6 +12,7 @@ import { useContracts } from "@/hooks/useContracts";
 import { useClients } from "@/hooks/useClients";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { Progress } from "@/components/ui/progress";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 const statusConfig = {
   Ativo: { style: "bg-success/15 text-success border-success/30", icon: CheckCircle2, label: "Ativo" },
