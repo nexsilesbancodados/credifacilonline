@@ -12,6 +12,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { ExcelImport } from "@/components/imports/ExcelImport";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useDashboardStats } from "@/hooks/useDashboard";
 
 const menuGroups = [
   {
