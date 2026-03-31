@@ -13,6 +13,8 @@ import {
   BarChart3,
   ArrowUp,
   ArrowDown,
+} from "lucide-react";
+import { parseLocalDate } from "@/lib/dateUtils";
   Minus,
 } from "lucide-react";
 import { differenceInDays, subMonths, isAfter } from "date-fns";
