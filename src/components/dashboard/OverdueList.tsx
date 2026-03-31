@@ -67,7 +67,7 @@ export function OverdueList() {
             </p>
           </div>
         ) : (
-          overdueClients.slice(0, 4).map((item: any) => {
+          overdueClients.slice(0, 4).map((item: { id: string; due_date: string; amount_due: number; daysOverdue: number; client_id: string; clients: { name: string; whatsapp: string | null } | null }) => {
             const severity = getSeverity(item.daysOverdue);
             const client = item.clients;
 

@@ -9,7 +9,7 @@ interface PortfolioHealthChartProps {
   };
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { name: string; value: number; payload?: { name: string } }[] }) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg bg-popover border border-border px-3 py-2 shadow-lg">

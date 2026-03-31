@@ -8,8 +8,8 @@ type TableName = 'installments' | 'contracts' | 'clients' | 'treasury_transactio
 
 interface RealtimeConfig {
   tables: TableName[];
-  onPaymentReceived?: (payload: any) => void;
-  onContractCreated?: (payload: any) => void;
+  onPaymentReceived?: (payload: Record<string, unknown>) => void;
+  onContractCreated?: (payload: Record<string, unknown>) => void;
 }
 
 export function useRealtimeSubscription(config: RealtimeConfig = { tables: [] }) {
@@ -51,9 +51,10 @@ export function useRealtimeSubscription(config: RealtimeConfig = { tables: [] })
                 
                 // Notify on new contract
                 if (payload.eventType === 'INSERT' && preferences.enabled) {
-                  const contract = payload.new as any;
+                  const contract = payload.new as Record<string, unknown>;
+                  const amount = typeof contract.total_amount === 'number' ? contract.total_amount : 0;
                   showNotification('📄 Novo Contrato Criado', {
-                    body: `Contrato de R$ ${contract.total_amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} criado`,
+                    body: `Contrato de R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} criado`,
                     tag: 'new-contract',
                     soundType: 'success',
                   });
@@ -73,10 +74,11 @@ export function useRealtimeSubscription(config: RealtimeConfig = { tables: [] })
                 
                 // Notify on payment received
                 if (payload.eventType === 'INSERT' && preferences.enabled && preferences.payments) {
-                  const transaction = payload.new as any;
-                  if (transaction.category === 'Recebimento' || transaction.type === 'entrada') {
+                  const transaction = payload.new as Record<string, unknown>;
+                  if (String(transaction.category) === 'Recebimento' || String(transaction.type) === 'entrada') {
+                    const txAmount = typeof transaction.amount === 'number' ? transaction.amount : 0;
                     showNotification('💰 Pagamento Recebido!', {
-                      body: `R$ ${transaction.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - ${transaction.description}`,
+                      body: `R$ ${txAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - ${String(transaction.description || '')}`,
                       tag: 'payment-received',
                       soundType: 'success',
                     });

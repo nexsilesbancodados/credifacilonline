@@ -19,12 +19,12 @@ import { ptBR } from "date-fns/locale";
 import { CalendarDays, TrendingUp, AlertTriangle, Loader2, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg bg-popover border border-border px-4 py-3 shadow-lg">
         <p className="text-xs text-muted-foreground mb-2">{label}</p>
-        {payload.map((item: any, index: number) => (
+        {payload.map((item, index: number) => (
           <p key={index} className="text-sm" style={{ color: item.color }}>
             {item.name}:{" "}
             <span className="font-semibold">

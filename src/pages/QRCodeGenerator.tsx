@@ -59,7 +59,7 @@ const QRCodeGenerator = () => {
     try {
       const data = await callEvolutionApi({ action: "list_instances" });
       const list = Array.isArray(data) ? data : data?.instances || [];
-      setInstances(list.map((i: any) => ({
+      setInstances(list.map((i: Record<string, unknown> & { instance?: Record<string, unknown> }) => ({
         instanceName: i.instance?.instanceName || i.instanceName || i.name,
         instanceId: i.instance?.instanceId || i.instanceId,
         status: i.instance?.status || i.status,
@@ -78,8 +78,8 @@ const QRCodeGenerator = () => {
           }
         }
       }
-    } catch (err: any) {
-      toast.error("Erro ao buscar instâncias: " + (err.message || "Erro desconhecido"));
+    } catch (err: unknown) {
+      toast.error("Erro ao buscar instâncias: " + (err instanceof Error ? err.message : "Erro desconhecido"));
     } finally {
       setLoading(false);
     }
@@ -89,9 +89,9 @@ const QRCodeGenerator = () => {
     fetchInstances();
   }, [fetchInstances]);
 
-  const extractQrCode = (data: any): string | null => {
-    if (data?.qrcode?.base64) return data.qrcode.base64;
-    if (data?.base64) return data.base64;
+  const extractQrCode = (data: Record<string, unknown> & { qrcode?: { base64?: string } | string; base64?: string }): string | null => {
+    if (typeof data?.qrcode === "object" && data?.qrcode?.base64) return data.qrcode.base64;
+    if (data?.base64 && typeof data.base64 === "string") return data.base64;
     if (typeof data?.qrcode === "string") return data.qrcode;
     return null;
   };

@@ -139,7 +139,7 @@ const Cobradores = () => {
     window.open(`${baseUrl}/cobrador/${token}`, "_blank");
   };
 
-  const openEdit = (collector: any) => {
+  const openEdit = (collector: { id: string; name: string; phone: string | null; email: string | null }) => {
     setSelectedCollector(collector.id);
     setFormData({
       name: collector.name,
