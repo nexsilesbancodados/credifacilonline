@@ -357,12 +357,17 @@ const NovoContrato = () => {
       }
     }
     
-    if (!formData.startDate || !formData.firstDueDate) {
+    if (!formData.startDate || (!formData.firstDueDate && formData.frequency !== "programada")) {
       toast({ title: "Erro", description: "Preencha as datas do contrato.", variant: "destructive" });
       return;
     }
     
-    if (!formData.capital || !formData.installments) {
+    if (formData.frequency === "programada" && formData.scheduledDays.length === 0) {
+      toast({ title: "Erro", description: "Selecione pelo menos um dia do mês para pagamento.", variant: "destructive" });
+      return;
+    }
+    
+    if (!formData.capital || (formData.frequency !== "programada" && !formData.installments)) {
       toast({ title: "Erro", description: "Preencha o capital e número de parcelas.", variant: "destructive" });
       return;
     }
