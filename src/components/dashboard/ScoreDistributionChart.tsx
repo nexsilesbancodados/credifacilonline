@@ -12,7 +12,7 @@ import {
   PieChart,
   Pie,
 } from "recharts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { useInstallments } from "@/hooks/useContracts";
 import { Award, Loader2 } from "lucide-react";
 
