@@ -857,6 +857,35 @@ const NovoContrato = () => {
                   className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Estado
+                </label>
+                <input
+                  type="text"
+                  value={formData.state}
+                  onChange={(e) =>
+                    setFormData({ ...formData, state: e.target.value })
+                  }
+                  placeholder="SP"
+                  maxLength={2}
+                  className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Complemento
+                </label>
+                <input
+                  type="text"
+                  value={formData.complement}
+                  onChange={(e) =>
+                    setFormData({ ...formData, complement: e.target.value })
+                  }
+                  placeholder="Apto 101, Bloco B"
+                  className="h-11 w-full rounded-xl border border-border bg-secondary/50 px-4 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
             </div>
           </motion.div>
           )}
