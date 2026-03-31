@@ -34,10 +34,12 @@ type SortKey = "date" | "amount" | "client";
 
 const Contratos = () => {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortKey>("date");
-  const { contracts, isLoading, isError, refetch } = useContracts();
-  const { clients } = useClients();
+  const { contracts, isLoading, isError, refetch, page, setPage, totalPages } = useContracts();
+  const { data: clients = [] } = useAllClients();
+  const { toast } = useToast();
 
   const clientsMap = clients.reduce((acc, client) => {
     acc[client.id] = client;
