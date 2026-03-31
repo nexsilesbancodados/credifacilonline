@@ -126,7 +126,8 @@ export function useAnalyticsStats(period: PeriodFilter = "all", customRange?: Cu
       };
     }
 
-    const periodStart = getPeriodStartDate(period);
+    const periodStart = period === "custom" && customRange ? customRange.from : getPeriodStartDate(period);
+    const periodEnd = period === "custom" && customRange ? customRange.to : null;
 
     // Filtrar contratos pelo período
     const filteredContracts = contracts?.filter(c => isInPeriod(c.created_at, periodStart)) || [];
