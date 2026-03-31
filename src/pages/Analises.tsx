@@ -83,6 +83,7 @@ const reports = [
 const Analises = () => {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [period, setPeriod] = useState<PeriodFilter>("all");
+  const [customRange, setCustomRange] = useState<CustomDateRange | undefined>();
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
