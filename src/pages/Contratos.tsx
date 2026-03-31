@@ -344,12 +344,8 @@ const Contratos = () => {
         )}
       </div>
 
-      {/* Footer count */}
-      {filteredContracts.length > 0 && (
-        <p className="text-xs text-muted-foreground mt-3 text-center">
-          Mostrando {filteredContracts.length} de {contracts.length} contratos
-        </p>
-      )}
+      {/* Pagination */}
+      <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
     </MainLayout>
   );
 };
