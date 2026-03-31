@@ -111,7 +111,7 @@ const Contratos = () => {
                     "Valor Parcela": c.installment_value,
                     Total: c.total_amount,
                     Status: c.status,
-                    "Data Início": format(new Date(c.start_date), "dd/MM/yyyy"),
+                    "Data Início": format(parseLocalDate(c.start_date), "dd/MM/yyyy"),
                   };
                 });
                 exportToExcel(data, "contratos", "Contratos");
