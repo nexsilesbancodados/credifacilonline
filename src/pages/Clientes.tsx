@@ -29,6 +29,7 @@ import { useClients } from "@/hooks/useClients";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
+import { QueryErrorState } from "@/components/QueryErrorState";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 
 type Status = "Todos" | "Ativo" | "Atraso" | "Quitado";
