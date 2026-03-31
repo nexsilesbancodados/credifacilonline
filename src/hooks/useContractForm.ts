@@ -105,17 +105,11 @@ export function useContractForm() {
       return;
     }
 
-    const parts = formData.startDate.split("-");
-    if (parts.length !== 3) return;
-    
-    const startDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const startDate = parseLocalDate(formData.startDate);
     if (isNaN(startDate.getTime())) return;
 
     const nextDue = advanceDateByFrequency(startDate, formData.frequency);
-    const y = nextDue.getFullYear();
-    const m = String(nextDue.getMonth() + 1).padStart(2, "0");
-    const d = String(nextDue.getDate()).padStart(2, "0");
-    const formatted = `${y}-${m}-${d}`;
+    const formatted = formatLocalDate(nextDue);
     
     setFormData(prev => prev.firstDueDate !== formatted ? { ...prev, firstDueDate: formatted } : prev);
   }, [formData.startDate, formData.frequency]);
