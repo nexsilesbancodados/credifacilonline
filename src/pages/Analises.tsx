@@ -29,7 +29,7 @@ import { ptBR } from "date-fns/locale";
 import { useMemo, useState } from "react";
 import { ExportReports } from "@/components/reports/ExportReports";
 import { AnalyticsCards, PeriodSelector } from "@/components/dashboard/AnalyticsCards";
-import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
+import { useAnalyticsStats, PeriodFilter, CustomDateRange } from "@/hooks/useAnalyticsStats";
 import { DelinquencyChart } from "@/components/dashboard/DelinquencyChart";
 import { PortfolioAgingChart } from "@/components/dashboard/PortfolioAgingChart";
 import { PerformanceMetrics } from "@/components/dashboard/PerformanceMetrics";
