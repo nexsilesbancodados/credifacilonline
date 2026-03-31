@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import {
   TrendingUp,
   Target,
