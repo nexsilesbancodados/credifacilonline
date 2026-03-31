@@ -105,7 +105,7 @@ export function PerformanceMetrics() {
       i => i.status === 'Pago' && i.payment_date && isAfter(parseLocalDate(i.payment_date), lastMonth)
     );
     const overdueLastMonth = installments.filter(
-      i => new Date(i.due_date) < lastMonth && new Date(i.due_date) > twoMonthsAgo
+      i => parseLocalDate(i.due_date) < lastMonth && parseLocalDate(i.due_date) > twoMonthsAgo
     );
     const recoveryRate = overdueLastMonth.length > 0
       ? (paidThisMonth.filter(p => 
