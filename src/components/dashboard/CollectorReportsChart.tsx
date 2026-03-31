@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { useCollectors } from "@/hooks/useCollectors";
 import { useInstallments } from "@/hooks/useContracts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { Users, TrendingUp, AlertTriangle, Trophy, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
