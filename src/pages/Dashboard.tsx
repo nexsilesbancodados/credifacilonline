@@ -118,6 +118,7 @@ const Dashboard = () => {
             variants={staggerContainer}
             initial="initial"
             animate="animate"
+            aria-live="polite"
           >
             {[
               { icon: DollarSign, label: "Capital Ativo", value: fmt(totalCapital), color: "text-primary", border: "" },
