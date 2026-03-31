@@ -1397,6 +1397,44 @@ const NovoContrato = () => {
                   }).format(totalProfit)}
                 </span>
               </div>
+
+              {/* Installment Schedule Preview for Programada */}
+              {formData.frequency === "programada" && formData.scheduledDays.length > 0 && formData.startDate && installmentResult > 0 && (
+                <div className="mt-4 p-3 rounded-xl bg-secondary/30 border border-border/50">
+                  <p className="text-xs font-medium text-foreground mb-2">📅 Cronograma de Parcelas</p>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {(() => {
+                      const sortedDays = [...formData.scheduledDays].sort((a, b) => a - b);
+                      const [year, month] = formData.startDate.split("-").map(Number);
+                      let currentMonth = month - 1;
+                      let currentYear = year;
+                      const startDay = new Date(year, month - 1, Number(formData.startDate.split("-")[2])).getDate();
+                      let dayIndex = sortedDays.findIndex(d => d >= startDay);
+                      if (dayIndex === -1) { dayIndex = 0; currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } }
+                      
+                      return sortedDays.map((_, i) => {
+                        const day = sortedDays[dayIndex];
+                        const maxDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+                        const clampedDay = Math.min(day, maxDay);
+                        const date = new Date(currentYear, currentMonth, clampedDay);
+                        const formatted = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+                        
+                        dayIndex++;
+                        if (dayIndex >= sortedDays.length) { dayIndex = 0; currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } }
+                        
+                        return (
+                          <div key={i} className="flex justify-between items-center text-xs py-1 px-2 rounded-lg hover:bg-secondary/50">
+                            <span className="text-muted-foreground">{i + 1}ª parcela — {formatted}</span>
+                            <span className="font-semibold text-foreground">
+                              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentResult)}
+                            </span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
 
             <motion.button
