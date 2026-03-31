@@ -4,7 +4,12 @@ import { useAllClients } from "@/hooks/useClients";
 import { useTreasury } from "@/hooks/useTreasury";
 import { parseISO, differenceInDays, startOfMonth, subMonths, subDays, startOfQuarter, startOfYear } from "date-fns";
 
-export type PeriodFilter = "7d" | "month" | "quarter" | "year" | "all";
+export type PeriodFilter = "7d" | "month" | "quarter" | "year" | "all" | "custom";
+
+export interface CustomDateRange {
+  from: Date;
+  to: Date;
+}
 
 export interface AnalyticsStats {
   // Contratos
