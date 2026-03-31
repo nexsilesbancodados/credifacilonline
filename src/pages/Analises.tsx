@@ -88,7 +88,7 @@ const Analises = () => {
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
   const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
-  const analyticsStats = useAnalyticsStats(period);
+  const analyticsStats = useAnalyticsStats(period, customRange);
 
   const isLoading = isLoadingContracts || isLoadingInstallments || isLoadingTreasury || isLoadingClients;
 
