@@ -153,6 +153,11 @@ export function useContractForm() {
     setAvatarPreview(null);
   };
 
+  const dismissSuggestion = () => {
+    setShowClientSuggestion(false);
+    setFoundClient(null);
+  };
+
   useEffect(() => {
     if (existingClient && !formDataInitialized) {
       setSelectedExistingClient(existingClient);
