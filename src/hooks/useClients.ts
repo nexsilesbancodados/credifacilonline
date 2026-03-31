@@ -142,7 +142,9 @@ export function useClients() {
   return {
     clients: clientsQuery.data || [],
     isLoading: clientsQuery.isLoading,
+    isError: clientsQuery.isError,
     error: clientsQuery.error,
+    refetch: clientsQuery.refetch,
     createClient: createClientMutation.mutate,
     updateClient: updateClientMutation.mutate,
     deleteClient: deleteClientMutation.mutate,

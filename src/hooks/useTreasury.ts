@@ -164,6 +164,8 @@ export function useTreasury() {
     pendingProfit: capitalOnStreetQuery.data?.pendingProfit || 0,
     totalToReceive: capitalOnStreetQuery.data?.totalToReceive || 0,
     isLoading: transactionsQuery.isLoading || summaryQuery.isLoading,
+    isError: transactionsQuery.isError || summaryQuery.isError,
+    refetch: transactionsQuery.refetch,
     createTransaction: createTransactionMutation.mutate,
     deleteTransaction: deleteTransactionMutation.mutate,
     isCreating: createTransactionMutation.isPending,

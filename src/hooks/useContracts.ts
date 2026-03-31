@@ -325,7 +325,9 @@ export function useContracts(clientId?: string) {
   return {
     contracts: contractsQuery.data || [],
     isLoading: contractsQuery.isLoading,
+    isError: contractsQuery.isError,
     error: contractsQuery.error,
+    refetch: contractsQuery.refetch,
     createContract: createContractMutation.mutateAsync,
     isCreating: createContractMutation.isPending,
   };
