@@ -131,9 +131,9 @@ export function useAnalyticsStats(period: PeriodFilter = "all", customRange?: Cu
     const periodEnd = period === "custom" && customRange ? customRange.to : null;
 
     // Filtrar contratos pelo período
-    const filteredContracts = contracts?.filter(c => isInPeriod(c.created_at, periodStart)) || [];
-    const filteredClients = clients?.filter(c => isInPeriod(c.created_at, periodStart)) || [];
-    const filteredInstallments = installments?.filter(i => isInPeriod(i.due_date, periodStart)) || [];
+    const filteredContracts = contracts?.filter(c => isInPeriod(c.created_at, periodStart, periodEnd)) || [];
+    const filteredClients = clients?.filter(c => isInPeriod(c.created_at, periodStart, periodEnd)) || [];
+    const filteredInstallments = installments?.filter(i => isInPeriod(i.due_date, periodStart, periodEnd)) || [];
 
     // Contratos
     const totalContracts = filteredContracts.length;
