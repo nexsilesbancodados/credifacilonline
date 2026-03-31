@@ -216,7 +216,7 @@ serve(async (req) => {
             )
           `)
           .eq("due_date", dateStr)
-          .eq("status", "pending")
+          .in("status", ["Pendente", "Atrasado"])
           .eq("operator_id", userId);
 
         if (instError) {
