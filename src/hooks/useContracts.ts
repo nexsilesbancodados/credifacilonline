@@ -107,6 +107,12 @@ function getNextDueDate(currentDate: Date, frequency: string, dailyType?: string
   }
 }
 
+// Parse date string "YYYY-MM-DD" as local date (avoids UTC timezone shift)
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function useContracts(clientId?: string) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -169,7 +175,7 @@ export function useContracts(clientId?: string) {
       if (contractData.frequency === "programada" && scheduled_days && scheduled_days.length > 0) {
         // For "programada": generate installments on specific days of the month
         const sortedDays = [...scheduled_days].sort((a, b) => a - b);
-        const startDate = new Date(contractData.first_due_date);
+        const startDate = parseLocalDate(contractData.first_due_date);
         let currentMonth = startDate.getMonth();
         let currentYear = startDate.getFullYear();
         
@@ -214,7 +220,7 @@ export function useContracts(clientId?: string) {
         }
       } else {
         // Standard frequency-based installment generation
-        let dueDate = new Date(contractData.first_due_date);
+        let dueDate = parseLocalDate(contractData.first_due_date);
 
         for (let i = 1; i <= contractData.installments; i++) {
           const isPaid = i <= paid_installments;
