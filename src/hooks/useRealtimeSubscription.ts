@@ -75,9 +75,10 @@ export function useRealtimeSubscription(config: RealtimeConfig = { tables: [] })
                 // Notify on payment received
                 if (payload.eventType === 'INSERT' && preferences.enabled && preferences.payments) {
                   const transaction = payload.new as Record<string, unknown>;
-                  if (transaction.category === 'Recebimento' || transaction.type === 'entrada') {
+                  if (String(transaction.category) === 'Recebimento' || String(transaction.type) === 'entrada') {
+                    const txAmount = typeof transaction.amount === 'number' ? transaction.amount : 0;
                     showNotification('💰 Pagamento Recebido!', {
-                      body: `R$ ${transaction.amount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - ${transaction.description}`,
+                      body: `R$ ${txAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - ${String(transaction.description || '')}`,
                       tag: 'payment-received',
                       soundType: 'success',
                     });
