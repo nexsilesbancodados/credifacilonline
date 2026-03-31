@@ -224,7 +224,7 @@ const Analises = () => {
         <>
           {/* Period Filter */}
           <div className="mb-6">
-            <PeriodSelector value={period} onChange={setPeriod} />
+            <PeriodSelector value={period} onChange={setPeriod} customRange={customRange} onCustomRangeChange={setCustomRange} />
           </div>
 
           {/* Full Analytics Cards */}
