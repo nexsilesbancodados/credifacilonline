@@ -488,6 +488,7 @@ const Analises = () => {
           </motion.div>
         </>
       )}
+      </motion.div>
     </MainLayout>
   );
 };
