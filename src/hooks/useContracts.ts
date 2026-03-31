@@ -175,8 +175,7 @@ export function useContracts(clientId?: string) {
       if (contractData.frequency === "programada" && scheduled_days && scheduled_days.length > 0) {
         // For "programada": generate installments on specific days of the month
         const sortedDays = [...scheduled_days].sort((a, b) => a - b);
-        const startDate = new Date(contractData.first_due_date);
-        let currentMonth = startDate.getMonth();
+        const startDate = parseLocalDate(contractData.first_due_date);
         let currentYear = startDate.getFullYear();
         
         // Find the first scheduled day >= start date's day
