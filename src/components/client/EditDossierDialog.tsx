@@ -144,7 +144,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
   };
 
   const handleSaveContract = async () => {
-    if (!contract || !user || !client) return;
+    if (!contract || !user || !client || isSavingContract) return;
     
     setIsSavingContract(true);
     try {
