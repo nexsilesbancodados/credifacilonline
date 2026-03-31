@@ -875,9 +875,6 @@ const NovoContrato = () => {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
                 <Calculator className="h-5 w-5 text-primary" />
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
-                <Calculator className="h-5 w-5 text-primary" />
-              </div>
               <div>
                 <h2 className="font-display text-lg font-semibold text-foreground">
                   Valores do Empréstimo
