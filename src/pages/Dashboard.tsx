@@ -84,7 +84,7 @@ const Dashboard = () => {
               Aqui está o resumo da sua carteira de hoje.
             </p>
           </div>
-          <PeriodSelector value={period} onChange={setPeriod} />
+          <PeriodSelector value={period} onChange={setPeriod} customRange={customRange} onCustomRangeChange={setCustomRange} />
         </div>
 
         {/* Quick Actions */}
