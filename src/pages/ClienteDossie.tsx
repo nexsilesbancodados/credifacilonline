@@ -375,7 +375,7 @@ const ClienteDossie = () => {
             <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
             <p className="text-sm text-destructive">
               <span className="font-semibold">{overdueCount} parcela{overdueCount > 1 ? "s" : ""} em atraso</span>
-              {nextInstallment && <> — próximo vencimento: {new Date(nextInstallment.due_date).toLocaleDateString("pt-BR")}</>}
+              {nextInstallment && <> — próximo vencimento: {parseLocalDate(nextInstallment.due_date).toLocaleDateString("pt-BR")}</>}
             </p>
             <button onClick={() => setIsPaymentOpen(true)} className="ml-auto text-xs font-medium text-destructive hover:underline shrink-0">
               Registrar pagamento →
