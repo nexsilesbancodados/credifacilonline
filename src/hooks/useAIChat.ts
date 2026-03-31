@@ -118,11 +118,11 @@ export function useAIChat() {
   };
 
   const saveMessage = async (convId: string, role: string, content: string, toolCalls?: ToolCallResult[], tokensUsed?: number, responseTimeMs?: number) => {
-    await supabase.from("ai_messages").insert({
+    await supabase.from("ai_messages").insert([{
       conversation_id: convId, role, content,
       tool_calls: toolCalls ? (toolCalls as unknown as Record<string, unknown>[]) : null,
       tokens_used: tokensUsed || 0, response_time_ms: responseTimeMs || 0,
-    });
+    }]);
   };
 
   const sendMessage = async (messageText?: string) => {
