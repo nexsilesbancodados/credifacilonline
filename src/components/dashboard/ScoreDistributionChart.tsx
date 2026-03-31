@@ -13,6 +13,7 @@ import {
   Pie,
 } from "recharts";
 import { useAllClients } from "@/hooks/useClients";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { useInstallments } from "@/hooks/useContracts";
 import { Award, Loader2 } from "lucide-react";
 
