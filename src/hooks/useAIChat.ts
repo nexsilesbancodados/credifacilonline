@@ -67,7 +67,7 @@ export function useAIChat() {
   }, [messages]);
 
   const fetchMetrics = useCallback(async () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = formatLocalDate(new Date());
     const { data } = await supabase.from("ai_agent_metrics").select("*").eq("date", today).limit(1);
     if (data?.[0]) setMetrics(data[0] as unknown as AgentMetrics);
   }, []);

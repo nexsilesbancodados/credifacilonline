@@ -78,7 +78,7 @@ export function useRenegotiation() {
           operator_id: user.id,
           installment_number: i,
           total_installments: data.newInstallments,
-          due_date: dueDate.toISOString().split("T")[0],
+          due_date: formatLocalDate(dueDate),
           amount_due: data.newInstallmentValue,
           amount_paid: 0,
           payment_date: null,
