@@ -67,6 +67,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 const statusConfig = {
   Ativo: { label: "Ativo", className: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30 dark:text-emerald-400", icon: CheckCircle2 },
@@ -95,13 +96,14 @@ const ClienteDossie = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { clients, isLoading: isLoadingClients, deleteClient } = useClients();
-  const { contracts, isLoading: isLoadingContracts } = useContracts();
+  const { clients, isLoading: isLoadingClients, isError: isErrorClients, refetch: refetchClients, deleteClient } = useClients();
+  const { contracts, isLoading: isLoadingContracts, isError: isErrorContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { data: activityData, isLoading: isLoadingActivity } = useActivityHistory("all", "", 1, 50);
   const { score } = useClientScore(id || "");
 
   const isLoading = isLoadingClients || isLoadingContracts || isLoadingInstallments;
+  const isError = isErrorClients || isErrorContracts;
 
   const client = useMemo(() => clients.find(c => c.id === id), [clients, id]);
 
@@ -204,6 +206,14 @@ const ClienteDossie = () => {
       toast({ title: "CPF copiado!" });
     }
   };
+
+  if (isError) {
+    return (
+      <MainLayout>
+        <QueryErrorState message="Erro ao carregar dados do cliente" onRetry={refetchClients} />
+      </MainLayout>
+    );
+  }
 
   if (isLoading) {
     return (

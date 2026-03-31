@@ -24,19 +24,51 @@ interface Permissions {
   canDeleteDocuments: boolean;
 }
 
+const rolePermissions: Record<UserRole, Permissions> = {
+  admin: {
+    canViewClients: true, canEditClients: true, canDeleteClients: true,
+    canViewContracts: true, canCreateContracts: true, canEditContracts: true, canDeleteContracts: true,
+    canViewPayments: true, canProcessPayments: true,
+    canViewTreasury: true, canManageTreasury: true,
+    canViewReports: true, canExportData: true,
+    canViewSettings: true, canManageSettings: true,
+    canViewAuditLog: true, canManageUsers: true,
+    canUploadDocuments: true, canDeleteDocuments: true,
+  },
+  operator: {
+    canViewClients: true, canEditClients: true, canDeleteClients: false,
+    canViewContracts: true, canCreateContracts: true, canEditContracts: true, canDeleteContracts: false,
+    canViewPayments: true, canProcessPayments: true,
+    canViewTreasury: true, canManageTreasury: false,
+    canViewReports: true, canExportData: false,
+    canViewSettings: true, canManageSettings: false,
+    canViewAuditLog: false, canManageUsers: false,
+    canUploadDocuments: true, canDeleteDocuments: false,
+  },
+  viewer: {
+    canViewClients: true, canEditClients: false, canDeleteClients: false,
+    canViewContracts: true, canCreateContracts: false, canEditContracts: false, canDeleteContracts: false,
+    canViewPayments: true, canProcessPayments: false,
+    canViewTreasury: true, canManageTreasury: false,
+    canViewReports: true, canExportData: false,
+    canViewSettings: false, canManageSettings: false,
+    canViewAuditLog: false, canManageUsers: false,
+    canUploadDocuments: false, canDeleteDocuments: false,
+  },
+};
+
 export function usePermissions() {
   const { profile } = useAuth();
-  const role = (profile?.role as UserRole) || 'operator';
+  const role = (profile?.role as UserRole) || 'viewer';
 
-  const hasPermission = (_permission: keyof Permissions): boolean => true;
+  const permissions = rolePermissions[role] || rolePermissions.viewer;
+  const hasPermission = (permission: keyof Permissions): boolean => permissions[permission];
 
   return {
     role,
-    permissions: Object.fromEntries(
-      Object.keys({} as Permissions).map(k => [k, true])
-    ) as unknown as Permissions,
+    permissions,
     hasPermission,
-    isAdmin: true,
+    isAdmin: role === 'admin',
     isOperator: role === 'operator',
     isViewer: role === 'viewer',
   };

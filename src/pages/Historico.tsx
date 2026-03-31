@@ -143,7 +143,7 @@ export default function Historico() {
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const itemsPerPage = 15;
 
-  const { data: activities, isLoading: isLoadingActivities } = useActivityHistory(
+  const { data: activities, isLoading: isLoadingActivities, isError: isErrorActivities, refetch: refetchActivities } = useActivityHistory(
     activityType,
     searchQuery,
     currentPage,

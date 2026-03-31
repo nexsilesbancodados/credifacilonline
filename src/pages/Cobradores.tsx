@@ -40,9 +40,10 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 const Cobradores = () => {
-  const { collectorsWithClients, isLoading, createCollector, updateCollector, deleteCollector, assignClient, regenerateToken } = useCollectors();
+  const { collectorsWithClients, isLoading, isError, refetch, createCollector, updateCollector, deleteCollector, assignClient, regenerateToken } = useCollectors();
   const { clients } = useClients();
   const { toast } = useToast();
 
@@ -197,7 +198,9 @@ const Cobradores = () => {
       </motion.div>
 
       {/* Loading */}
-      {isLoading ? (
+      {isError ? (
+        <QueryErrorState message="Erro ao carregar cobradores" onRetry={refetch} />
+      ) : isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="mt-4 text-muted-foreground">Carregando cobradores...</p>

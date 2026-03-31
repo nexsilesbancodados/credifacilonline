@@ -34,7 +34,7 @@ export function useCollectors() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: collectors = [], isLoading } = useQuery({
+  const { data: collectors = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["collectors", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -244,6 +244,8 @@ export function useCollectors() {
     collectors,
     collectorsWithClients,
     isLoading,
+    isError,
+    refetch,
     createCollector,
     updateCollector,
     deleteCollector,
