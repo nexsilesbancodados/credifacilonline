@@ -311,10 +311,11 @@ const NovoContrato = () => {
     return rate;
   };
 
+  const effectiveInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 0);
   const installmentResult = mode === "rate" ? calculateInstallment() : (Number(formData.installmentValue) || 0);
   const rateResult = mode === "installment" ? calculateRate() : (Number(formData.interestRate) || 0);
   const capitalNum = Number(formData.capital) || 0;
-  const installmentsNum = Number(formData.installments) || 0;
+  const installmentsNum = effectiveInstallments;
   const totalAmount = installmentResult * installmentsNum;
   const totalProfit = totalAmount - capitalNum;
 
