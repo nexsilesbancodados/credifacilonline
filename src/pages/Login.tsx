@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail, Lock, TrendingUp, Shield, Zap, BarChart3 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, TrendingUp, Shield, Zap, BarChart3, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { MeteorShower } from "@/components/effects/MeteorShower";
 
 const features = [
   { icon: Shield, label: "Segurança total", desc: "Dados criptografados" },
@@ -49,18 +47,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex relative overflow-hidden">
-      <MeteorShower count={20} />
-
+    <div className="min-h-screen flex relative overflow-hidden bg-background">
       {/* Left Panel - Branding */}
-      <motion.div
-        initial={{ opacity: 0, x: -40 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.7 }}
-        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative"
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative animate-fade-in">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-primary/4 pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-primary/8 rounded-full blur-3xl" />
 
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
@@ -85,13 +76,10 @@ const Login = () => {
           </div>
 
           <div className="space-y-4">
-            {features.map((feat, i) => (
-              <motion.div
+            {features.map((feat) => (
+              <div
                 key={feat.label}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.15 }}
-                className="flex items-center gap-4 rounded-xl bg-card/50 border border-border/30 p-4 backdrop-blur-sm"
+                className="flex items-center gap-4 rounded-xl glass-card p-4"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15">
                   <feat.icon className="h-5 w-5 text-primary" />
@@ -100,7 +88,7 @@ const Login = () => {
                   <p className="font-medium text-foreground text-sm">{feat.label}</p>
                   <p className="text-xs text-muted-foreground">{feat.desc}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -108,19 +96,13 @@ const Login = () => {
         <p className="relative z-10 text-xs text-muted-foreground">
           © 2025 Credifacil. Todos os direitos reservados.
         </p>
-      </motion.div>
+      </div>
 
       {/* Right Panel - Form */}
       <div className="flex-1 flex items-center justify-center p-6 relative">
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/50 pointer-events-none" />
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/8 rounded-full blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
 
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="w-full max-w-md relative z-10"
-        >
+        <div className="w-full max-w-md relative z-10 animate-fade-in">
           {/* Mobile Logo */}
           <div className="flex items-center justify-center gap-3 mb-8 lg:hidden">
             <div className="w-12 h-12 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
@@ -157,10 +139,7 @@ const Login = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-sm font-medium">Senha</Label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-xs text-primary hover:text-primary/80 transition-colors"
-                  >
+                  <Link to="/forgot-password" className="text-xs text-primary hover:text-primary/80 transition-colors">
                     Esqueceu a senha?
                   </Link>
                 </div>
@@ -190,15 +169,7 @@ const Login = () => {
                 className="w-full h-12 bg-gradient-gold hover:opacity-90 text-primary-foreground font-semibold rounded-xl shadow-gold transition-all"
                 disabled={isLoading}
               >
-                {isLoading ? (
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full"
-                  />
-                ) : (
-                  "Entrar"
-                )}
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Entrar"}
               </Button>
             </form>
 
@@ -215,7 +186,7 @@ const Login = () => {
           <p className="text-center text-xs text-muted-foreground mt-6 lg:hidden">
             © 2025 Credifacil. Todos os direitos reservados.
           </p>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
