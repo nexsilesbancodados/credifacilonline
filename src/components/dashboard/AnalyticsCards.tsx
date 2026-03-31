@@ -47,11 +47,30 @@ const periodLabels: Record<PeriodFilter, string> = {
 interface PeriodSelectorProps {
   value: PeriodFilter;
   onChange: (period: PeriodFilter) => void;
+  customRange?: CustomDateRange;
+  onCustomRangeChange?: (range: CustomDateRange) => void;
 }
 
-export const PeriodSelector = ({ value, onChange }: PeriodSelectorProps) => {
+export const PeriodSelector = ({ value, onChange, customRange, onCustomRangeChange }: PeriodSelectorProps) => {
   const periods: PeriodFilter[] = ["7d", "month", "quarter", "year", "all"];
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(
+    customRange ? { from: customRange.from, to: customRange.to } : undefined
+  );
+  const [popoverOpen, setPopoverOpen] = useState(false);
   
+  const handleDateSelect = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from && range?.to && onCustomRangeChange) {
+      onCustomRangeChange({ from: range.from, to: range.to });
+      onChange("custom");
+      setPopoverOpen(false);
+    }
+  };
+
+  const customLabel = value === "custom" && customRange
+    ? `${format(customRange.from, "dd/MM", { locale: ptBR })} - ${format(customRange.to, "dd/MM", { locale: ptBR })}`
+    : "Personalizado";
+
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -73,6 +92,30 @@ export const PeriodSelector = ({ value, onChange }: PeriodSelectorProps) => {
             {periodLabels[period]}
           </Button>
         ))}
+        <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant={value === "custom" ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "h-8 px-3 text-xs font-medium transition-all",
+                value === "custom" && "shadow-md"
+              )}
+            >
+              {customLabel}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <CalendarComponent
+              mode="range"
+              selected={dateRange}
+              onSelect={handleDateSelect}
+              numberOfMonths={2}
+              locale={ptBR}
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   );
