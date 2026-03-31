@@ -101,7 +101,7 @@ export function useAIChat() {
         role: m.role as "user" | "assistant",
         content: m.content,
         timestamp: new Date(m.created_at),
-        toolCalls: m.tool_calls as ToolCallResult[] | undefined,
+        toolCalls: m.tool_calls as unknown as ToolCallResult[] | undefined,
         usage: m.tokens_used ? { tokens: m.tokens_used, response_time_ms: m.response_time_ms || 0, tool_iterations: 0 } : undefined,
       })));
     }
