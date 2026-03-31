@@ -18,6 +18,7 @@ import { useAnalyticsStats, PeriodFilter } from "@/hooks/useAnalyticsStats";
 import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { QueryErrorState } from "@/components/QueryErrorState";
 
 const quickActions = [
   { icon: Sparkles, label: "Novo Contrato", path: "/contratos/novo", primary: true },
