@@ -54,7 +54,7 @@ export function usePaymentProcess(
   open: boolean,
   clientId?: string,
 ) {
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentDate, setPaymentDate] = useState(formatLocalDate(new Date()));
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [paymentType, setPaymentType] = useState<PaymentType>("full");
   const [showPrintOption, setShowPrintOption] = useState(false);
