@@ -98,19 +98,26 @@ export function useContractForm() {
 
   // Auto-calculate firstDueDate based on startDate + frequency
   useEffect(() => {
-    if (formData.startDate && formData.frequency && formData.frequency !== "programada") {
-      const startDate = new Date(formData.startDate + "T00:00:00");
-      if (!isNaN(startDate.getTime())) {
-        const nextDue = advanceDateByFrequency(startDate, formData.frequency);
-        const formatted = nextDue.toISOString().split("T")[0];
-        setFormData(prev => {
-          if (prev.firstDueDate !== formatted) {
-            return { ...prev, firstDueDate: formatted };
-          }
-          return prev;
-        });
-      }
+    if (formData.frequency === "programada") return;
+    
+    if (!formData.startDate) {
+      setFormData(prev => prev.firstDueDate ? { ...prev, firstDueDate: "" } : prev);
+      return;
     }
+
+    const parts = formData.startDate.split("-");
+    if (parts.length !== 3) return;
+    
+    const startDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    if (isNaN(startDate.getTime())) return;
+
+    const nextDue = advanceDateByFrequency(startDate, formData.frequency);
+    const y = nextDue.getFullYear();
+    const m = String(nextDue.getMonth() + 1).padStart(2, "0");
+    const d = String(nextDue.getDate()).padStart(2, "0");
+    const formatted = `${y}-${m}-${d}`;
+    
+    setFormData(prev => prev.firstDueDate !== formatted ? { ...prev, firstDueDate: formatted } : prev);
   }, [formData.startDate, formData.frequency]);
 
   const searchClientByCpf = useCallback((cpf: string) => {
