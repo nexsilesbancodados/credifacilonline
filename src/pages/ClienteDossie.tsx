@@ -206,6 +206,14 @@ const ClienteDossie = () => {
     }
   };
 
+  if (isError) {
+    return (
+      <MainLayout>
+        <QueryErrorState message="Erro ao carregar dados do cliente" onRetry={refetchClients} />
+      </MainLayout>
+    );
+  }
+
   if (isLoading) {
     return (
       <MainLayout>
