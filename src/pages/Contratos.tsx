@@ -94,18 +94,47 @@ const Contratos = () => {
             {stats.total} contratos · {fmt(stats.totalCapital)} em capital
           </p>
         </div>
-        <PermissionGate permission="canCreateContracts">
-          <Link to="/contratos/novo">
+        <div className="flex gap-2">
+          <PermissionGate permission="canExportData">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
+              onClick={() => {
+                const data = contracts.map(c => {
+                  const client = clientsMap[c.client_id];
+                  return {
+                    Cliente: client?.name || "N/A",
+                    Capital: c.capital,
+                    "Taxa (%)": c.interest_rate,
+                    Parcelas: c.installments,
+                    "Valor Parcela": c.installment_value,
+                    Total: c.total_amount,
+                    Status: c.status,
+                    "Data Início": format(new Date(c.start_date), "dd/MM/yyyy"),
+                  };
+                });
+                exportToExcel(data, "contratos", "Contratos");
+                toast({ title: "Exportado!", description: "Arquivo Excel gerado com sucesso." });
+              }}
+              className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
             >
-              <Plus className="h-4 w-4" />
-              Novo Contrato
+              <Download className="h-4 w-4" />
+              Exportar
             </motion.button>
-          </Link>
-        </PermissionGate>
+          </PermissionGate>
+          <PermissionGate permission="canCreateContracts">
+            <Link to="/contratos/novo">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
+              >
+                <Plus className="h-4 w-4" />
+                Novo Contrato
+              </motion.button>
+            </Link>
+          </PermissionGate>
+        </div>
       </div>
 
       {/* Stats Cards */}
