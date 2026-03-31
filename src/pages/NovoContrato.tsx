@@ -989,6 +989,7 @@ const NovoContrato = () => {
                 </div>
               )}
 
+              {formData.frequency !== "programada" && (
               <div>
                 <label className="mb-2 block text-sm font-medium text-muted-foreground">
                   Nº de Parcelas *
@@ -1006,6 +1007,18 @@ const NovoContrato = () => {
                   className="h-12 w-full rounded-xl border border-border bg-secondary/50 px-4 font-display text-lg font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
+              )}
+              {formData.frequency === "programada" && (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  Nº de Parcelas
+                </label>
+                <div className="h-12 w-full rounded-xl border border-border bg-secondary/30 px-4 flex items-center font-display text-lg font-semibold text-muted-foreground">
+                  {formData.scheduledDays.length || "—"}
+                  <span className="ml-2 text-xs font-normal">(definido pelos dias selecionados)</span>
+                </div>
+              </div>
+              )}
             </div>
           </motion.div>
 
