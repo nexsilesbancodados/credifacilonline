@@ -244,6 +244,8 @@ export function useCollectors() {
     collectors,
     collectorsWithClients,
     isLoading,
+    isError,
+    refetch,
     createCollector,
     updateCollector,
     deleteCollector,
