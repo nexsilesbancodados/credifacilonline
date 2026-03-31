@@ -132,6 +132,7 @@ const Tesouraria = () => {
         transition={{ duration: 0.4 }}
       >
       {/* Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Tesouraria</h1>
           <p className="text-sm text-muted-foreground mt-1">
