@@ -144,7 +144,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
   };
 
   const handleSaveContract = async () => {
-    if (!contract || !user || !client) return;
+    if (!contract || !user || !client || isSavingContract) return;
     
     setIsSavingContract(true);
     try {
@@ -224,7 +224,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
         if (newInstallments.length > 0) {
           const { error: insertError } = await supabase
             .from("installments")
-            .insert(newInstallments);
+            .upsert(newInstallments, { onConflict: "contract_id,installment_number" });
 
           if (insertError) throw insertError;
         }
@@ -261,7 +261,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
   };
 
   const handleRenewContract = async () => {
-    if (!client || !user) return;
+    if (!client || !user || isRenewing) return;
     
     setIsRenewing(true);
     try {

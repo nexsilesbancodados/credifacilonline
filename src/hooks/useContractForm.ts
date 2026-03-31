@@ -294,6 +294,7 @@ export function useContractForm() {
   const totalProfit = totalAmount - capitalNum;
 
   const handleSave = async () => {
+    if (isSaving || isCreatingContract) return; // Prevent double submission
     const clientToUse = selectedExistingClient || existingClient;
 
     if (!clientToUse) {
