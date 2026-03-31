@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   FileText,
@@ -27,7 +28,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { PeriodFilter } from "@/hooks/useAnalyticsStats";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PeriodFilter, CustomDateRange } from "@/hooks/useAnalyticsStats";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
 
 const periodLabels: Record<PeriodFilter, string> = {
   "7d": "7 dias",
