@@ -78,8 +78,8 @@ const QRCodeGenerator = () => {
           }
         }
       }
-    } catch (err: any) {
-      toast.error("Erro ao buscar instâncias: " + (err.message || "Erro desconhecido"));
+    } catch (err: unknown) {
+      toast.error("Erro ao buscar instâncias: " + (err instanceof Error ? err.message : "Erro desconhecido"));
     } finally {
       setLoading(false);
     }
