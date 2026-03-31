@@ -7,6 +7,10 @@ import {
   Loader2, Camera, X, Search, UserCheck, AlertCircle,
   Calculator, User, MapPin, Calendar, DollarSign, Percent, Sparkles, Check,
 } from "lucide-react";
+import { useClients, useClient, Client } from "@/hooks/useClients";
+import { useContracts } from "@/hooks/useContracts";
+import { supabase } from "@/integrations/supabase/client";
+import { maskCPF, maskPhone, maskCEP, validateCPF, validatePhone } from "@/lib/masks";
 import { cn } from "@/lib/utils";
 
 type CalculationMode = "rate" | "installment";
