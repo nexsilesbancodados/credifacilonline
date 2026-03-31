@@ -33,7 +33,7 @@ const fmt = (v: number) =>
 const Dashboard = () => {
   const [period, setPeriod] = useState<PeriodFilter>("all");
   const { profile } = useAuth();
-  const { data: dashboardStats, isLoading: isLoadingDashboard } = useDashboardStats();
+  const { data: dashboardStats, isLoading: isLoadingDashboard, isError, refetch } = useDashboardStats();
   const analyticsStats = useAnalyticsStats(period);
   const { isOpen: isTourOpen, setIsOpen: setTourOpen } = useOnboardingTour();
 
