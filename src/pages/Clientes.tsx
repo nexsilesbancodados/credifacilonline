@@ -926,6 +926,9 @@ const Clientes = () => {
           </table>
         </div>
       )}
+
+      {/* Pagination */}
+      <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
     </MainLayout>
   );
 };
