@@ -23,7 +23,7 @@ import {
 } from "recharts";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useTreasury } from "@/hooks/useTreasury";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { format, subMonths, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo, useState } from "react";
