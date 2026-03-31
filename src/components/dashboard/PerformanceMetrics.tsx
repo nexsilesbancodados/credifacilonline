@@ -91,7 +91,7 @@ export function PerformanceMetrics() {
     // Average Days Overdue
     const overdueInstallments = installments.filter(
       i => i.status === 'Atrasado' || 
-      (i.status === 'Pendente' && new Date(i.due_date) < now)
+      (i.status === 'Pendente' && parseLocalDate(i.due_date) < now)
     );
     const totalDaysOverdue = overdueInstallments.reduce((sum, i) => {
       return sum + differenceInDays(now, new Date(i.due_date));
