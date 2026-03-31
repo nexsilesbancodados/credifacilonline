@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatLocalDate } from "@/lib/dateUtils";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -100,7 +101,7 @@ export function ExportData() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `backup-${formatLocalDate(new Date())}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -128,7 +129,7 @@ export function ExportData() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${tableName}-${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = `${tableName}-${formatLocalDate(new Date())}.csv`;
       link.click();
       URL.revokeObjectURL(url);
     });
@@ -143,7 +144,7 @@ export function ExportData() {
       XLSX.utils.book_append_sheet(workbook, worksheet, tableName);
     });
 
-    XLSX.writeFile(workbook, `backup-${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `backup-${formatLocalDate(new Date())}.xlsx`);
   };
 
   const handleExport = async () => {

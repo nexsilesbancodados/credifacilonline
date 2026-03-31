@@ -5,6 +5,7 @@ import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useAllClients } from "@/hooks/useClients";
 import { useTreasury } from "@/hooks/useTreasury";
 import { useToast } from "@/hooks/use-toast";
+import { formatLocalDate } from "@/lib/dateUtils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -185,7 +186,7 @@ export const ExportReports = ({ open, onOpenChange }: ExportReportsProps) => {
     setIsExporting(true);
 
     try {
-      const date = new Date().toISOString().split("T")[0];
+      const date = formatLocalDate(new Date());
       let data: Record<string, unknown>[] = [];
       let filename = "";
       let title = "";
