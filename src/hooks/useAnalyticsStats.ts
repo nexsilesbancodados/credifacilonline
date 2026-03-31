@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { useTreasury } from "@/hooks/useTreasury";
 import { parseISO, differenceInDays, startOfMonth, subMonths, subDays, startOfQuarter, startOfYear } from "date-fns";
 
@@ -78,7 +78,7 @@ function isInPeriod(dateString: string, periodStart: Date | null): boolean {
 
 export function useAnalyticsStats(period: PeriodFilter = "all"): AnalyticsStats {
   const { contracts, isLoading: isLoadingContracts } = useContracts();
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
 

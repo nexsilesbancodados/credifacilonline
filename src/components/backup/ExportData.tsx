@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useTreasury } from "@/hooks/useTreasury";
 import { PermissionGate } from "@/components/auth/PermissionGate";
@@ -54,7 +54,7 @@ export function ExportData() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportComplete, setExportComplete] = useState(false);
 
-  const { clients } = useClients();
+  const { data: clients = [] } = useAllClients();
   const { contracts } = useContracts();
   const { installments } = useInstallments();
   const { transactions } = useTreasury();

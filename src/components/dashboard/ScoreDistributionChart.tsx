@@ -12,7 +12,7 @@ import {
   PieChart,
   Pie,
 } from "recharts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { useInstallments } from "@/hooks/useContracts";
 import { Award, Loader2 } from "lucide-react";
 
@@ -60,7 +60,7 @@ function calculateClientScore(
 }
 
 export function ScoreDistributionChart() {
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
 
   const isLoading = isLoadingClients || isLoadingInstallments;

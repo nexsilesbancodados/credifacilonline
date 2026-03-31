@@ -23,7 +23,7 @@ import {
 } from "recharts";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useTreasury } from "@/hooks/useTreasury";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { format, subMonths, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMemo, useState } from "react";
@@ -86,7 +86,7 @@ const Analises = () => {
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
   const analyticsStats = useAnalyticsStats(period);
 
   const isLoading = isLoadingContracts || isLoadingInstallments || isLoadingTreasury || isLoadingClients;

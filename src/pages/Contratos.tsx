@@ -2,14 +2,19 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useDebounce } from "@/hooks/useDebounce";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { exportToExcel } from "@/lib/exportToExcel";
+import { format } from "date-fns";
 import {
   Search, Plus, FileText, Calendar, DollarSign, TrendingUp,
   ChevronRight, RefreshCw, Clock, CheckCircle2,
-  AlertTriangle,
+  AlertTriangle, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContracts } from "@/hooks/useContracts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
+import { useToast } from "@/hooks/use-toast";
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { Progress } from "@/components/ui/progress";
 import { QueryErrorState } from "@/components/QueryErrorState";
@@ -29,10 +34,12 @@ type SortKey = "date" | "amount" | "client";
 
 const Contratos = () => {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortKey>("date");
-  const { contracts, isLoading, isError, refetch } = useContracts();
-  const { clients } = useClients();
+  const { contracts, isLoading, isError, refetch, page, setPage, totalPages } = useContracts();
+  const { data: clients = [] } = useAllClients();
+  const { toast } = useToast();
 
   const clientsMap = clients.reduce((acc, client) => {
     acc[client.id] = client;
@@ -43,8 +50,8 @@ const Contratos = () => {
     .filter((contract) => {
       const client = clientsMap[contract.client_id];
       const matchesSearch =
-        client?.name.toLowerCase().includes(search.toLowerCase()) ||
-        contract.id.toLowerCase().includes(search.toLowerCase());
+        client?.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        contract.id.toLowerCase().includes(debouncedSearch.toLowerCase());
       const matchesStatus = statusFilter === "all" || contract.status === statusFilter;
       return matchesSearch && matchesStatus;
     })
@@ -87,18 +94,47 @@ const Contratos = () => {
             {stats.total} contratos · {fmt(stats.totalCapital)} em capital
           </p>
         </div>
-        <PermissionGate permission="canCreateContracts">
-          <Link to="/contratos/novo">
+        <div className="flex gap-2">
+          <PermissionGate permission="canExportData">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
+              onClick={() => {
+                const data = contracts.map(c => {
+                  const client = clientsMap[c.client_id];
+                  return {
+                    Cliente: client?.name || "N/A",
+                    Capital: c.capital,
+                    "Taxa (%)": c.interest_rate,
+                    Parcelas: c.installments,
+                    "Valor Parcela": c.installment_value,
+                    Total: c.total_amount,
+                    Status: c.status,
+                    "Data Início": format(new Date(c.start_date), "dd/MM/yyyy"),
+                  };
+                });
+                exportToExcel(data, "contratos", "Contratos");
+                toast({ title: "Exportado!", description: "Arquivo Excel gerado com sucesso." });
+              }}
+              className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
             >
-              <Plus className="h-4 w-4" />
-              Novo Contrato
+              <Download className="h-4 w-4" />
+              Exportar
             </motion.button>
-          </Link>
-        </PermissionGate>
+          </PermissionGate>
+          <PermissionGate permission="canCreateContracts">
+            <Link to="/contratos/novo">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 rounded-xl bg-gradient-gold px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-gold transition-shadow hover:shadow-gold-lg"
+              >
+                <Plus className="h-4 w-4" />
+                Novo Contrato
+              </motion.button>
+            </Link>
+          </PermissionGate>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -308,12 +344,8 @@ const Contratos = () => {
         )}
       </div>
 
-      {/* Footer count */}
-      {filteredContracts.length > 0 && (
-        <p className="text-xs text-muted-foreground mt-3 text-center">
-          Mostrando {filteredContracts.length} de {contracts.length} contratos
-        </p>
-      )}
+      {/* Pagination */}
+      <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
     </MainLayout>
   );
 };

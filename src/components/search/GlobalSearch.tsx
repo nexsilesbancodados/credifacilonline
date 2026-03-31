@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, User, FileText, DollarSign, Loader2 } from "lucide-react";
+import { Search, X, User, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
+import { useDebounce } from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
 
 interface SearchResult {
@@ -21,32 +22,33 @@ interface GlobalSearchProps {
 
 export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebounce(query, 300);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const { clients } = useClients();
+  const { data: clients = [] } = useAllClients();
   const { contracts } = useContracts();
 
-  // Focus input when opened
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isOpen]);
 
-  // Memoize search results
   const results = useMemo(() => {
-    if (!query.trim()) return [];
+    if (!debouncedQuery.trim()) return [];
 
-    const searchQuery = query.toLowerCase();
+    const searchQuery = debouncedQuery.toLowerCase();
     const searchResults: SearchResult[] = [];
 
+    // Search clients by name, CPF, WhatsApp
     clients
       .filter(
         (c) =>
           c.name.toLowerCase().includes(searchQuery) ||
           c.cpf.includes(searchQuery) ||
+          c.whatsapp?.includes(searchQuery) ||
           c.email?.toLowerCase().includes(searchQuery)
       )
       .slice(0, 5)
@@ -55,13 +57,14 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
           id: c.id,
           type: "client",
           title: c.name,
-          subtitle: `CPF: ${c.cpf} • ${c.status}`,
+          subtitle: `CPF: ${c.cpf}${c.whatsapp ? ` • ${c.whatsapp}` : ""} • ${c.status}`,
           path: `/clientes/${c.id}`,
         });
       });
 
+    // Search contracts by ID
     contracts
-      .filter((c) => c.id.includes(searchQuery))
+      .filter((c) => c.id.toLowerCase().includes(searchQuery))
       .slice(0, 3)
       .forEach((c) => {
         const client = clients.find((cl) => cl.id === c.client_id);
@@ -75,14 +78,16 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       });
 
     return searchResults;
-  }, [query, clients, contracts]);
+  }, [debouncedQuery, clients, contracts]);
 
-  // Reset selected index when query changes
+  // Group results by type
+  const clientResults = results.filter(r => r.type === "client");
+  const contractResults = results.filter(r => r.type === "contract");
+
   useEffect(() => {
     setSelectedIndex(0);
-  }, [query]);
+  }, [debouncedQuery]);
 
-  // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       switch (e.key) {
@@ -119,10 +124,11 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
 
   if (!isOpen) return null;
 
+  let globalIndex = 0;
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
-        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -131,14 +137,12 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
           className="absolute inset-0 bg-background/80 backdrop-blur-sm"
         />
 
-        {/* Search Dialog */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: -20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -20 }}
           className="relative z-10 w-full max-w-xl rounded-2xl border border-border/50 bg-card shadow-lg overflow-hidden"
         >
-          {/* Search Input */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50">
             <Search className="h-5 w-5 text-muted-foreground" />
             <input
@@ -147,7 +151,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Buscar clientes, contratos..."
+              placeholder="Buscar por nome, CPF, WhatsApp, contrato..."
               className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
             {query && (
@@ -163,60 +167,74 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             </kbd>
           </div>
 
-          {/* Results */}
-          {query && (
+          {debouncedQuery && (
             <div className="max-h-80 overflow-y-auto p-2">
               {results.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <Search className="h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Nenhum resultado para "{query}"
+                    Nenhum resultado para "{debouncedQuery}"
                   </p>
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {results.map((result, index) => {
-                    const Icon = result.type === "client" ? User : FileText;
+                  {clientResults.length > 0 && (
+                    <p className="px-3 py-1 text-xs font-medium text-muted-foreground">👤 Clientes</p>
+                  )}
+                  {clientResults.map((result) => {
+                    const idx = globalIndex++;
+                    const Icon = User;
                     return (
                       <button
                         key={`${result.type}-${result.id}`}
                         onClick={() => handleSelect(result)}
                         className={cn(
                           "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
-                          selectedIndex === index
+                          selectedIndex === idx
                             ? "bg-primary/10 text-foreground"
                             : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                         )}
                       >
-                        <div
-                          className={cn(
-                            "flex h-9 w-9 items-center justify-center rounded-lg",
-                            result.type === "client"
-                              ? "bg-primary/10"
-                              : "bg-success/10"
-                          )}
-                        >
-                          <Icon
-                            className={cn(
-                              "h-4 w-4",
-                              result.type === "client"
-                                ? "text-primary"
-                                : "text-success"
-                            )}
-                          />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                          <Icon className="h-4 w-4 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">
-                            {result.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {result.subtitle}
-                          </p>
+                          <p className="font-medium text-foreground truncate">{result.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
                         </div>
-                        {selectedIndex === index && (
-                          <kbd className="h-5 rounded bg-secondary px-1.5 font-mono text-xs text-muted-foreground">
-                            ↵
-                          </kbd>
+                        {selectedIndex === idx && (
+                          <kbd className="h-5 rounded bg-secondary px-1.5 font-mono text-xs text-muted-foreground">↵</kbd>
+                        )}
+                      </button>
+                    );
+                  })}
+
+                  {contractResults.length > 0 && (
+                    <p className="px-3 py-1 text-xs font-medium text-muted-foreground mt-2">📄 Contratos</p>
+                  )}
+                  {contractResults.map((result) => {
+                    const idx = globalIndex++;
+                    const Icon = FileText;
+                    return (
+                      <button
+                        key={`${result.type}-${result.id}`}
+                        onClick={() => handleSelect(result)}
+                        className={cn(
+                          "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors",
+                          selectedIndex === idx
+                            ? "bg-primary/10 text-foreground"
+                            : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                        )}
+                      >
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10">
+                          <Icon className="h-4 w-4 text-success" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{result.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
+                        </div>
+                        {selectedIndex === idx && (
+                          <kbd className="h-5 rounded bg-secondary px-1.5 font-mono text-xs text-muted-foreground">↵</kbd>
                         )}
                       </button>
                     );
@@ -226,8 +244,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             </div>
           )}
 
-          {/* Hints */}
-          {!query && (
+          {!debouncedQuery && (
             <div className="p-4 text-center text-sm text-muted-foreground">
               <p>Digite para buscar clientes ou contratos</p>
               <div className="flex items-center justify-center gap-4 mt-2">
@@ -249,13 +266,11 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   );
 }
 
-// Hook for keyboard shortcut
 export function useGlobalSearch() {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K to open search
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setIsOpen(true);

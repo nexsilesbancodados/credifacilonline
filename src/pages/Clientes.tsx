@@ -2,6 +2,10 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useDebounce } from "@/hooks/useDebounce";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { exportToExcel } from "@/lib/exportToExcel";
+import { format } from "date-fns";
 import {
   Search,
   Grid3X3,
@@ -16,6 +20,7 @@ import {
   AlertCircle,
   Zap,
   Users,
+  Download,
   CheckSquare,
   Square,
   MessageCircle,
@@ -54,9 +59,10 @@ const toneOptions = [
 ];
 
 const Clientes = () => {
-  const { clients, isLoading, isError, refetch } = useClients();
+  const { clients, isLoading, isError, refetch, page, setPage, totalPages } = useClients();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [activeFilter, setActiveFilter] = useState<Status>("Todos");
   const [showArchived, setShowArchived] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -81,8 +87,8 @@ const Clientes = () => {
   const filteredClients = clients
     .filter((client) => {
       const matchesSearch =
-        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        client.cpf.includes(searchQuery);
+        client.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        client.cpf.includes(debouncedSearch);
       const matchesFilter =
         activeFilter === "Todos" || client.status === activeFilter;
       const matchesArchived = showArchived 
@@ -296,6 +302,28 @@ const Clientes = () => {
           </div>
 
           <div className="flex gap-2">
+            <PermissionGate permission="canExportData">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  const data = clients.map(c => ({
+                    Nome: c.name,
+                    CPF: c.cpf,
+                    WhatsApp: c.whatsapp || "",
+                    Status: c.status,
+                    Cidade: c.city || "",
+                    "Data Cadastro": format(new Date(c.created_at), "dd/MM/yyyy"),
+                  }));
+                  exportToExcel(data, "clientes", "Clientes");
+                  toast({ title: "Exportado!", description: "Arquivo Excel gerado com sucesso." });
+                }}
+                className="flex items-center gap-2 rounded-xl border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+              >
+                <Download className="h-4 w-4" />
+                Exportar
+              </motion.button>
+            </PermissionGate>
             {!selectionMode ? (
               <>
                 <PermissionGate permission="canEditClients">
@@ -898,6 +926,9 @@ const Clientes = () => {
           </table>
         </div>
       )}
+
+      {/* Pagination */}
+      <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
     </MainLayout>
   );
 };

@@ -1,6 +1,8 @@
 import { MainLayout } from "@/components/layout/MainLayout";
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { PaginationControls } from "@/components/ui/pagination-controls";
+import { exportToExcel } from "@/lib/exportToExcel";
 import {
   Wallet,
   TrendingUp,
@@ -17,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTreasury, CreateTransactionData } from "@/hooks/useTreasury";
+import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, isToday } from "date-fns";
 import {
   Dialog,
@@ -84,10 +87,14 @@ const Tesouraria = () => {
     isLoading, 
     isError,
     refetch,
+    page,
+    setPage,
+    totalPages,
     createTransaction, 
     deleteTransaction,
     isCreating 
   } = useTreasury();
+  const { toast } = useToast();
 
   const todayIncome = transactions
     .filter((t) => t.type === "entrada" && isToday(parseISO(t.date)))
@@ -336,7 +343,20 @@ const Tesouraria = () => {
               <Filter className="h-4 w-4" />
               Filtrar
             </button>
-            <button className="flex items-center gap-2 rounded-xl bg-secondary/50 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+            <button 
+              onClick={() => {
+                const data = transactions.map(t => ({
+                  Data: format(parseISO(t.date), "dd/MM/yyyy"),
+                  Tipo: t.type === "entrada" ? "Entrada" : "Saída",
+                  Categoria: t.category,
+                  Descrição: t.description,
+                  Valor: Number(t.amount),
+                }));
+                exportToExcel(data, "tesouraria", "Transações");
+                toast({ title: "Exportado!", description: "Arquivo Excel gerado com sucesso." });
+              }}
+              className="flex items-center gap-2 rounded-xl bg-secondary/50 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            >
               <Download className="h-4 w-4" />
               Exportar
             </button>
@@ -422,6 +442,10 @@ const Tesouraria = () => {
           )}
         </div>
       </motion.div>
+
+      {/* Pagination */}
+      <PaginationControls page={page} totalPages={totalPages} onPageChange={setPage} />
+
 
       {/* Add Transaction Modal */}
       <Dialog open={showAddModal !== null} onOpenChange={() => setShowAddModal(null)}>

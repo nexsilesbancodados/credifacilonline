@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { useCollectors } from "@/hooks/useCollectors";
 import { useInstallments } from "@/hooks/useContracts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { Users, TrendingUp, AlertTriangle, Trophy, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -100,7 +100,7 @@ const getPerformanceBadgeVariant = (performance: string): "default" | "secondary
 export function CollectorReportsChart() {
   const { collectorsWithClients, isLoading: isLoadingCollectors } = useCollectors();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
 
   const isLoading = isLoadingCollectors || isLoadingInstallments || isLoadingClients;
 

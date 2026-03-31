@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import {
   TrendingUp,
   Target,
@@ -62,7 +62,7 @@ function MetricCard({ title, value, subtitle, icon, trend, trendValue, color = '
 export function PerformanceMetrics() {
   const { contracts = [] } = useContracts();
   const { installments = [] } = useInstallments();
-  const { clients = [] } = useClients();
+  const { data: clients = [] } = useAllClients();
 
   const metrics = useMemo(() => {
     const now = new Date();

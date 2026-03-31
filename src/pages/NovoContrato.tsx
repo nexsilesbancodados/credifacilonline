@@ -7,7 +7,7 @@ import {
   Loader2, Camera, X, Search, UserCheck, AlertCircle,
   Calculator, User, MapPin, Calendar, DollarSign, Percent, Sparkles, Check,
 } from "lucide-react";
-import { useClients, useClient, Client } from "@/hooks/useClients";
+import { useAllClients, useClient, Client } from "@/hooks/useClients";
 import { useContracts } from "@/hooks/useContracts";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF, maskPhone, maskCEP, validateCPF, validatePhone } from "@/lib/masks";
@@ -21,7 +21,7 @@ const NovoContrato = () => {
   const existingClientId = searchParams.get("clientId");
   
   const { toast } = useToast();
-  const { clients, createClient, isCreating: isCreatingClient } = useClients();
+  const { data: clients = [] } = useAllClients();
   const { createContract, isCreating: isCreatingContract } = useContracts();
   
   // Fetch specific client when clientId is provided

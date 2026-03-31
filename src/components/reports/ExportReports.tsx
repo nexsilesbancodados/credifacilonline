@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Download, FileSpreadsheet, FileText, CheckCircle2, FileIcon } from "lucide-react";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
-import { useClients } from "@/hooks/useClients";
+import { useAllClients } from "@/hooks/useClients";
 import { useTreasury } from "@/hooks/useTreasury";
 import { useToast } from "@/hooks/use-toast";
 import jsPDF from "jspdf";
@@ -24,7 +24,7 @@ export const ExportReports = ({ open, onOpenChange }: ExportReportsProps) => {
   const [exported, setExported] = useState(false);
 
   const { contracts } = useContracts();
-  const { clients } = useClients();
+  const { data: clients = [] } = useAllClients();
   const { installments } = useInstallments();
   const { transactions } = useTreasury();
   const { toast } = useToast();

@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { addDays, addWeeks, addMonths, getDay } from "date-fns";
 import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
 import { LoanContractData } from "@/lib/generateLoanContract";
+import { useState } from "react";
 
 export interface Contract {
   id: string;
@@ -60,7 +61,6 @@ export interface CreateContractData {
   paid_installments?: number;
   fine_percentage?: number;
   daily_interest_rate?: number;
-  // Client data for contract PDF
   client_name?: string;
   client_cpf?: string;
   client_city?: string;
@@ -68,74 +68,74 @@ export interface CreateContractData {
   company_name?: string;
 }
 
-// Check if a date is valid for daily collection based on dailyType
 function isValidCollectionDay(date: Date, dailyType: string): boolean {
-  const dayOfWeek = getDay(date); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  
+  const dayOfWeek = getDay(date);
   switch (dailyType) {
-    case "seg-seg": // Monday to Monday (all days)
-      return true;
-    case "seg-sex": // Monday to Friday (weekdays only)
-      return dayOfWeek >= 1 && dayOfWeek <= 5;
-    case "seg-sab": // Monday to Saturday (no Sunday)
-      return dayOfWeek >= 1 && dayOfWeek <= 6;
-    default:
-      return true;
+    case "seg-seg": return true;
+    case "seg-sex": return dayOfWeek >= 1 && dayOfWeek <= 5;
+    case "seg-sab": return dayOfWeek >= 1 && dayOfWeek <= 6;
+    default: return true;
   }
 }
 
 function getNextDueDate(currentDate: Date, frequency: string, dailyType?: string): Date {
   let nextDate: Date;
-  
   switch (frequency) {
     case "diario":
       nextDate = addDays(currentDate, 1);
-      // Skip invalid days for daily frequency
       if (dailyType && dailyType !== "seg-seg") {
         while (!isValidCollectionDay(nextDate, dailyType)) {
           nextDate = addDays(nextDate, 1);
         }
       }
       return nextDate;
-    case "semanal":
-      return addWeeks(currentDate, 1);
-    case "quinzenal":
-      return addDays(currentDate, 15);
+    case "semanal": return addWeeks(currentDate, 1);
+    case "quinzenal": return addDays(currentDate, 15);
     case "mensal":
-    default:
-      return addMonths(currentDate, 1);
+    default: return addMonths(currentDate, 1);
   }
 }
 
-// Parse date string "YYYY-MM-DD" as local date (avoids UTC timezone shift)
 function parseLocalDate(dateStr: string): Date {
   const [year, month, day] = dateStr.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
 
+const CONTRACTS_PAGE_SIZE = 20;
+
 export function useContracts(clientId?: string) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
 
   const contractsQuery = useQuery({
-    queryKey: ["contracts", clientId],
+    queryKey: ["contracts", clientId, page],
     queryFn: async () => {
       let query = supabase
         .from("contracts")
-        .select("*")
+        .select("*", { count: "exact" })
         .order("created_at", { ascending: false });
 
       if (clientId) {
         query = query.eq("client_id", clientId);
       }
 
-      const { data, error } = await query;
+      if (!clientId) {
+        const from = (page - 1) * CONTRACTS_PAGE_SIZE;
+        const to = from + CONTRACTS_PAGE_SIZE - 1;
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
       if (error) throw error;
-      return data as Contract[];
+      return { contracts: data as Contract[], totalCount: count || 0 };
     },
     enabled: !!user,
   });
+
+  const totalCount = contractsQuery.data?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / CONTRACTS_PAGE_SIZE);
 
   const createContractMutation = useMutation({
     mutationFn: async (contractData: CreateContractData) => {
@@ -154,7 +154,6 @@ export function useContracts(clientId?: string) {
         ...contractFields 
       } = contractData;
 
-      // Create contract
       const { data: contract, error: contractError } = await supabase
         .from("contracts")
         .insert({
@@ -169,20 +168,16 @@ export function useContracts(clientId?: string) {
 
       if (contractError) throw contractError;
 
-      // Create installments
       const installments = [];
 
       if (contractData.frequency === "programada" && scheduled_days && scheduled_days.length > 0) {
-        // For "programada": generate installments on specific days of the month
         const sortedDays = [...scheduled_days].sort((a, b) => a - b);
         const startDate = parseLocalDate(contractData.first_due_date);
         let currentMonth = startDate.getMonth();
         let currentYear = startDate.getFullYear();
         
-        // Find the first scheduled day >= start date's day
         let dayIndex = sortedDays.findIndex(d => d >= startDate.getDate());
         if (dayIndex === -1) {
-          // All days are before start date's day, go to next month
           dayIndex = 0;
           currentMonth++;
           if (currentMonth > 11) { currentMonth = 0; currentYear++; }
@@ -190,7 +185,6 @@ export function useContracts(clientId?: string) {
 
         for (let i = 1; i <= contractData.installments; i++) {
           const day = sortedDays[dayIndex];
-          // Clamp day to max days in month
           const maxDay = new Date(currentYear, currentMonth + 1, 0).getDate();
           const clampedDay = Math.min(day, maxDay);
           const dueDate = new Date(currentYear, currentMonth, clampedDay);
@@ -210,7 +204,6 @@ export function useContracts(clientId?: string) {
             fine: 0,
           });
 
-          // Advance to next scheduled day
           dayIndex++;
           if (dayIndex >= sortedDays.length) {
             dayIndex = 0;
@@ -219,7 +212,6 @@ export function useContracts(clientId?: string) {
           }
         }
       } else {
-        // Standard frequency-based installment generation
         let dueDate = parseLocalDate(contractData.first_due_date);
 
         for (let i = 1; i <= contractData.installments; i++) {
@@ -247,7 +239,6 @@ export function useContracts(clientId?: string) {
 
       if (installmentsError) throw installmentsError;
 
-      // Create treasury transaction for loan disbursement
       await supabase.from("treasury_transactions").insert({
         operator_id: user.id,
         date: contractData.start_date,
@@ -259,7 +250,6 @@ export function useContracts(clientId?: string) {
         reference_type: "contract",
       });
 
-      // Log activity
       await supabase.from("activity_log").insert({
         operator_id: user.id,
         client_id: contractData.client_id,
@@ -268,7 +258,6 @@ export function useContracts(clientId?: string) {
         description: `Contrato criado - R$ ${contractData.capital.toLocaleString("pt-BR")} em ${contractData.installments}x`,
       });
 
-      // Generate and save contract PDF to documents
       if (client_name && client_cpf) {
         const pdfData: LoanContractData = {
           contractId: contract.id,
@@ -296,7 +285,6 @@ export function useContracts(clientId?: string) {
 
         if (!saveResult.success) {
           console.warn("Failed to save contract PDF:", saveResult.error);
-          // Don't fail the contract creation, just log the warning
         }
       }
 
@@ -323,7 +311,11 @@ export function useContracts(clientId?: string) {
   });
 
   return {
-    contracts: contractsQuery.data || [],
+    contracts: contractsQuery.data?.contracts || [],
+    totalCount,
+    page,
+    setPage,
+    totalPages,
     isLoading: contractsQuery.isLoading,
     isError: contractsQuery.isError,
     error: contractsQuery.error,
@@ -385,7 +377,6 @@ export function useInstallments(clientId?: string, contractId?: string) {
 
       if (error) throw error;
 
-      // Create treasury transaction for payment received
       await supabase.from("treasury_transactions").insert({
         operator_id: user.id,
         date: new Date().toISOString().split("T")[0],
@@ -397,7 +388,6 @@ export function useInstallments(clientId?: string, contractId?: string) {
         reference_type: "installment",
       });
 
-      // Log activity
       await supabase.from("activity_log").insert({
         operator_id: user.id,
         client_id: clientId,
@@ -449,7 +439,8 @@ export function usePendingInstallments() {
           clients!inner(name, whatsapp)
         `)
         .in("status", ["Pendente", "Atrasado"])
-        .order("due_date", { ascending: true });
+        .order("due_date", { ascending: true })
+        .limit(100);
 
       if (error) throw error;
       return data;
