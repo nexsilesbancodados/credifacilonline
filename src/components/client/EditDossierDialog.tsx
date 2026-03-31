@@ -349,7 +349,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
         category: "Empréstimo",
         description: `Renovação - ${client.name}`,
         amount: capital,
-        date: format(new Date(), "yyyy-MM-dd"),
+        date: formatLocalDate(new Date()),
         reference_type: "contract",
         reference_id: newContract.id,
       });
