@@ -216,7 +216,7 @@ const Contratos = () => {
       </div>
 
       {/* Contracts List */}
-      <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+      <div className="rounded-2xl border border-border/50 bg-card overflow-hidden" aria-busy={isLoading}>
       {isError ? (
           <QueryErrorState message="Erro ao carregar contratos" onRetry={refetch} />
         ) : isLoading ? (
