@@ -261,7 +261,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
   };
 
   const handleRenewContract = async () => {
-    if (!client || !user) return;
+    if (!client || !user || isRenewing) return;
     
     setIsRenewing(true);
     try {
