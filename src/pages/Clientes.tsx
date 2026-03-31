@@ -87,8 +87,8 @@ const Clientes = () => {
   const filteredClients = clients
     .filter((client) => {
       const matchesSearch =
-        client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        client.cpf.includes(searchQuery);
+        client.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        client.cpf.includes(debouncedSearch);
       const matchesFilter =
         activeFilter === "Todos" || client.status === activeFilter;
       const matchesArchived = showArchived 
