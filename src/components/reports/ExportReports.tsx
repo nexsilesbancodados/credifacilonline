@@ -24,7 +24,7 @@ export const ExportReports = ({ open, onOpenChange }: ExportReportsProps) => {
   const [exported, setExported] = useState(false);
 
   const { contracts } = useContracts();
-  const { clients } = useClients();
+  const { data: clients = [] } = useAllClients();
   const { installments } = useInstallments();
   const { transactions } = useTreasury();
   const { toast } = useToast();

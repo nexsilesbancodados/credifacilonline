@@ -100,7 +100,7 @@ const getPerformanceBadgeVariant = (performance: string): "default" | "secondary
 export function CollectorReportsChart() {
   const { collectorsWithClients, isLoading: isLoadingCollectors } = useCollectors();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
 
   const isLoading = isLoadingCollectors || isLoadingInstallments || isLoadingClients;
 

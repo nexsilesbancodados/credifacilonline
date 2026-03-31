@@ -54,7 +54,7 @@ export function ExportData() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportComplete, setExportComplete] = useState(false);
 
-  const { clients } = useClients();
+  const { data: clients = [] } = useAllClients();
   const { contracts } = useContracts();
   const { installments } = useInstallments();
   const { transactions } = useTreasury();

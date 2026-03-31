@@ -62,7 +62,7 @@ function MetricCard({ title, value, subtitle, icon, trend, trendValue, color = '
 export function PerformanceMetrics() {
   const { contracts = [] } = useContracts();
   const { installments = [] } = useInstallments();
-  const { clients = [] } = useClients();
+  const { data: clients = [] } = useAllClients();
 
   const metrics = useMemo(() => {
     const now = new Date();

@@ -60,7 +60,7 @@ function calculateClientScore(
 }
 
 export function ScoreDistributionChart() {
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
 
   const isLoading = isLoadingClients || isLoadingInstallments;

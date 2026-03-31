@@ -46,7 +46,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function DelinquencyChart() {
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
 
   const isLoading = isLoadingInstallments || isLoadingClients;
 

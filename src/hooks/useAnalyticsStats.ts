@@ -78,7 +78,7 @@ function isInPeriod(dateString: string, periodStart: Date | null): boolean {
 
 export function useAnalyticsStats(period: PeriodFilter = "all"): AnalyticsStats {
   const { contracts, isLoading: isLoadingContracts } = useContracts();
-  const { clients, isLoading: isLoadingClients } = useClients();
+  const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { transactions, isLoading: isLoadingTreasury } = useTreasury();
 
