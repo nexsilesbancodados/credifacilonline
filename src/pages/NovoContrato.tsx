@@ -418,17 +418,18 @@ const NovoContrato = () => {
         client_id: clientId,
         capital: formData.capital,
         interest_rate: rateResult,
-        installments: formData.installments,
+        installments: formData.frequency === "programada" ? formData.scheduledDays.length : formData.installments,
         installment_value: installmentResult,
         total_amount: totalAmount,
         total_profit: totalProfit,
         frequency: formData.frequency as any,
         daily_type: formData.frequency === "diario" ? formData.dailyType as any : undefined,
+        scheduled_days: formData.frequency === "programada" ? formData.scheduledDays : undefined,
         start_date: formData.startDate,
-        first_due_date: formData.firstDueDate,
+        first_due_date: formData.frequency === "programada" ? formData.startDate : formData.firstDueDate,
         paid_installments: formData.paidInstallments,
-        fine_percentage: 10, // Default from example
-        daily_interest_rate: 2, // Default from example  
+        fine_percentage: 10,
+        daily_interest_rate: 2,
         // Client data for contract PDF
         client_name: clientForPdf.name,
         client_cpf: clientForPdf.cpf,
