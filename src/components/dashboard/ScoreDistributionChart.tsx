@@ -42,7 +42,7 @@ function calculateClientScore(
   // On-time payments bonus (30 points)
   const onTimePayments = paidInstallments.filter((i) => {
     if (!i.payment_date) return false;
-    return new Date(i.payment_date) <= new Date(i.due_date);
+    return parseLocalDate(i.payment_date) <= parseLocalDate(i.due_date);
   });
   const onTimeBonus = paidInstallments.length > 0 
     ? (onTimePayments.length / paidInstallments.length) * 30 

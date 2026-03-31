@@ -33,7 +33,7 @@ export function PortfolioAgingChart() {
     };
 
     overdueInstallments.forEach(inst => {
-      const daysOverdue = differenceInDays(new Date(), new Date(inst.due_date));
+      const daysOverdue = differenceInDays(new Date(), parseLocalDate(inst.due_date));
       const amount = inst.amount_due + (inst.fine || 0);
 
       if (daysOverdue <= 30) {

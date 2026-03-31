@@ -62,7 +62,7 @@ export const BulkPaymentDialog = ({
   const pendingInstallments = useMemo(() => {
     return installments
       .filter(i => i.status === "Pendente" || i.status === "Atrasado")
-      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+      .sort((a, b) => parseLocalDate(a.due_date).getTime() - parseLocalDate(b.due_date).getTime());
   }, [installments]);
 
   // Calculate total debt with fines

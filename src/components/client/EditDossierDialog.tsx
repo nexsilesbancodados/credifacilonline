@@ -199,7 +199,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
       if (remainingInstallments > 0) {
         // Generate new installments starting after paid ones
         const newInstallments = [];
-        let currentDueDate = new Date(contractData.first_due_date);
+        let currentDueDate = parseLocalDate(contractData.first_due_date);
 
         // Skip to the correct start date based on paid installments
         for (let i = 0; i < paidCount; i++) {

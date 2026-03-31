@@ -130,7 +130,7 @@ export function PerformanceMetrics() {
       .filter(i => parseLocalDate(i.due_date) <= now)
       .reduce((sum, i) => sum + i.amount_due, 0);
     const totalPaid = installments
-      .filter(i => i.status === 'Pago' && new Date(i.due_date) <= now)
+      .filter(i => i.status === 'Pago' && parseLocalDate(i.due_date) <= now)
       .reduce((sum, i) => sum + i.amount_due, 0);
     const collectionEfficiency = totalDue > 0 ? (totalPaid / totalDue) * 100 : 100;
 

@@ -434,7 +434,7 @@ export const ManageInstallmentsDialog = ({
                             Parcela {installment.installment_number}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            Venc: {new Date(installment.due_date).toLocaleDateString("pt-BR")}
+                            Venc: {parseLocalDate(installment.due_date).toLocaleDateString("pt-BR")}
                           </p>
                         </div>
                       </div>

@@ -313,7 +313,7 @@ const CobradorExterno = () => {
                 <div className="divide-y divide-border/50">
                   {client.installments.map((installment) => {
                     const isOverdue = installment.status === "Atrasado";
-                    const dueDate = new Date(installment.due_date);
+                    const dueDate = parseLocalDate(installment.due_date);
 
                     return (
                       <div

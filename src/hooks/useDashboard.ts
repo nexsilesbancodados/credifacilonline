@@ -153,7 +153,7 @@ export function useOverdueClients() {
       // Calculate days overdue
       const today = new Date();
       return data.map((item) => {
-        const dueDate = new Date(item.due_date);
+        const dueDate = parseLocalDate(item.due_date);
         const daysOverdue = Math.floor(
           (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
         );

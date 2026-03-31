@@ -87,7 +87,7 @@ export function OverdueList() {
                   <div>
                     <p className="font-medium text-foreground">{client?.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      Vencimento: {new Date(item.due_date).toLocaleDateString("pt-BR")}
+                      Vencimento: {parseLocalDate(item.due_date).toLocaleDateString("pt-BR")}
                     </p>
                   </div>
                 </div>

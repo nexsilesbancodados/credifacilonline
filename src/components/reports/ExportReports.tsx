@@ -258,7 +258,7 @@ export const ExportReports = ({ open, onOpenChange }: ExportReportsProps) => {
           data = overdueInstallments.map(i => {
             const client = clientMap.get(i.client_id);
             const daysOverdue = Math.floor(
-              (new Date().getTime() - new Date(i.due_date).getTime()) / (1000 * 60 * 60 * 24)
+              (new Date().getTime() - parseLocalDate(i.due_date).getTime()) / (1000 * 60 * 60 * 24)
             );
             return {
               Cliente: client?.name || "N/A",
