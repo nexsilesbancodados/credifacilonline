@@ -10,7 +10,7 @@ import { LoanFrequencyChart } from "@/components/dashboard/LoanFrequencyChart";
 import { OnboardingTour, useOnboardingTour } from "@/components/tour/OnboardingTour";
 import { Link } from "react-router-dom";
 import {
-  Sparkles, Loader2, Users, Calculator, BarChart3,
+  Sparkles, Users, Calculator, BarChart3,
   TrendingUp, DollarSign, AlertTriangle, FileText,
 } from "lucide-react";
 import { useDashboardStats } from "@/hooks/useDashboard";
@@ -19,6 +19,9 @@ import { useRealtimeDashboard } from "@/hooks/useRealtimeDashboard";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { QueryErrorState } from "@/components/QueryErrorState";
+import { SkeletonMetricCards, SkeletonChart } from "@/components/ui/skeleton-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
 
 const quickActions = [
   { icon: Sparkles, label: "Novo Contrato", path: "/contratos/novo", primary: true },
@@ -29,6 +32,20 @@ const quickActions = [
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+const pageVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+};
+
+const staggerContainer = {
+  animate: { transition: { staggerChildren: 0.05 } },
+};
+
+const staggerItem = {
+  initial: { opacity: 0, scale: 0.95 },
+  animate: { opacity: 1, scale: 1 },
+};
 
 const Dashboard = () => {
   const [period, setPeriod] = useState<PeriodFilter>("all");
@@ -55,112 +72,128 @@ const Dashboard = () => {
 
   return (
     <MainLayout>
-      {/* Header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground animate-fade-in">
-            {getGreeting()}{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}! 👋
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Aqui está o resumo da sua carteira de hoje.
-          </p>
+      <motion.div variants={pageVariants} initial="initial" animate="animate" transition={{ duration: 0.4 }}>
+        {/* Header */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">
+              {getGreeting()}{profile?.name ? `, ${profile.name.split(" ")[0]}` : ""}! 👋
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Aqui está o resumo da sua carteira de hoje.
+            </p>
+          </div>
+          <PeriodSelector value={period} onChange={setPeriod} />
         </div>
-        <PeriodSelector value={period} onChange={setPeriod} />
-      </div>
 
-      {/* Quick Actions */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {quickActions.map((action) => (
-          <Link
-            key={action.path}
-            to={action.path}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]",
-              "primary" in action && action.primary
-                ? "bg-gradient-gold text-primary-foreground shadow-gold"
-                : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-            )}
+        {/* Quick Actions */}
+        <motion.div className="mb-6 flex flex-wrap gap-2" variants={staggerContainer} initial="initial" animate="animate">
+          {quickActions.map((action) => (
+            <motion.div key={action.path} variants={staggerItem}>
+              <Link
+                to={action.path}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all hover:scale-[1.02] active:scale-[0.98]",
+                  "primary" in action && action.primary
+                    ? "bg-gradient-gold text-primary-foreground shadow-gold"
+                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                )}
+              >
+                <action.icon className="h-4 w-4" />
+                {action.label}
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        {/* Quick Summary Strip */}
+        {isLoading ? (
+          <div className="mb-6">
+            <SkeletonMetricCards />
+          </div>
+        ) : (
+          <motion.div
+            className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3"
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
           >
-            <action.icon className="h-4 w-4" />
-            {action.label}
-          </Link>
-        ))}
-      </div>
+            {[
+              { icon: DollarSign, label: "Capital Ativo", value: fmt(totalCapital), color: "text-primary", border: "" },
+              { icon: TrendingUp, label: "Lucro Total", value: fmt(totalProfit), color: "text-success", border: "" },
+              { icon: FileText, label: "Contratos", value: activeContracts, color: "text-primary", border: "" },
+              { icon: AlertTriangle, label: "Atrasados", value: overdueCount, color: overdueCount > 0 ? "text-destructive" : "text-foreground", border: overdueCount > 0 ? "border-destructive/30 bg-destructive/5" : "" },
+            ].map((card) => (
+              <motion.div
+                key={card.label}
+                variants={staggerItem}
+                className={cn("glass-card rounded-xl p-3.5", card.border || "")}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <card.icon className={cn("h-3.5 w-3.5", card.color)} />
+                  <span className="text-xs text-muted-foreground">{card.label}</span>
+                </div>
+                <p className={cn("font-display text-lg font-bold", card.color)}>{card.value}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
 
-      {/* Quick Summary Strip */}
-      {!isLoading && (
-        <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in">
-          <div className="glass-card rounded-xl p-3.5">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs text-muted-foreground">Capital Ativo</span>
+        {isError ? (
+          <QueryErrorState message="Erro ao carregar dashboard" onRetry={refetch} />
+        ) : isLoading ? (
+          <div className="space-y-6">
+            <SkeletonChart />
+            <div className="grid gap-6 lg:grid-cols-2">
+              <SkeletonChart />
+              <SkeletonChart />
             </div>
-            <p className="font-display text-lg font-bold text-foreground">{fmt(totalCapital)}</p>
           </div>
-          <div className="glass-card rounded-xl p-3.5">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-3.5 w-3.5 text-success" />
-              <span className="text-xs text-muted-foreground">Lucro Total</span>
+        ) : (
+          <>
+            <AnalyticsCards stats={analyticsStats} variant="compact" />
+
+            {/* Tabbed Sections */}
+            <Tabs defaultValue="overview" className="mt-8">
+              <TabsList className="bg-secondary/50">
+                <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+                <TabsTrigger value="analysis">Análise</TabsTrigger>
+                <TabsTrigger value="goals">Metas</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="mt-6">
+                <div className="grid gap-6 lg:grid-cols-3">
+                  <div className="lg:col-span-2">
+                    <RevenueChart />
+                  </div>
+                  <LoanFrequencyChart />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="analysis" className="mt-6">
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <ForecastChart />
+                  <ReceivableForecastWidget />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="goals" className="mt-6">
+                <GoalsDashboard />
+              </TabsContent>
+            </Tabs>
+
+            <div className="mt-8">
+              <OverdueList />
             </div>
-            <p className="font-display text-lg font-bold text-success">{fmt(totalProfit)}</p>
-          </div>
-          <div className="glass-card rounded-xl p-3.5">
-            <div className="flex items-center gap-2 mb-1">
-              <FileText className="h-3.5 w-3.5 text-primary" />
-              <span className="text-xs text-muted-foreground">Contratos</span>
-            </div>
-            <p className="font-display text-lg font-bold text-foreground">{activeContracts}</p>
-          </div>
-          <div className={cn(
-            "rounded-xl p-3.5 border",
-            overdueCount > 0 ? "border-destructive/30 bg-destructive/5" : "glass-card"
-          )}>
-            <div className="flex items-center gap-2 mb-1">
-              <AlertTriangle className={cn("h-3.5 w-3.5", overdueCount > 0 ? "text-destructive" : "text-muted-foreground")} />
-              <span className="text-xs text-muted-foreground">Atrasados</span>
-            </div>
-            <p className={cn("font-display text-lg font-bold", overdueCount > 0 ? "text-destructive" : "text-foreground")}>{overdueCount}</p>
-          </div>
-        </div>
-      )}
+          </>
+        )}
 
-      {isError ? (
-        <QueryErrorState message="Erro ao carregar dashboard" onRetry={refetch} />
-      ) : isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : (
-        <>
-          <AnalyticsCards stats={analyticsStats} variant="compact" />
-
-          <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <RevenueChart />
-            </div>
-            <LoanFrequencyChart />
-          </div>
-
-          <div className="mt-8 grid gap-6 lg:grid-cols-2">
-            <ForecastChart />
-            <ReceivableForecastWidget />
-          </div>
-
-          <div className="mt-8">
-            <GoalsDashboard />
-          </div>
-
-          <div className="mt-8">
-            <OverdueList />
-          </div>
-        </>
-      )}
-
-      <OnboardingTour
-        isOpen={isTourOpen}
-        onClose={() => setTourOpen(false)}
-        onComplete={() => setTourOpen(false)}
-      />
+        <OnboardingTour
+          isOpen={isTourOpen}
+          onClose={() => setTourOpen(false)}
+          onComplete={() => setTourOpen(false)}
+        />
+      </motion.div>
     </MainLayout>
   );
 };

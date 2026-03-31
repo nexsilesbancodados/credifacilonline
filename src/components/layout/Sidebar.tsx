@@ -12,7 +12,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { ExcelImport } from "@/components/imports/ExcelImport";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useDashboardStats } from "@/hooks/useDashboard";
+import { useSidebarBadges } from "@/hooks/useSidebarBadges";
 
 const menuGroups = [
   {
@@ -64,13 +64,21 @@ export function Sidebar() {
   const { hasPermission } = usePermissions();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showImport, setShowImport] = useState(false);
-  const { data: dashboardStats } = useDashboardStats();
+  const { data: badges } = useSidebarBadges();
 
-  const overdueCount = dashboardStats?.overdueContracts || 0;
+  const overdueCount = badges?.overdueCount || 0;
+  const activeClientsCount = badges?.activeClientsCount || 0;
 
   // Badge map: path -> count (only show when > 0)
   const badgeCounts: Record<string, number> = {
     "/cobranca": overdueCount,
+    "/clientes": activeClientsCount,
+  };
+
+  // Badge style map: path -> variant
+  const badgeStyles: Record<string, string> = {
+    "/cobranca": "bg-destructive text-destructive-foreground",
+    "/clientes": "bg-primary/20 text-primary",
   };
 
   const handleLogout = async () => {
@@ -90,6 +98,7 @@ export function Sidebar() {
   const SidebarLink = ({ item, isActive }: { item: typeof menuGroups[0]["items"][0]; isActive: boolean }) => {
     const Icon = item.icon;
     const badge = badgeCounts[item.path] || 0;
+    const badgeStyle = badgeStyles[item.path] || "bg-destructive text-destructive-foreground";
     const linkContent = (
       <Link
         to={item.path}
@@ -108,14 +117,20 @@ export function Sidebar() {
           <>
             <span className="text-sm whitespace-nowrap flex-1">{item.label}</span>
             {badge > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+              <span className={cn(
+                "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                badgeStyle
+              )}>
                 {badge}
               </span>
             )}
           </>
         )}
         {isCollapsed && badge > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+          <span className={cn(
+            "absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold",
+            badgeStyle
+          )}>
             {badge}
           </span>
         )}
