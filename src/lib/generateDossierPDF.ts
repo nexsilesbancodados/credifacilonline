@@ -145,8 +145,8 @@ export const generateClientDossierPDF = (data: DossierData): void => {
       ["Total", formatCurrency(data.contract.total_amount)],
       ["Lucro", formatCurrency(data.contract.total_profit)],
       ["Frequência", frequencyMap[data.contract.frequency] || data.contract.frequency],
-      ["Data Início", format(new Date(data.contract.start_date), "dd/MM/yyyy")],
-      ["Primeiro Vencimento", format(new Date(data.contract.first_due_date), "dd/MM/yyyy")],
+      ["Data Início", format(parseLocalDate(data.contract.start_date), "dd/MM/yyyy")],
+      ["Primeiro Vencimento", format(parseLocalDate(data.contract.first_due_date), "dd/MM/yyyy")],
     ];
 
     autoTable(doc, {
