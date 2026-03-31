@@ -299,7 +299,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
 
       // Generate installments
       const installmentsToInsert = [];
-      let currentDueDate = new Date(renewalData.first_due_date);
+      let currentDueDate = parseLocalDate(renewalData.first_due_date);
 
       for (let i = 1; i <= renewalData.installments; i++) {
         installmentsToInsert.push({
