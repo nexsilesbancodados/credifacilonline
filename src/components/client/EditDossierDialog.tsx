@@ -286,7 +286,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           total_amount: totalAmount,
           total_profit: totalProfit,
           frequency: renewalData.frequency,
-          start_date: format(new Date(), "yyyy-MM-dd"),
+          start_date: formatLocalDate(new Date()),
           first_due_date: renewalData.first_due_date,
           status: "Ativo",
           fine_percentage: finePercentage,
