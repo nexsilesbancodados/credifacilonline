@@ -1233,19 +1233,6 @@ const NovoContrato = () => {
                     )}
                   </div>
                 )}
-                            });
-                          }}
-                          className="ml-0.5 hover:text-destructive transition-colors"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                    <span className="text-xs text-primary font-medium ml-auto">
-                      {formData.scheduledDays.length} parcela{formData.scheduledDays.length > 1 ? "s" : ""}
-                    </span>
-                  </div>
-                )}
               </motion.div>
             )}
 
