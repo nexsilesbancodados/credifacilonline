@@ -6,7 +6,7 @@ import { useContracts } from "@/hooks/useContracts";
 import { supabase } from "@/integrations/supabase/client";
 import { maskCPF, maskPhone, validateCPF, validatePhone } from "@/lib/masks";
 import { LoanContractData } from "@/lib/generateLoanContract";
-import { advanceDateByFrequency } from "@/lib/dateUtils";
+import { advanceDateByFrequency, formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
 
 export type CalculationMode = "rate" | "installment";
 
