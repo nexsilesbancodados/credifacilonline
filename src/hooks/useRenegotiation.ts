@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { addMonths } from "date-fns";
-import { formatLocalDate } from "@/lib/dateUtils";
+import { formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
 
 interface RenegotiationData {
   clientId: string;
@@ -69,7 +69,7 @@ export function useRenegotiation() {
 
       // 4. Create new installments
       const installments = [];
-      let dueDate = new Date(firstDueDate);
+      let dueDate = parseLocalDate(firstDueDate);
 
       for (let i = 1; i <= data.newInstallments; i++) {
         installments.push({

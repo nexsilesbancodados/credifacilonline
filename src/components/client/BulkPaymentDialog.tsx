@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { formatLocalDate } from "@/lib/dateUtils";
+import { formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, DollarSign, Calendar, CheckCircle2, AlertCircle, Printer, Banknote, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,7 +62,7 @@ export const BulkPaymentDialog = ({
   const pendingInstallments = useMemo(() => {
     return installments
       .filter(i => i.status === "Pendente" || i.status === "Atrasado")
-      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+      .sort((a, b) => parseLocalDate(a.due_date).getTime() - parseLocalDate(b.due_date).getTime());
   }, [installments]);
 
   // Calculate total debt with fines

@@ -6,6 +6,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { exportToExcel } from "@/lib/exportToExcel";
 import { format } from "date-fns";
+import { parseLocalDate } from "@/lib/dateUtils";
 import {
   Search, Plus, FileText, Calendar, DollarSign, TrendingUp,
   ChevronRight, RefreshCw, Clock, CheckCircle2,
@@ -110,7 +111,7 @@ const Contratos = () => {
                     "Valor Parcela": c.installment_value,
                     Total: c.total_amount,
                     Status: c.status,
-                    "Data Início": format(new Date(c.start_date), "dd/MM/yyyy"),
+                    "Data Início": format(parseLocalDate(c.start_date), "dd/MM/yyyy"),
                   };
                 });
                 exportToExcel(data, "contratos", "Contratos");
@@ -301,7 +302,7 @@ const Contratos = () => {
                       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {new Date(contract.start_date).toLocaleDateString("pt-BR")}
+                          {parseLocalDate(contract.start_date).toLocaleDateString("pt-BR")}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />

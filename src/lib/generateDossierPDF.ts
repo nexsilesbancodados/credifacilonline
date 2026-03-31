@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface ClientData {
   name: string;
@@ -144,8 +145,8 @@ export const generateClientDossierPDF = (data: DossierData): void => {
       ["Total", formatCurrency(data.contract.total_amount)],
       ["Lucro", formatCurrency(data.contract.total_profit)],
       ["Frequência", frequencyMap[data.contract.frequency] || data.contract.frequency],
-      ["Data Início", format(new Date(data.contract.start_date), "dd/MM/yyyy")],
-      ["Primeiro Vencimento", format(new Date(data.contract.first_due_date), "dd/MM/yyyy")],
+      ["Data Início", format(parseLocalDate(data.contract.start_date), "dd/MM/yyyy")],
+      ["Primeiro Vencimento", format(parseLocalDate(data.contract.first_due_date), "dd/MM/yyyy")],
     ];
 
     autoTable(doc, {
@@ -172,11 +173,11 @@ export const generateClientDossierPDF = (data: DossierData): void => {
 
     const installmentRows = data.installments.map((inst) => [
       `${inst.installment_number}`,
-      format(new Date(inst.due_date), "dd/MM/yyyy"),
+      format(parseLocalDate(inst.due_date), "dd/MM/yyyy"),
       formatCurrency(inst.amount_due),
       inst.amount_paid ? formatCurrency(inst.amount_paid) : "-",
       inst.status,
-      inst.payment_date ? format(new Date(inst.payment_date), "dd/MM/yyyy") : "-",
+      inst.payment_date ? format(parseLocalDate(inst.payment_date), "dd/MM/yyyy") : "-",
     ]);
 
     autoTable(doc, {

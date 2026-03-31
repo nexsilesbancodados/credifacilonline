@@ -15,6 +15,7 @@ import {
   ArrowDown,
   Minus,
 } from "lucide-react";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { differenceInDays, subMonths, isAfter } from "date-fns";
 
 interface MetricCardProps {
@@ -89,10 +90,10 @@ export function PerformanceMetrics() {
     // Average Days Overdue
     const overdueInstallments = installments.filter(
       i => i.status === 'Atrasado' || 
-      (i.status === 'Pendente' && new Date(i.due_date) < now)
+      (i.status === 'Pendente' && parseLocalDate(i.due_date) < now)
     );
     const totalDaysOverdue = overdueInstallments.reduce((sum, i) => {
-      return sum + differenceInDays(now, new Date(i.due_date));
+      return sum + differenceInDays(now, parseLocalDate(i.due_date));
     }, 0);
     const avgDaysOverdue = overdueInstallments.length > 0 
       ? totalDaysOverdue / overdueInstallments.length 
@@ -100,10 +101,10 @@ export function PerformanceMetrics() {
 
     // Recovery Rate
     const paidThisMonth = installments.filter(
-      i => i.status === 'Pago' && i.payment_date && isAfter(new Date(i.payment_date), lastMonth)
+      i => i.status === 'Pago' && i.payment_date && isAfter(parseLocalDate(i.payment_date), lastMonth)
     );
     const overdueLastMonth = installments.filter(
-      i => new Date(i.due_date) < lastMonth && new Date(i.due_date) > twoMonthsAgo
+      i => parseLocalDate(i.due_date) < lastMonth && parseLocalDate(i.due_date) > twoMonthsAgo
     );
     const recoveryRate = overdueLastMonth.length > 0
       ? (paidThisMonth.filter(p => 
@@ -125,10 +126,10 @@ export function PerformanceMetrics() {
 
     // Collections Efficiency
     const totalDue = installments
-      .filter(i => new Date(i.due_date) <= now)
+      .filter(i => parseLocalDate(i.due_date) <= now)
       .reduce((sum, i) => sum + i.amount_due, 0);
     const totalPaid = installments
-      .filter(i => i.status === 'Pago' && new Date(i.due_date) <= now)
+      .filter(i => i.status === 'Pago' && parseLocalDate(i.due_date) <= now)
       .reduce((sum, i) => sum + i.amount_due, 0);
     const collectionEfficiency = totalDue > 0 ? (totalPaid / totalDue) * 100 : 100;
 

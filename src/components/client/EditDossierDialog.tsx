@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, addMonths } from "date-fns";
-import { advanceDateByFrequency } from "@/lib/dateUtils";
+import { advanceDateByFrequency, formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
 import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
 import {
   AlertDialog,
@@ -88,7 +88,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
     interest_rate: 10,
     installments: 12,
     frequency: "mensal",
-    first_due_date: format(addMonths(new Date(), 1), "yyyy-MM-dd"),
+    first_due_date: formatLocalDate(addMonths(new Date(), 1)),
   });
 
   useEffect(() => {
@@ -199,7 +199,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
       if (remainingInstallments > 0) {
         // Generate new installments starting after paid ones
         const newInstallments = [];
-        let currentDueDate = new Date(contractData.first_due_date);
+        let currentDueDate = parseLocalDate(contractData.first_due_date);
 
         // Skip to the correct start date based on paid installments
         for (let i = 0; i < paidCount; i++) {
@@ -213,7 +213,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
             operator_id: user.id,
             installment_number: i,
             total_installments: contractData.installments,
-            due_date: format(currentDueDate, "yyyy-MM-dd"),
+            due_date: formatLocalDate(currentDueDate),
             amount_due: installmentValue,
             status: "Pendente",
           });
@@ -286,7 +286,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           total_amount: totalAmount,
           total_profit: totalProfit,
           frequency: renewalData.frequency,
-          start_date: format(new Date(), "yyyy-MM-dd"),
+          start_date: formatLocalDate(new Date()),
           first_due_date: renewalData.first_due_date,
           status: "Ativo",
           fine_percentage: finePercentage,
@@ -299,7 +299,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
 
       // Generate installments
       const installmentsToInsert = [];
-      let currentDueDate = new Date(renewalData.first_due_date);
+      let currentDueDate = parseLocalDate(renewalData.first_due_date);
 
       for (let i = 1; i <= renewalData.installments; i++) {
         installmentsToInsert.push({
@@ -308,7 +308,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           operator_id: user.id,
           installment_number: i,
           total_installments: renewalData.installments,
-          due_date: format(currentDueDate, "yyyy-MM-dd"),
+          due_date: formatLocalDate(currentDueDate),
           amount_due: installmentValue,
           status: "Pendente",
         });
@@ -349,7 +349,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
         category: "Empréstimo",
         description: `Renovação - ${client.name}`,
         amount: capital,
-        date: format(new Date(), "yyyy-MM-dd"),
+        date: formatLocalDate(new Date()),
         reference_type: "contract",
         reference_id: newContract.id,
       });
@@ -364,7 +364,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           creditorName: "Credifacil Global",
           clientName: client.name,
           clientCpf: client.cpf,
-          startDate: format(new Date(), "yyyy-MM-dd"),
+          startDate: formatLocalDate(new Date()),
           capital,
           installments: renewalData.installments,
           installmentValue,

@@ -5,7 +5,7 @@ import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useAllClients } from "@/hooks/useClients";
 import { useTreasury } from "@/hooks/useTreasury";
 import { useToast } from "@/hooks/use-toast";
-import { formatLocalDate } from "@/lib/dateUtils";
+import { formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -258,7 +258,7 @@ export const ExportReports = ({ open, onOpenChange }: ExportReportsProps) => {
           data = overdueInstallments.map(i => {
             const client = clientMap.get(i.client_id);
             const daysOverdue = Math.floor(
-              (new Date().getTime() - new Date(i.due_date).getTime()) / (1000 * 60 * 60 * 24)
+              (new Date().getTime() - parseLocalDate(i.due_date).getTime()) / (1000 * 60 * 60 * 24)
             );
             return {
               Cliente: client?.name || "N/A",

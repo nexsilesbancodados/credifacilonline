@@ -32,6 +32,7 @@ import {
   Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { useState, useMemo } from "react";
 import { InstallmentSchedule } from "@/components/client/InstallmentSchedule";
 import { ActivityHistory } from "@/components/client/ActivityHistory";
@@ -375,7 +376,7 @@ const ClienteDossie = () => {
             <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
             <p className="text-sm text-destructive">
               <span className="font-semibold">{overdueCount} parcela{overdueCount > 1 ? "s" : ""} em atraso</span>
-              {nextInstallment && <> — próximo vencimento: {new Date(nextInstallment.due_date).toLocaleDateString("pt-BR")}</>}
+              {nextInstallment && <> — próximo vencimento: {parseLocalDate(nextInstallment.due_date).toLocaleDateString("pt-BR")}</>}
             </p>
             <button onClick={() => setIsPaymentOpen(true)} className="ml-auto text-xs font-medium text-destructive hover:underline shrink-0">
               Registrar pagamento →
@@ -480,7 +481,7 @@ const ClienteDossie = () => {
                 <div className="space-y-2.5 text-sm">
                   {[
                     { label: "Nº Contrato", value: `#${activeContract.id.slice(0, 8)}` },
-                    { label: "Início", value: new Date(activeContract.start_date).toLocaleDateString("pt-BR") },
+                    { label: "Início", value: parseLocalDate(activeContract.start_date).toLocaleDateString("pt-BR") },
                     { label: "Frequência", value: activeContract.frequency, capitalize: true },
                     { label: "Juros", value: `${activeContract.interest_rate}% a.m.`, highlight: true },
                     { label: "Parcela", value: formatCurrency(Number(activeContract.installment_value)) },

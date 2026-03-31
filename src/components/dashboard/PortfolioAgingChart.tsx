@@ -5,6 +5,7 @@ import { useInstallments } from "@/hooks/useContracts";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Clock, AlertTriangle, TrendingDown } from "lucide-react";
 import { differenceInDays } from "date-fns";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface AgingBucket {
   name: string;
@@ -21,7 +22,7 @@ export function PortfolioAgingChart() {
   const agingData = useMemo(() => {
     const overdueInstallments = installments.filter(
       inst => inst.status === 'Atrasado' || 
-      (inst.status === 'Pendente' && new Date(inst.due_date) < new Date())
+      (inst.status === 'Pendente' && parseLocalDate(inst.due_date) < new Date())
     );
 
     const buckets: Record<string, { count: number; amount: number }> = {
@@ -32,7 +33,7 @@ export function PortfolioAgingChart() {
     };
 
     overdueInstallments.forEach(inst => {
-      const daysOverdue = differenceInDays(new Date(), new Date(inst.due_date));
+      const daysOverdue = differenceInDays(new Date(), parseLocalDate(inst.due_date));
       const amount = inst.amount_due + (inst.fine || 0);
 
       if (daysOverdue <= 30) {

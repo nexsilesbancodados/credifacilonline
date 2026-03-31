@@ -13,6 +13,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { parseLocalDate } from "@/lib/dateUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -255,7 +256,7 @@ export const NotificationCenter = ({ open, onOpenChange }: NotificationCenterPro
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">
                                 <Clock className="inline h-3 w-3 mr-1" />
-                                Vencimento: {new Date(notification.due_date).toLocaleDateString("pt-BR")}
+                                Vencimento: {parseLocalDate(notification.due_date).toLocaleDateString("pt-BR")}
                               </p>
                             </div>
                             <button
