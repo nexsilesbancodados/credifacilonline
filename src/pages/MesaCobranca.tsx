@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import {
   Clock, AlertTriangle, CalendarClock, MessageCircle,
-  Check, Sparkles, ChevronRight, Loader2, Bell, Settings,
+  Check, Sparkles, ChevronRight, Bell, Settings,
   DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,23 @@ import { QueryErrorState } from "@/components/QueryErrorState";
 
 type TabType = "overdue" | "today" | "upcoming";
 
+interface PendingInstallment {
+  id: string;
+  due_date: string;
+  amount_due: number;
+  amount_paid: number | null;
+  fine: number | null;
+  installment_number: number;
+  total_installments: number;
+  status: string;
+  client_id: string;
+  contract_id: string;
+  clients: {
+    name: string;
+    whatsapp: string | null;
+  };
+}
+
 const tabs = [
   { id: "overdue" as TabType, label: "Atrasados", icon: AlertTriangle, color: "destructive" },
   { id: "today" as TabType, label: "Vencendo Hoje", icon: Clock, color: "warning" },
@@ -31,7 +48,7 @@ const MesaCobranca = () => {
   const { data: pendingInstallments, isLoading, isError, refetch } = usePendingInstallments();
   const { settings } = useCompanySettings();
   const navigate = useNavigate();
-  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; installment: any | null }>({ open: false, installment: null });
+  const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; installment: PendingInstallment | null }>({ open: false, installment: null });
 
   const isAgentActive = settings?.ai_agent_active ?? false;
   const agentStartTime = settings?.ai_agent_start_time ?? "09:00";
@@ -41,7 +58,9 @@ const MesaCobranca = () => {
   today.setHours(0, 0, 0, 0);
   const nextWeek = addDays(today, 7);
 
-  const filteredInstallments = pendingInstallments?.filter((inst: any) => {
+  const items = (pendingInstallments || []) as PendingInstallment[];
+
+  const filteredInstallments = items.filter((inst) => {
     const dueDate = parseISO(inst.due_date);
     dueDate.setHours(0, 0, 0, 0);
     switch (activeTab) {
@@ -50,20 +69,20 @@ const MesaCobranca = () => {
       case "upcoming": return isAfter(dueDate, today) && isBefore(dueDate, nextWeek);
       default: return false;
     }
-  }) || [];
+  });
 
   const counts = {
-    overdue: pendingInstallments?.filter((inst: any) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isBefore(d, today) && !isToday(d); }).length || 0,
-    today: pendingInstallments?.filter((inst: any) => isToday(parseISO(inst.due_date))).length || 0,
-    upcoming: pendingInstallments?.filter((inst: any) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isAfter(d, today) && isBefore(d, nextWeek); }).length || 0,
+    overdue: items.filter((inst) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isBefore(d, today) && !isToday(d); }).length,
+    today: items.filter((inst) => isToday(parseISO(inst.due_date))).length,
+    upcoming: items.filter((inst) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isAfter(d, today) && isBefore(d, nextWeek); }).length,
   };
 
-  const totalOverdueAmount = pendingInstallments?.filter((inst: any) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isBefore(d, today) && !isToday(d); }).reduce((sum: number, i: any) => sum + Number(i.amount_due), 0) || 0;
+  const totalOverdueAmount = items.filter((inst) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isBefore(d, today) && !isToday(d); }).reduce((sum, i) => sum + Number(i.amount_due), 0);
 
   const getDaysOverdue = (dueDate: string) => { const due = parseISO(dueDate); return Math.ceil((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)); };
   const getDaysUntil = (dueDate: string) => { const due = parseISO(dueDate); return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)); };
 
-  const handlePayment = (installment: any) => setPaymentDialog({ open: true, installment });
+  const handlePayment = (installment: PendingInstallment) => setPaymentDialog({ open: true, installment });
   const handlePaymentClose = (open: boolean) => { if (!open) setPaymentDialog({ open: false, installment: null }); };
   const openWhatsApp = (phone: string) => { const clean = phone?.replace(/\D/g, "") || ""; if (clean) window.open(`https://wa.me/55${clean}`, "_blank"); };
 
@@ -75,8 +94,8 @@ const MesaCobranca = () => {
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Mesa de Cobrança</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {(pendingInstallments?.length || 0)} parcelas pendentes · {counts.overdue > 0 && <span className="text-destructive font-medium">{counts.overdue} em atraso</span>}
+          <p className="text-sm text-muted-foreground mt-1" aria-live="polite">
+            {items.length} parcelas pendentes · {counts.overdue > 0 && <span className="text-destructive font-medium">{counts.overdue} em atraso</span>}
           </p>
         </div>
         <motion.button
@@ -84,6 +103,7 @@ const MesaCobranca = () => {
           whileTap={{ scale: 0.98 }}
           onClick={() => setIsNotificationCenterOpen(true)}
           className="flex items-center gap-2 rounded-xl bg-gradient-gold px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-gold"
+          aria-label="Abrir notificações"
         >
           <Bell className="h-4 w-4" />
           Notificações
@@ -94,7 +114,7 @@ const MesaCobranca = () => {
 
       {/* Summary Cards */}
       {!isLoading && (
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6" aria-live="polite">
           <div className={cn("rounded-xl border p-4", counts.overdue > 0 ? "border-destructive/30 bg-destructive/5" : "border-border/50 bg-card")}>
             <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className={cn("h-4 w-4", counts.overdue > 0 ? "text-destructive" : "text-muted-foreground")} />
@@ -121,7 +141,7 @@ const MesaCobranca = () => {
       )}
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex gap-2" role="tablist">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -129,6 +149,8 @@ const MesaCobranca = () => {
           return (
             <button
               key={tab.id}
+              role="tab"
+              aria-selected={isActive}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
                 "relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
@@ -157,7 +179,7 @@ const MesaCobranca = () => {
 
       {/* Loading */}
       {!isError && isLoading && (
-        <>
+        <div aria-busy="true">
           <div className="mb-6 flex gap-2">
             {Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="h-10 w-32 rounded-xl bg-muted animate-pulse" />
@@ -176,7 +198,7 @@ const MesaCobranca = () => {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
 
       {/* Empty State */}
@@ -196,10 +218,10 @@ const MesaCobranca = () => {
 
       {/* Installments List */}
       {!isLoading && filteredInstallments.length > 0 && (
-        <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+        <div className="rounded-2xl border border-border/50 bg-card overflow-hidden" aria-busy={isLoading}>
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="divide-y divide-border/30">
-              {filteredInstallments.map((item: any, index: number) => {
+              {filteredInstallments.map((item, index) => {
                 const daysOverdue = getDaysOverdue(item.due_date);
                 const daysUntil = getDaysUntil(item.due_date);
                 const clientName = item.clients?.name || "Cliente";
@@ -230,7 +252,6 @@ const MesaCobranca = () => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      {/* Badge */}
                       {activeTab === "overdue" ? (
                         <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-1 text-xs font-medium text-destructive">
                           {daysOverdue}d atraso
@@ -243,18 +264,16 @@ const MesaCobranca = () => {
                         <span className="hidden sm:inline-flex text-xs text-muted-foreground">em {daysUntil}d</span>
                       )}
 
-                      {/* Amount */}
                       <p className="font-display text-base font-bold text-foreground min-w-[90px] text-right">
                         {fmt(item.amount_due)}
                       </p>
 
-                      {/* Actions */}
                       <div className="flex gap-1.5">
                         <PermissionGate permission="canProcessPayments">
                           <button
                             onClick={() => handlePayment(item)}
                             className="flex h-9 w-9 items-center justify-center rounded-lg bg-success/15 text-success hover:bg-success/25 transition-colors"
-                            title="Registrar pagamento"
+                            aria-label="Registrar pagamento"
                           >
                             <DollarSign className="h-4 w-4" />
                           </button>
@@ -263,14 +282,14 @@ const MesaCobranca = () => {
                           onClick={() => openWhatsApp(clientPhone)}
                           disabled={!clientPhone}
                           className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-30"
-                          title="WhatsApp"
+                          aria-label="Enviar WhatsApp"
                         >
                           <MessageCircle className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => navigate(`/clientes/${item.client_id}`)}
                           className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors opacity-0 group-hover:opacity-100"
-                          title="Ver dossiê"
+                          aria-label="Ver dossiê"
                         >
                           <ChevronRight className="h-4 w-4" />
                         </button>
