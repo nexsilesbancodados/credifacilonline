@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { formatLocalDate } from "@/lib/dateUtils";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, DollarSign, Calendar, CheckCircle2, AlertCircle, Printer, Banknote, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
