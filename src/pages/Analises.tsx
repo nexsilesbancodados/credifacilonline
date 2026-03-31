@@ -37,12 +37,18 @@ import { ScoreDistributionChart } from "@/components/dashboard/ScoreDistribution
 import { CollectorReportsChart } from "@/components/dashboard/CollectorReportsChart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipPayloadItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipPayloadItem[]; label?: string }) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg bg-popover border border-border px-4 py-3 shadow-lg">
         <p className="text-xs text-muted-foreground mb-2">{label}</p>
-        {payload.map((item: any, index: number) => (
+        {payload.map((item: TooltipPayloadItem, index: number) => (
           <p key={index} className="text-sm" style={{ color: item.color }}>
             {item.name}:{" "}
             <span className="font-semibold">

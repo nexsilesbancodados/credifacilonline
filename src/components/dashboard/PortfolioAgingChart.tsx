@@ -113,7 +113,7 @@ export function PortfolioAgingChart() {
     }, 0);
   }, [agingData]);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: { payload: { range: string; count: number; total: number; percentage: number; color: string } }[] }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (

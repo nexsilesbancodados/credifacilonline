@@ -20,12 +20,12 @@ import { format, parseISO, startOfMonth, endOfMonth, subMonths, differenceInDays
 import { ptBR } from "date-fns/locale";
 import { AlertTriangle, TrendingDown, Users, Clock, Loader2 } from "lucide-react";
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) => {
   if (active && payload && payload.length) {
     return (
       <div className="rounded-lg bg-popover border border-border px-4 py-3 shadow-lg">
         <p className="text-xs text-muted-foreground mb-2">{label}</p>
-        {payload.map((item: any, index: number) => (
+        {payload.map((item, index: number) => (
           <p key={index} className="text-sm" style={{ color: item.color }}>
             {item.name}:{" "}
             <span className="font-semibold">
