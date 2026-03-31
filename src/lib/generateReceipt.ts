@@ -67,8 +67,8 @@ export function generatePaymentReceipt(data: ReceiptData): void {
   
   const paymentDetails = [
     ["Parcela", `${data.installmentNumber}/${data.totalInstallments}`],
-    ["Vencimento", format(new Date(data.dueDate), "dd/MM/yyyy", { locale: ptBR })],
-    ["Data do Pagamento", format(new Date(data.paymentDate), "dd/MM/yyyy", { locale: ptBR })],
+    ["Vencimento", format(parseLocalDate(data.dueDate), "dd/MM/yyyy", { locale: ptBR })],
+    ["Data do Pagamento", format(parseLocalDate(data.paymentDate), "dd/MM/yyyy", { locale: ptBR })],
     ["Forma de Pagamento", data.paymentMethod.toUpperCase()],
     ["Valor da Parcela", formatCurrency(data.amountDue)],
   ];
