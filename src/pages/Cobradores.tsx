@@ -43,7 +43,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QueryErrorState } from "@/components/QueryErrorState";
 
 const Cobradores = () => {
-  const { collectorsWithClients, isLoading, createCollector, updateCollector, deleteCollector, assignClient, regenerateToken } = useCollectors();
+  const { collectorsWithClients, isLoading, isError, refetch, createCollector, updateCollector, deleteCollector, assignClient, regenerateToken } = useCollectors();
   const { clients } = useClients();
   const { toast } = useToast();
 
