@@ -1,7 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Menu, Search, X, ChevronRight, Home } from "lucide-react";
-import { AnimatePresence, motion } from "framer-motion";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { GlobalSearch, useGlobalSearch } from "@/components/search/GlobalSearch";
 import { useLocation, Link } from "react-router-dom";
@@ -47,7 +46,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   }, [location.pathname]);
 
   const currentLabel = routeLabels[location.pathname];
-  const isSubRoute = location.pathname !== "/" && location.pathname.split("/").length > 2;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -63,11 +61,9 @@ export function MainLayout({ children }: MainLayoutProps) {
             >
               {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-
             <span className="font-display font-bold text-gradient-gold text-sm">
               {currentLabel || "Credifacil"}
             </span>
-
             <button
               onClick={() => setIsSearchOpen(true)}
               className="p-2 rounded-lg hover:bg-secondary transition-colors"
@@ -81,7 +77,6 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Desktop Top Bar */}
       {!isMobile && (
         <div className="fixed top-0 left-64 right-0 z-30 h-12 flex items-center justify-between px-6 bg-background/80 backdrop-blur-sm border-b border-border/30">
-          {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
             <Link to="/" className="hover:text-foreground transition-colors">
               <Home className="h-3.5 w-3.5" />
@@ -93,8 +88,6 @@ export function MainLayout({ children }: MainLayoutProps) {
               </>
             )}
           </nav>
-
-          {/* Search */}
           <button
             onClick={() => setIsSearchOpen(true)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground text-sm"
@@ -107,49 +100,26 @@ export function MainLayout({ children }: MainLayoutProps) {
       )}
 
       {/* Mobile Overlay */}
-      <AnimatePresence>
-        {isMobile && isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      {isMobile && isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm animate-fade-in"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
-      <AnimatePresence>
-        {(!isMobile || isMobileMenuOpen) && (
-          <motion.div
-            initial={isMobile ? { x: -280 } : false}
-            animate={{ x: 0 }}
-            exit={isMobile ? { x: -280 } : undefined}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-          >
-            <Sidebar />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {(!isMobile || isMobileMenuOpen) && (
+        <div className={isMobile ? "fixed z-40" : undefined}>
+          <Sidebar />
+        </div>
+      )}
 
       {/* Main Content */}
-      <main
-        className={`flex-1 transition-all duration-300 ${
-          isMobile ? "pt-14" : "ml-64 pt-12"
-        }`}
-      >
+      <main className={`flex-1 transition-all duration-200 ${isMobile ? "pt-14" : "ml-64 pt-12"}`}>
         <div className="min-h-screen p-4 md:p-6 lg:p-8">
           {children}
         </div>
       </main>
-
-      {/* Background Glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-      </div>
     </div>
   );
 }
