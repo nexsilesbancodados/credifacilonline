@@ -5,6 +5,7 @@ import { useInstallments } from "@/hooks/useContracts";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Clock, AlertTriangle, TrendingDown } from "lucide-react";
 import { differenceInDays } from "date-fns";
+import { parseLocalDate } from "@/lib/dateUtils";
 
 interface AgingBucket {
   name: string;
