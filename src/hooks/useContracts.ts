@@ -16,8 +16,9 @@ export interface Contract {
   installment_value: number;
   total_amount: number;
   total_profit: number;
-  frequency: "diario" | "semanal" | "mensal";
+  frequency: "diario" | "semanal" | "mensal" | "quinzenal" | "programada";
   daily_type?: "seg-seg" | "seg-sex" | "seg-sab" | null;
+  scheduled_days?: number[] | null;
   start_date: string;
   first_due_date: string;
   status: "Ativo" | "Atraso" | "Quitado" | "Renegociado";
