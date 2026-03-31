@@ -126,6 +126,11 @@ const Tesouraria = () => {
 
   return (
     <MainLayout>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -490,6 +495,7 @@ const Tesouraria = () => {
           </div>
         </DialogContent>
       </Dialog>
+      </motion.div>
     </MainLayout>
   );
 };

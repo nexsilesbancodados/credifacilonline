@@ -181,12 +181,26 @@ const Contratos = () => {
 
       {/* Contracts List */}
       <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
-        {isError ? (
+      {isError ? (
           <QueryErrorState message="Erro ao carregar contratos" onRetry={refetch} />
         ) : isLoading ? (
-          <div className="p-12 text-center">
-            <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="mt-3 text-sm text-muted-foreground">Carregando contratos...</p>
+          <div className="divide-y divide-border/30">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 p-4">
+                <div className="h-11 w-11 rounded-xl bg-muted animate-pulse flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+                  <div className="h-3 w-56 rounded bg-muted animate-pulse" />
+                </div>
+                <div className="hidden md:block w-24">
+                  <div className="h-1.5 rounded bg-muted animate-pulse" />
+                </div>
+                <div className="text-right space-y-1">
+                  <div className="h-5 w-24 rounded bg-muted animate-pulse" />
+                  <div className="h-3 w-16 rounded bg-muted animate-pulse ml-auto" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredContracts.length === 0 ? (
           <div className="p-12 text-center">
