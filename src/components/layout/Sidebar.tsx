@@ -1,25 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  Phone,
-  Wallet,
-  BarChart3,
-  Settings,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Sparkles,
-  History,
-  Sun,
-  Moon,
-  Upload,
-  Shield,
-  Calculator,
-  QrCode,
-  Bot,
+  LayoutDashboard, Users, FileText, Phone, Wallet, BarChart3, Settings,
+  LogOut, ChevronLeft, ChevronRight, Sparkles, History, Sun, Moon,
+  Upload, Shield, Calculator, QrCode, Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -28,11 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { ExcelImport } from "@/components/imports/ExcelImport";
 import { usePermissions } from "@/hooks/usePermissions";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const menuGroups = [
   {
@@ -87,18 +66,16 @@ export function Sidebar() {
 
   const handleLogout = async () => {
     await signOut();
-    toast({
-      title: "Logout realizado",
-      description: "Você foi desconectado com sucesso.",
-    });
+    toast({ title: "Logout realizado", description: "Você foi desconectado com sucesso." });
     navigate("/login");
   };
 
   const getInitials = (name: string) => {
     if (!name) return "U";
-    const names = name.trim().split(" ");
-    if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
+    const parts = name.trim().split(" ");
+    return parts.length === 1
+      ? parts[0].charAt(0).toUpperCase()
+      : (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
   const SidebarLink = ({ item, isActive }: { item: typeof menuGroups[0]["items"][0]; isActive: boolean }) => {
@@ -107,19 +84,17 @@ export function Sidebar() {
       <Link
         to={item.path}
         className={cn(
-          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition-all duration-200",
+          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 font-medium transition-colors duration-150",
           isActive
-            ? "bg-primary/10 text-primary shadow-sm"
-            : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
         )}
       >
         {isActive && (
           <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-primary" />
         )}
-        <Icon className={cn("h-5 w-5 shrink-0 transition-colors", isActive && "text-primary")} />
-        {!isCollapsed && (
-          <span className="text-sm whitespace-nowrap overflow-hidden">{item.label}</span>
-        )}
+        <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
+        {!isCollapsed && <span className="text-sm whitespace-nowrap">{item.label}</span>}
       </Link>
     );
 
@@ -127,38 +102,25 @@ export function Sidebar() {
       return (
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-          <TooltipContent side="right" sideOffset={12} className="font-medium">
-            {item.label}
-          </TooltipContent>
+          <TooltipContent side="right" sideOffset={12} className="font-medium">{item.label}</TooltipContent>
         </Tooltip>
       );
     }
-
     return linkContent;
   };
 
   return (
-    <motion.aside
-      initial={{ x: -100, opacity: 0 }}
-      animate={{ x: 0, opacity: 1, width: isCollapsed ? 72 : 256 }}
-      transition={{
-        x: { duration: 0.5, ease: "easeOut" },
-        opacity: { duration: 0.5, ease: "easeOut" },
-        width: { duration: 0.3, ease: "easeInOut" },
-      }}
-      className={cn("fixed left-0 top-0 z-40 h-screen flex flex-col", isCollapsed ? "w-[72px]" : "w-64")}
-      style={{ background: "hsl(var(--sidebar-background))" }}
+    <aside
+      className={cn(
+        "fixed left-0 top-0 z-40 h-screen flex flex-col bg-sidebar border-r border-sidebar-border transition-[width] duration-200",
+        isCollapsed ? "w-[72px]" : "w-64"
+      )}
     >
-      {/* Border */}
-      <div className="absolute right-0 top-0 h-full w-px bg-gradient-to-b from-primary/30 via-primary/10 to-transparent" />
-
       {/* Logo */}
       <div className="flex h-16 items-center justify-between px-3 shrink-0">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="relative">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-gold shadow-gold">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-gold shadow-gold">
+            <Sparkles className="h-4 w-4 text-primary-foreground" />
           </div>
           {!isCollapsed && (
             <h1 className="font-display text-lg font-bold text-gradient-gold">Credifacil</h1>
@@ -166,14 +128,14 @@ export function Sidebar() {
         </Link>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
         >
           {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin">
+      <nav className="flex-1 overflow-y-auto px-2 py-2">
         {menuGroups.map((group) => {
           const visibleItems = group.items.filter(
             (item) => item.permission === null || hasPermission(item.permission)
@@ -200,16 +162,12 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Bottom Section */}
+      {/* Bottom */}
       <div className="shrink-0 p-3 space-y-2 border-t border-border/30">
-        {/* Quick Actions */}
         <div className={cn("flex gap-1.5", isCollapsed && "flex-col items-center")}>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <button
-                onClick={toggleTheme}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-              >
+              <button onClick={toggleTheme} className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
                 {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
             </TooltipTrigger>
@@ -219,20 +177,14 @@ export function Sidebar() {
           </Tooltip>
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <button
-                onClick={() => setShowImport(true)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-              >
+              <button onClick={() => setShowImport(true)} className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
                 <Upload className="h-4 w-4" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side={isCollapsed ? "right" : "top"} sideOffset={8}>
-              Importar Excel
-            </TooltipContent>
+            <TooltipContent side={isCollapsed ? "right" : "top"} sideOffset={8}>Importar Excel</TooltipContent>
           </Tooltip>
         </div>
 
-        {/* User Section */}
         <div className={cn("rounded-xl bg-secondary/30 p-2.5", isCollapsed && "flex items-center justify-center")}>
           {!isCollapsed ? (
             <div className="flex items-center gap-2.5">
@@ -245,10 +197,7 @@ export function Sidebar() {
               </div>
               <Tooltip delayDuration={0}>
                 <TooltipTrigger asChild>
-                  <button
-                    onClick={handleLogout}
-                    className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                  >
+                  <button onClick={handleLogout} className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors">
                     <LogOut className="h-4 w-4" />
                   </button>
                 </TooltipTrigger>
@@ -258,10 +207,7 @@ export function Sidebar() {
           ) : (
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
-                <button
-                  onClick={handleLogout}
-                  className="h-9 w-9 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold text-sm hover:opacity-80 transition-opacity"
-                >
+                <button onClick={handleLogout} className="h-9 w-9 rounded-full bg-gradient-gold flex items-center justify-center text-primary-foreground font-display font-bold text-sm hover:opacity-80 transition-opacity">
                   {getInitials(profile?.name || "")}
                 </button>
               </TooltipTrigger>
@@ -275,6 +221,6 @@ export function Sidebar() {
       </div>
 
       <ExcelImport open={showImport} onOpenChange={setShowImport} />
-    </motion.aside>
+    </aside>
   );
 }
