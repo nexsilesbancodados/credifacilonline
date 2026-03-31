@@ -95,13 +95,14 @@ const ClienteDossie = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { clients, isLoading: isLoadingClients, deleteClient } = useClients();
-  const { contracts, isLoading: isLoadingContracts } = useContracts();
+  const { clients, isLoading: isLoadingClients, isError: isErrorClients, refetch: refetchClients, deleteClient } = useClients();
+  const { contracts, isLoading: isLoadingContracts, isError: isErrorContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { data: activityData, isLoading: isLoadingActivity } = useActivityHistory("all", "", 1, 50);
   const { score } = useClientScore(id || "");
 
   const isLoading = isLoadingClients || isLoadingContracts || isLoadingInstallments;
+  const isError = isErrorClients || isErrorContracts;
 
   const client = useMemo(() => clients.find(c => c.id === id), [clients, id]);
 
