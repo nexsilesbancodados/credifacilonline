@@ -42,45 +42,47 @@ const PageLoader = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/cobrador/:token" element={<CobradorExterno />} />
-              
-              {/* Protected routes */}
-              <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
-              <Route path="/clientes/:id" element={<ProtectedRoute><ClienteDossie /></ProtectedRoute>} />
-              <Route path="/contratos" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
-              <Route path="/contratos/novo" element={<ProtectedRoute><NovoContrato /></ProtectedRoute>} />
-              <Route path="/cobranca" element={<ProtectedRoute><MesaCobranca /></ProtectedRoute>} />
-              <Route path="/cobradores" element={<ProtectedRoute><Cobradores /></ProtectedRoute>} />
-              <Route path="/tesouraria" element={<ProtectedRoute><Tesouraria /></ProtectedRoute>} />
-              <Route path="/analises" element={<ProtectedRoute><Analises /></ProtectedRoute>} />
-              <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
-              <Route path="/simulador" element={<ProtectedRoute><Simulador /></ProtectedRoute>} />
-              <Route path="/auditoria" element={<ProtectedRoute><Auditoria /></ProtectedRoute>} />
-              <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
-              <Route path="/qrcode" element={<ProtectedRoute><QRCodeGenerator /></ProtectedRoute>} />
-              <Route path="/agente-ia" element={<ProtectedRoute><AgenteIA /></ProtectedRoute>} />
-              
-              {/* Catch-all route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public routes */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/cobrador/:token" element={<CobradorExterno />} />
+                
+                {/* Protected routes */}
+                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
+                <Route path="/clientes/:id" element={<ProtectedRoute><ClienteDossie /></ProtectedRoute>} />
+                <Route path="/contratos" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
+                <Route path="/contratos/novo" element={<ProtectedRoute><NovoContrato /></ProtectedRoute>} />
+                <Route path="/cobranca" element={<ProtectedRoute><MesaCobranca /></ProtectedRoute>} />
+                <Route path="/cobradores" element={<ProtectedRoute><Cobradores /></ProtectedRoute>} />
+                <Route path="/tesouraria" element={<ProtectedRoute><Tesouraria /></ProtectedRoute>} />
+                <Route path="/analises" element={<ProtectedRoute><Analises /></ProtectedRoute>} />
+                <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
+                <Route path="/simulador" element={<ProtectedRoute><Simulador /></ProtectedRoute>} />
+                <Route path="/auditoria" element={<ProtectedRoute><Auditoria /></ProtectedRoute>} />
+                <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+                <Route path="/qrcode" element={<ProtectedRoute><QRCodeGenerator /></ProtectedRoute>} />
+                <Route path="/agente-ia" element={<ProtectedRoute><AgenteIA /></ProtectedRoute>} />
+                
+                {/* Catch-all route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
