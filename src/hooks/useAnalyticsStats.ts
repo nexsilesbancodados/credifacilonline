@@ -81,7 +81,7 @@ function isInPeriod(dateString: string, periodStart: Date | null): boolean {
   return date >= periodStart;
 }
 
-export function useAnalyticsStats(period: PeriodFilter = "all"): AnalyticsStats {
+export function useAnalyticsStats(period: PeriodFilter = "all", customRange?: CustomDateRange): AnalyticsStats {
   const { contracts, isLoading: isLoadingContracts } = useContracts();
   const { data: clients = [], isLoading: isLoadingClients } = useAllClients();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
