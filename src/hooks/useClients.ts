@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export interface Client {
   id: string;
@@ -39,24 +40,34 @@ export interface CreateClientData {
   state?: string;
 }
 
+const PAGE_SIZE = 20;
+
 export function useClients() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
 
   const clientsQuery = useQuery({
-    queryKey: ["clients", user?.id],
+    queryKey: ["clients", user?.id, page],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
+      const { data, error, count } = await supabase
         .from("clients")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data as Client[];
+      return { clients: data as Client[], totalCount: count || 0 };
     },
     enabled: !!user,
   });
+
+  const totalCount = clientsQuery.data?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const createClientMutation = useMutation({
     mutationFn: async (clientData: CreateClientData) => {
@@ -140,7 +151,11 @@ export function useClients() {
   });
 
   return {
-    clients: clientsQuery.data || [],
+    clients: clientsQuery.data?.clients || [],
+    totalCount,
+    page,
+    setPage,
+    totalPages,
     isLoading: clientsQuery.isLoading,
     isError: clientsQuery.isError,
     error: clientsQuery.error,
@@ -172,5 +187,24 @@ export function useClient(clientId: string | undefined) {
       return data as Client;
     },
     enabled: !!user && !!clientId,
+  });
+}
+
+// Hook to get ALL clients without pagination (for dropdowns, search, etc.)
+export function useAllClients() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ["clients-all", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as Client[];
+    },
+    enabled: !!user,
   });
 }

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export interface TreasuryTransaction {
   id: string;
@@ -24,25 +25,35 @@ export interface CreateTransactionData {
   amount: number;
 }
 
+const TREASURY_PAGE_SIZE = 30;
+
 export function useTreasury() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [page, setPage] = useState(1);
 
   const transactionsQuery = useQuery({
-    queryKey: ["treasury", user?.id],
+    queryKey: ["treasury", user?.id, page],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * TREASURY_PAGE_SIZE;
+      const to = from + TREASURY_PAGE_SIZE - 1;
+
+      const { data, error, count } = await supabase
         .from("treasury_transactions")
-        .select("*")
+        .select("*", { count: "exact" })
         .order("date", { ascending: false })
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data as TreasuryTransaction[];
+      return { transactions: data as TreasuryTransaction[], totalCount: count || 0 };
     },
     enabled: !!user,
   });
+
+  const totalCount = transactionsQuery.data?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / TREASURY_PAGE_SIZE);
 
   const summaryQuery = useQuery({
     queryKey: ["treasury-summary", user?.id],
@@ -73,8 +84,6 @@ export function useTreasury() {
     enabled: !!user,
   });
 
-  // Get capital on the street and pending profit (active loans) - SINCRONIZADO
-  // Usa o capital e lucro dos contratos ativos
   const capitalOnStreetQuery = useQuery({
     queryKey: ["capital-on-street", user?.id],
     queryFn: async () => {
@@ -85,7 +94,6 @@ export function useTreasury() {
 
       if (error) throw error;
 
-      // Soma o capital e lucro de todos os contratos ativos
       const capital = data.reduce((acc, c) => acc + Number(c.capital), 0);
       const pendingProfit = data.reduce((acc, c) => acc + Number(c.total_profit), 0);
       
@@ -158,7 +166,11 @@ export function useTreasury() {
   });
 
   return {
-    transactions: transactionsQuery.data || [],
+    transactions: transactionsQuery.data?.transactions || [],
+    totalCount,
+    page,
+    setPage,
+    totalPages,
     summary: summaryQuery.data || { totalIn: 0, totalOut: 0, balance: 0 },
     capitalOnStreet: capitalOnStreetQuery.data?.capitalOnStreet || 0,
     pendingProfit: capitalOnStreetQuery.data?.pendingProfit || 0,
