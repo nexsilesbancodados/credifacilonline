@@ -109,11 +109,7 @@ const NovoContrato = () => {
               showClientSuggestion={showClientSuggestion}
               foundClient={foundClient}
               useExistingClient={useExistingClient}
-              dismissSuggestion={() => {
-                // Need to handle dismiss - set showClientSuggestion false
-                // Since useContractForm doesn't expose this directly, we use a workaround
-                setFormData(prev => ({ ...prev })); // trigger re-render
-              }}
+              dismissSuggestion={dismissSuggestion}
               isLoadingCep={isLoadingCep}
               fetchAddressByCep={fetchAddressByCep}
             />
