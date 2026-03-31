@@ -343,7 +343,20 @@ const Tesouraria = () => {
               <Filter className="h-4 w-4" />
               Filtrar
             </button>
-            <button className="flex items-center gap-2 rounded-xl bg-secondary/50 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+            <button 
+              onClick={() => {
+                const data = transactions.map(t => ({
+                  Data: format(parseISO(t.date), "dd/MM/yyyy"),
+                  Tipo: t.type === "entrada" ? "Entrada" : "Saída",
+                  Categoria: t.category,
+                  Descrição: t.description,
+                  Valor: Number(t.amount),
+                }));
+                exportToExcel(data, "tesouraria", "Transações");
+                toast({ title: "Exportado!", description: "Arquivo Excel gerado com sucesso." });
+              }}
+              className="flex items-center gap-2 rounded-xl bg-secondary/50 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            >
               <Download className="h-4 w-4" />
               Exportar
             </button>
