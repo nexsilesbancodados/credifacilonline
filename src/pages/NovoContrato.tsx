@@ -13,7 +13,7 @@ const NovoContrato = () => {
     selectedExistingClient, foundClient, showClientSuggestion,
     isSearchingCpf, isLoadingCep, isSaving, isUploadingAvatar,
     avatarPreview, fileInputRef,
-    handleCpfChange, useExistingClient, clearSelectedClient,
+    handleCpfChange, useExistingClient, clearSelectedClient, dismissSuggestion,
     handleAvatarSelect, removeAvatar, fetchAddressByCep,
     handleSave,
     effectiveInstallments, installmentResult, rateResult,
