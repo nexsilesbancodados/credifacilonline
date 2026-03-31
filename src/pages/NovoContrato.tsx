@@ -323,6 +323,7 @@ const NovoContrato = () => {
     { value: "semanal", label: "Semanal" },
     { value: "quinzenal", label: "Quinzenal" },
     { value: "mensal", label: "Mensal" },
+    { value: "programada", label: "Programada" },
   ];
 
   const dailyTypes = [
