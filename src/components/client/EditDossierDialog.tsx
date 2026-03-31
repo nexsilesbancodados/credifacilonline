@@ -224,7 +224,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
         if (newInstallments.length > 0) {
           const { error: insertError } = await supabase
             .from("installments")
-            .insert(newInstallments);
+            .upsert(newInstallments, { onConflict: "contract_id,installment_number" });
 
           if (insertError) throw insertError;
         }
