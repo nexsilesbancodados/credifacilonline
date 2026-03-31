@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, User, FileText, DollarSign, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +21,6 @@ interface GlobalSearchProps {
 
 export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -36,17 +35,13 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
     }
   }, [isOpen]);
 
-  // Search logic
-  useEffect(() => {
-    if (!query.trim()) {
-      setResults([]);
-      return;
-    }
+  // Memoize search results
+  const results = useMemo(() => {
+    if (!query.trim()) return [];
 
     const searchQuery = query.toLowerCase();
     const searchResults: SearchResult[] = [];
 
-    // Search clients
     clients
       .filter(
         (c) =>
@@ -65,7 +60,6 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         });
       });
 
-    // Search contracts
     contracts
       .filter((c) => c.id.includes(searchQuery))
       .slice(0, 3)
@@ -80,9 +74,13 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
         });
       });
 
-    setResults(searchResults);
-    setSelectedIndex(0);
+    return searchResults;
   }, [query, clients, contracts]);
+
+  // Reset selected index when query changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [query]);
 
   // Keyboard navigation
   const handleKeyDown = useCallback(
