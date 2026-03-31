@@ -49,9 +49,10 @@ const staggerItem = {
 
 const Dashboard = () => {
   const [period, setPeriod] = useState<PeriodFilter>("all");
+  const [customRange, setCustomRange] = useState<CustomDateRange | undefined>();
   const { profile } = useAuth();
   const { data: dashboardStats, isLoading: isLoadingDashboard, isError, refetch } = useDashboardStats();
-  const analyticsStats = useAnalyticsStats(period);
+  const analyticsStats = useAnalyticsStats(period, customRange);
   const { isOpen: isTourOpen, setIsOpen: setTourOpen } = useOnboardingTour();
 
   useRealtimeDashboard();
