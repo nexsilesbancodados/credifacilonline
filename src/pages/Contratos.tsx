@@ -30,7 +30,7 @@ const Contratos = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<SortKey>("date");
-  const { contracts, isLoading } = useContracts();
+  const { contracts, isLoading, isError, refetch } = useContracts();
   const { clients } = useClients();
 
   const clientsMap = clients.reduce((acc, client) => {

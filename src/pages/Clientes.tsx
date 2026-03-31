@@ -53,7 +53,7 @@ const toneOptions = [
 ];
 
 const Clientes = () => {
-  const { clients, isLoading } = useClients();
+  const { clients, isLoading, isError, refetch } = useClients();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<Status>("Todos");

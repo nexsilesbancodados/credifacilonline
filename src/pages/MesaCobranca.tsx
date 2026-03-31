@@ -27,7 +27,7 @@ const tabs = [
 const MesaCobranca = () => {
   const [activeTab, setActiveTab] = useState<TabType>("overdue");
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
-  const { data: pendingInstallments, isLoading } = usePendingInstallments();
+  const { data: pendingInstallments, isLoading, isError, refetch } = usePendingInstallments();
   const { settings } = useCompanySettings();
   const navigate = useNavigate();
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; installment: any | null }>({ open: false, installment: null });

@@ -82,6 +82,8 @@ const Tesouraria = () => {
     pendingProfit,
     totalToReceive,
     isLoading, 
+    isError,
+    refetch,
     createTransaction, 
     deleteTransaction,
     isCreating 
