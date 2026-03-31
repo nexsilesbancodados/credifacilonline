@@ -562,6 +562,7 @@ POST ${apiEndpoint}
           </TabsContent>
         </Tabs>
       </div>
+      </motion.div>
     </MainLayout>
   );
 };
