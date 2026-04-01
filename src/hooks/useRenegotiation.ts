@@ -2,8 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { addMonths } from "date-fns";
-import { formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
+import { formatLocalDate, addMonthsToDateStr } from "@/lib/dateUtils";
 
 interface RenegotiationData {
   clientId: string;
@@ -43,7 +42,7 @@ export function useRenegotiation() {
 
       // 3. Create new renegotiated contract
       const startDate = formatLocalDate(new Date());
-      const firstDueDate = formatLocalDate(addMonths(new Date(), 1));
+      const firstDueDate = addMonthsToDateStr(startDate, 1);
 
       const { data: newContract, error: contractError } = await supabase
         .from("contracts")
@@ -69,7 +68,7 @@ export function useRenegotiation() {
 
       // 4. Create new installments
       const installments = [];
-      let dueDate = parseLocalDate(firstDueDate);
+      let dueDateStr = firstDueDate;
 
       for (let i = 1; i <= data.newInstallments; i++) {
         installments.push({
@@ -78,14 +77,14 @@ export function useRenegotiation() {
           operator_id: user.id,
           installment_number: i,
           total_installments: data.newInstallments,
-          due_date: formatLocalDate(dueDate),
+          due_date: dueDateStr,
           amount_due: data.newInstallmentValue,
           amount_paid: 0,
           payment_date: null,
           status: "Pendente",
           fine: 0,
         });
-        dueDate = addMonths(dueDate, 1);
+        dueDateStr = addMonthsToDateStr(dueDateStr, 1);
       }
 
       const { error: newInstallmentsError } = await supabase

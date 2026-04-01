@@ -7,8 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, addMonths } from "date-fns";
-import { advanceDateByFrequency, formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
+import { format } from "date-fns";
+import { formatLocalDate, addMonthsToDateStr, advanceDateStrByFrequency } from "@/lib/dateUtils";
 import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
 import {
   AlertDialog,
@@ -88,7 +88,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
     interest_rate: 10,
     installments: 12,
     frequency: "mensal",
-    first_due_date: formatLocalDate(addMonths(new Date(), 1)),
+    first_due_date: addMonthsToDateStr(formatLocalDate(new Date()), 1),
   });
 
   useEffect(() => {
@@ -199,11 +199,11 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
       if (remainingInstallments > 0) {
         // Generate new installments starting after paid ones
         const newInstallments = [];
-        let currentDueDate = parseLocalDate(contractData.first_due_date);
+        let currentDueDateStr = contractData.first_due_date;
 
         // Skip to the correct start date based on paid installments
         for (let i = 0; i < paidCount; i++) {
-          currentDueDate = advanceDateByFrequency(currentDueDate, contractData.frequency);
+          currentDueDateStr = advanceDateStrByFrequency(currentDueDateStr, contractData.frequency);
         }
 
         for (let i = paidCount + 1; i <= contractData.installments; i++) {
@@ -213,12 +213,12 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
             operator_id: user.id,
             installment_number: i,
             total_installments: contractData.installments,
-            due_date: formatLocalDate(currentDueDate),
+            due_date: currentDueDateStr,
             amount_due: installmentValue,
             status: "Pendente",
           });
 
-          currentDueDate = advanceDateByFrequency(currentDueDate, contractData.frequency);
+          currentDueDateStr = advanceDateStrByFrequency(currentDueDateStr, contractData.frequency);
         }
 
         if (newInstallments.length > 0) {
@@ -299,7 +299,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
 
       // Generate installments
       const installmentsToInsert = [];
-      let currentDueDate = parseLocalDate(renewalData.first_due_date);
+      let currentDueDateStr = renewalData.first_due_date;
 
       for (let i = 1; i <= renewalData.installments; i++) {
         installmentsToInsert.push({
@@ -308,12 +308,12 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           operator_id: user.id,
           installment_number: i,
           total_installments: renewalData.installments,
-          due_date: formatLocalDate(currentDueDate),
+          due_date: currentDueDateStr,
           amount_due: installmentValue,
           status: "Pendente",
         });
 
-        currentDueDate = advanceDateByFrequency(currentDueDate, renewalData.frequency);
+        currentDueDateStr = advanceDateStrByFrequency(currentDueDateStr, renewalData.frequency);
       }
 
       const { error: installmentsError } = await supabase
