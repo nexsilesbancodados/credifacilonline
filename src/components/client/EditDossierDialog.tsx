@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
-import { advanceDateByFrequency, formatLocalDate, parseLocalDate, addMonthsToDateStr } from "@/lib/dateUtils";
+import { formatLocalDate, addMonthsToDateStr, advanceDateStrByFrequency } from "@/lib/dateUtils";
 import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
 import {
   AlertDialog,
