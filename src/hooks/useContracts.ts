@@ -69,7 +69,8 @@ export interface CreateContractData {
   company_name?: string;
 }
 
-function isValidCollectionDay(date: Date, dailyType: string): boolean {
+function isValidCollectionDay(dateStr: string, dailyType: string): boolean {
+  const date = parseLocalDate(dateStr);
   const dayOfWeek = getDay(date);
   switch (dailyType) {
     case "seg-seg": return true;
@@ -79,21 +80,24 @@ function isValidCollectionDay(date: Date, dailyType: string): boolean {
   }
 }
 
-function getNextDueDate(currentDate: Date, frequency: string, dailyType?: string): Date {
-  let nextDate: Date;
+/**
+ * Get next due date as YYYY-MM-DD string using safe string-based math.
+ */
+function getNextDueDateStr(currentDateStr: string, frequency: string, dailyType?: string): string {
   switch (frequency) {
-    case "diario":
-      nextDate = addDays(currentDate, 1);
+    case "diario": {
+      let next = addDaysToDateStr(currentDateStr, 1);
       if (dailyType && dailyType !== "seg-seg") {
-        while (!isValidCollectionDay(nextDate, dailyType)) {
-          nextDate = addDays(nextDate, 1);
+        while (!isValidCollectionDay(next, dailyType)) {
+          next = addDaysToDateStr(next, 1);
         }
       }
-      return nextDate;
-    case "semanal": return addWeeks(currentDate, 1);
-    case "quinzenal": return addDays(currentDate, 15);
+      return next;
+    }
+    case "semanal": return addDaysToDateStr(currentDateStr, 7);
+    case "quinzenal": return addDaysToDateStr(currentDateStr, 14);
     case "mensal":
-    default: return addMonths(currentDate, 1);
+    default: return addMonthsToDateStr(currentDateStr, 1);
   }
 }
 
