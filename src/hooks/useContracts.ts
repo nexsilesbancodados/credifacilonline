@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { addDays, addWeeks, addMonths, getDay } from "date-fns";
+import { getDay } from "date-fns";
 import { saveContractPDFToDocuments } from "@/lib/saveContractDocument";
 import { LoanContractData } from "@/lib/generateLoanContract";
-import { formatLocalDate, parseLocalDate } from "@/lib/dateUtils";
+import { formatLocalDate, parseLocalDate, addDaysToDateStr, addMonthsToDateStr } from "@/lib/dateUtils";
 import { useState } from "react";
 
 export interface Contract {
