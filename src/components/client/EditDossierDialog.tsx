@@ -299,7 +299,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
 
       // Generate installments
       const installmentsToInsert = [];
-      let currentDueDate = parseLocalDate(renewalData.first_due_date);
+      let currentDueDateStr = renewalData.first_due_date;
 
       for (let i = 1; i <= renewalData.installments; i++) {
         installmentsToInsert.push({
@@ -308,12 +308,12 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
           operator_id: user.id,
           installment_number: i,
           total_installments: renewalData.installments,
-          due_date: formatLocalDate(currentDueDate),
+          due_date: currentDueDateStr,
           amount_due: installmentValue,
           status: "Pendente",
         });
 
-        currentDueDate = advanceDateByFrequency(currentDueDate, renewalData.frequency);
+        currentDueDateStr = advanceDateStrByFrequency(currentDueDateStr, renewalData.frequency);
       }
 
       const { error: installmentsError } = await supabase
