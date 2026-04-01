@@ -88,7 +88,7 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
     interest_rate: 10,
     installments: 12,
     frequency: "mensal",
-    first_due_date: formatLocalDate(addMonths(new Date(), 1)),
+    first_due_date: addMonthsToDateStr(formatLocalDate(new Date()), 1),
   });
 
   useEffect(() => {
