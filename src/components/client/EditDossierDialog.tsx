@@ -199,11 +199,11 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
       if (remainingInstallments > 0) {
         // Generate new installments starting after paid ones
         const newInstallments = [];
-        let currentDueDate = parseLocalDate(contractData.first_due_date);
+        let currentDueDateStr = contractData.first_due_date;
 
         // Skip to the correct start date based on paid installments
         for (let i = 0; i < paidCount; i++) {
-          currentDueDate = advanceDateByFrequency(currentDueDate, contractData.frequency);
+          currentDueDateStr = advanceDateStrByFrequency(currentDueDateStr, contractData.frequency);
         }
 
         for (let i = paidCount + 1; i <= contractData.installments; i++) {
@@ -213,12 +213,12 @@ export const EditDossierDialog = ({ open, onOpenChange, client, contract }: Edit
             operator_id: user.id,
             installment_number: i,
             total_installments: contractData.installments,
-            due_date: formatLocalDate(currentDueDate),
+            due_date: currentDueDateStr,
             amount_due: installmentValue,
             status: "Pendente",
           });
 
-          currentDueDate = advanceDateByFrequency(currentDueDate, contractData.frequency);
+          currentDueDateStr = advanceDateStrByFrequency(currentDueDateStr, contractData.frequency);
         }
 
         if (newInstallments.length > 0) {
