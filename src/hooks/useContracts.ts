@@ -213,7 +213,7 @@ export function useContracts(clientId?: string) {
           }
         }
       } else {
-        let dueDate = parseLocalDate(contractData.first_due_date);
+        let dueDateStr = contractData.first_due_date;
 
         for (let i = 1; i <= contractData.installments; i++) {
           const isPaid = i <= paid_installments;
@@ -223,14 +223,14 @@ export function useContracts(clientId?: string) {
             operator_id: user.id,
             installment_number: i,
             total_installments: contractData.installments,
-            due_date: formatLocalDate(dueDate),
+            due_date: dueDateStr,
             amount_due: contractData.installment_value,
             amount_paid: isPaid ? contractData.installment_value : 0,
             payment_date: isPaid ? formatLocalDate(new Date()) : null,
             status: isPaid ? "Pago" : "Pendente",
             fine: 0,
           });
-          dueDate = getNextDueDate(dueDate, contractData.frequency, contractData.daily_type);
+          dueDateStr = getNextDueDateStr(dueDateStr, contractData.frequency, contractData.daily_type);
         }
       }
 
