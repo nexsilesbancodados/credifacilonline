@@ -220,7 +220,7 @@ const MesaCobranca = () => {
       )}
 
       {/* Empty State */}
-      {!isLoading && filteredInstallments.length === 0 && (
+      {!isLoading && activeTab !== "sent" && filteredInstallments.length === 0 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-16 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10 mb-4">
             <Check className="h-8 w-8 text-success" />
@@ -230,12 +230,80 @@ const MesaCobranca = () => {
             {activeTab === "overdue" && "Nenhuma parcela em atraso. Continue assim!"}
             {activeTab === "today" && "Nenhuma parcela vence hoje."}
             {activeTab === "upcoming" && "Nenhuma parcela nos próximos 7 dias."}
+            {activeTab === "upcoming15" && "Nenhuma parcela nos próximos 15 dias."}
+            {activeTab === "upcoming30" && "Nenhuma parcela nos próximos 30 dias."}
           </p>
         </motion.div>
       )}
 
+      {/* Sent Collection Logs */}
+      {activeTab === "sent" && (
+        <div className="space-y-3">
+          {isLoadingLogs ? (
+            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden divide-y divide-border/30">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-4">
+                  <div className="h-10 w-10 rounded-full bg-muted animate-pulse flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-48 rounded bg-muted animate-pulse" />
+                    <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : collectionLogs && collectionLogs.length > 0 ? (
+            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+              <div className="divide-y divide-border/30">
+                {collectionLogs.slice(0, 50).map((log, index) => {
+                  const statusStyles: Record<string, string> = {
+                    sent: "bg-primary/15 text-primary",
+                    delivered: "bg-success/15 text-success",
+                    read: "bg-success/15 text-success",
+                    failed: "bg-destructive/15 text-destructive",
+                  };
+                  const statusLabels: Record<string, string> = {
+                    sent: "Enviada",
+                    delivered: "Entregue",
+                    read: "Lida",
+                    failed: "Falhou",
+                  };
+                  return (
+                    <motion.div key={log.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.02 }} className="p-4 hover:bg-secondary/20 transition-colors">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
+                            <MessageCircle className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">{log.message_sent.slice(0, 80)}...</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {log.channel.toUpperCase()} · {format(parseISO(log.sent_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium", statusStyles[log.status] || "bg-muted text-muted-foreground")}>
+                          {statusLabels[log.status] || log.status}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                <MessageCircle className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="font-display text-lg font-semibold text-foreground mb-1">Nenhuma cobrança enviada</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">As cobranças enviadas por WhatsApp, SMS ou e-mail aparecerão aqui.</p>
+            </motion.div>
+          )}
+        </div>
+      )}
+
       {/* Installments List */}
-      {!isLoading && filteredInstallments.length > 0 && (
+      {!isLoading && activeTab !== "sent" && filteredInstallments.length > 0 && (
         <div className="rounded-2xl border border-border/50 bg-card overflow-hidden" aria-busy={isLoading}>
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="divide-y divide-border/30">
