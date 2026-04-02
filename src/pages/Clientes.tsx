@@ -20,6 +20,7 @@ import { useClientFilters } from "@/hooks/useClientFilters";
 import { ClientFilters } from "@/components/client/ClientFilters";
 import { ClientGridView } from "@/components/client/ClientGridView";
 import { ClientListView } from "@/components/client/ClientListView";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 const toneOptions = [
   { value: "amigavel", label: "Amigável", emoji: "😊" },
