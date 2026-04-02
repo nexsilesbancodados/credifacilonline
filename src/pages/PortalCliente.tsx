@@ -148,7 +148,7 @@ function PortalLogin({ onLogin }: { onLogin: (data: PortalData, cpf: string) => 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden p-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-background relative overflow-hidden p-4">
       <MeteorShower />
 
       <motion.div
