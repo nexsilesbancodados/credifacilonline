@@ -175,12 +175,12 @@ const MesaCobranca = () => {
                 isActive ? "bg-card border border-primary/30 text-foreground shadow-sm" : "bg-secondary/30 text-muted-foreground hover:bg-secondary/50"
               )}
             >
-              <Icon className={cn("h-4 w-4", isActive && (tab.color === "destructive" ? "text-destructive" : tab.color === "warning" ? "text-warning" : "text-success"))} />
+              <Icon className={cn("h-4 w-4", isActive && (tab.color === "destructive" ? "text-destructive" : tab.color === "warning" ? "text-warning" : tab.color === "primary" ? "text-primary" : "text-success"))} />
               <span className="hidden sm:inline">{tab.label}</span>
               <span className={cn(
                 "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold",
                 isActive
-                  ? tab.color === "destructive" ? "bg-destructive/20 text-destructive" : tab.color === "warning" ? "bg-warning/20 text-warning" : "bg-success/20 text-success"
+                  ? tab.color === "destructive" ? "bg-destructive/20 text-destructive" : tab.color === "warning" ? "bg-warning/20 text-warning" : tab.color === "primary" ? "bg-primary/20 text-primary" : "bg-success/20 text-success"
                   : "bg-muted text-muted-foreground"
               )}>
                 {count}
