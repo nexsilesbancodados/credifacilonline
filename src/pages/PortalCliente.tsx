@@ -139,7 +139,7 @@ function PortalLogin({ onLogin }: { onLogin: (data: PortalData, cpf: string) => 
         return;
       }
 
-      onLogin(data as PortalData);
+      onLogin(data as PortalData, cleanCpf);
     } catch {
       setError("Erro de conexão. Tente novamente.");
     } finally {
