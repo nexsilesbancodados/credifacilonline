@@ -699,7 +699,7 @@ function PortalDashboard({
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={openWhatsApp}
-            className="w-full flex items-center gap-4 rounded-2xl border border-success/30 bg-success/5 p-4 transition-all hover:bg-success/10 hover:border-success/50"
+            className="w-full flex items-center gap-3 sm:gap-4 rounded-2xl border border-success/30 bg-success/5 p-3 sm:p-4 transition-all hover:bg-success/10 hover:border-success/50 active:scale-[0.98]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/20">
               <MessageCircle className="h-6 w-6 text-success" />
