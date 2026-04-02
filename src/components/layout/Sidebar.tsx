@@ -1,8 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Users, FileText, Phone, Wallet, BarChart3, Settings,
+  LayoutDashboard, Users, FileText, Wallet, BarChart3, Settings,
   LogOut, ChevronLeft, ChevronRight, Sparkles, History, Sun, Moon,
-  Upload, Shield, Calculator, QrCode, Bot,
+  Upload, Calculator, QrCode, Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
