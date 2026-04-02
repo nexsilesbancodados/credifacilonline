@@ -7,7 +7,8 @@ import { exportToExcel } from "@/lib/exportToExcel";
 import { format } from "date-fns";
 import {
   Plus, Loader2, Check, AlertCircle, Zap, Users, Download,
-  CheckSquare, MessageCircle, Send, X,
+  CheckSquare, MessageCircle, Send, X, UserPlus, AlertTriangle,
+  TrendingUp, UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
@@ -169,6 +170,8 @@ const Clientes = () => {
     return result ? (result.success ? "success" : "error") : null;
   };
 
+  const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { notation: "compact" }).format(v);
+
   return (
     <MainLayout>
       {/* Header */}
@@ -177,7 +180,7 @@ const Clientes = () => {
           <div>
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground">Clientes</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {clientStats.total} clientes · {clientStats.ativos} ativos · {clientStats.atraso > 0 ? <span className="text-destructive">{clientStats.atraso} em atraso</span> : "0 em atraso"}
+              Gerencie sua carteira de clientes
             </p>
           </div>
           <div className="flex gap-2">
@@ -236,6 +239,31 @@ const Clientes = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {[
+          { icon: Users, label: "Total", value: clientStats.total, sub: `${clientStats.ativos} ativos`, color: "text-foreground" },
+          { icon: UserCheck, label: "Ativos", value: clientStats.ativos, color: "text-success" },
+          { icon: AlertTriangle, label: "Em Atraso", value: clientStats.atraso, color: "text-destructive" },
+          { icon: TrendingUp, label: "Quitados", value: clientStats.quitados, color: "text-muted-foreground" },
+        ].map((card, i) => (
+          <motion.div
+            key={card.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="rounded-xl border border-border/50 bg-card p-4"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <card.icon className={`h-4 w-4 ${card.color}`} />
+              <span className="text-xs text-muted-foreground">{card.label}</span>
+            </div>
+            <p className={`font-display text-2xl font-bold ${card.color}`}>{card.value}</p>
+            {card.sub && <p className="text-xs text-muted-foreground mt-0.5">{card.sub}</p>}
+          </motion.div>
+        ))}
       </div>
 
       {/* Selection Bar */}
