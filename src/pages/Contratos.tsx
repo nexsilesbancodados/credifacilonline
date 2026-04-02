@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContracts, usePendingInstallments } from "@/hooks/useContracts";
+import { useCollectionLogs } from "@/hooks/useCollectionLogs";
 import { useAllClients } from "@/hooks/useClients";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +39,7 @@ const frequencyLabels: Record<string, string> = {
 };
 
 type SortKey = "date" | "amount" | "client";
-type CobrancaTabType = "overdue" | "today" | "upcoming";
+type CobrancaTabType = "overdue" | "today" | "upcoming" | "upcoming15" | "upcoming30" | "sent";
 
 interface PendingInstallment {
   id: string;
@@ -59,8 +60,11 @@ interface PendingInstallment {
 
 const cobrancaTabs = [
   { id: "overdue" as CobrancaTabType, label: "Atrasados", icon: AlertTriangle, color: "destructive" },
-  { id: "today" as CobrancaTabType, label: "Vencendo Hoje", icon: Clock, color: "warning" },
-  { id: "upcoming" as CobrancaTabType, label: "Próximos 7 dias", icon: CalendarClock, color: "success" },
+  { id: "today" as CobrancaTabType, label: "Hoje", icon: Clock, color: "warning" },
+  { id: "upcoming" as CobrancaTabType, label: "7 dias", icon: CalendarClock, color: "success" },
+  { id: "upcoming15" as CobrancaTabType, label: "15 dias", icon: CalendarClock, color: "success" },
+  { id: "upcoming30" as CobrancaTabType, label: "30 dias", icon: CalendarClock, color: "success" },
+  { id: "sent" as CobrancaTabType, label: "Enviadas", icon: MessageCircle, color: "primary" },
 ];
 
 // ========== Contratos Tab ==========
@@ -313,6 +317,7 @@ function CobrancaTab() {
   const [activeTab, setActiveTab] = useState<CobrancaTabType>("overdue");
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const { data: pendingInstallments, isLoading, isError, refetch } = usePendingInstallments();
+  const { logs: collectionLogs, isLoading: isLoadingLogs } = useCollectionLogs();
   const { settings } = useCompanySettings();
   const navigate = useNavigate();
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; installment: PendingInstallment | null }>({ open: false, installment: null });
@@ -324,24 +329,37 @@ function CobrancaTab() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const nextWeek = addDays(today, 7);
+  const next15 = addDays(today, 15);
+  const next30 = addDays(today, 30);
 
   const items = (pendingInstallments || []) as PendingInstallment[];
 
-  const filteredInstallments = items.filter((inst) => {
+  const filterByRange = (inst: PendingInstallment, from: Date, to: Date) => {
+    const d = parseISO(inst.due_date);
+    d.setHours(0, 0, 0, 0);
+    return isAfter(d, from) && isBefore(d, to);
+  };
+
+  const filteredInstallments = activeTab === "sent" ? [] : items.filter((inst) => {
     const dueDate = parseISO(inst.due_date);
     dueDate.setHours(0, 0, 0, 0);
     switch (activeTab) {
       case "overdue": return isBefore(dueDate, today) && !isToday(dueDate);
       case "today": return isToday(dueDate);
       case "upcoming": return isAfter(dueDate, today) && isBefore(dueDate, nextWeek);
+      case "upcoming15": return isAfter(dueDate, today) && isBefore(dueDate, next15);
+      case "upcoming30": return isAfter(dueDate, today) && isBefore(dueDate, next30);
       default: return false;
     }
   });
 
-  const counts = {
+  const counts: Record<CobrancaTabType, number> = {
     overdue: items.filter((inst) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isBefore(d, today) && !isToday(d); }).length,
     today: items.filter((inst) => isToday(parseISO(inst.due_date))).length,
-    upcoming: items.filter((inst) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isAfter(d, today) && isBefore(d, nextWeek); }).length,
+    upcoming: items.filter((inst) => filterByRange(inst, today, nextWeek)).length,
+    upcoming15: items.filter((inst) => filterByRange(inst, today, next15)).length,
+    upcoming30: items.filter((inst) => filterByRange(inst, today, next30)).length,
+    sent: collectionLogs?.length || 0,
   };
 
   const totalOverdueAmount = items.filter((inst) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isBefore(d, today) && !isToday(d); }).reduce((sum, i) => sum + Number(i.amount_due), 0);
@@ -405,7 +423,7 @@ function CobrancaTab() {
       )}
 
       {/* Sub-Tabs */}
-      <div className="flex gap-2" role="tablist">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist">
         {cobrancaTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -415,12 +433,12 @@ function CobrancaTab() {
               "relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
               isActive ? "bg-card border border-primary/30 text-foreground shadow-sm" : "bg-secondary/30 text-muted-foreground hover:bg-secondary/50"
             )}>
-              <Icon className={cn("h-4 w-4", isActive && (tab.color === "destructive" ? "text-destructive" : tab.color === "warning" ? "text-warning" : "text-success"))} />
+              <Icon className={cn("h-4 w-4", isActive && (tab.color === "destructive" ? "text-destructive" : tab.color === "warning" ? "text-warning" : tab.color === "primary" ? "text-primary" : "text-success"))} />
               <span className="hidden sm:inline">{tab.label}</span>
               <span className={cn(
                 "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold",
                 isActive
-                  ? tab.color === "destructive" ? "bg-destructive/20 text-destructive" : tab.color === "warning" ? "bg-warning/20 text-warning" : "bg-success/20 text-success"
+                  ? tab.color === "destructive" ? "bg-destructive/20 text-destructive" : tab.color === "warning" ? "bg-warning/20 text-warning" : tab.color === "primary" ? "bg-primary/20 text-primary" : "bg-success/20 text-success"
                   : "bg-muted text-muted-foreground"
               )}>{count}</span>
             </button>
@@ -448,7 +466,7 @@ function CobrancaTab() {
         </div>
       )}
 
-      {!isLoading && filteredInstallments.length === 0 && (
+      {!isLoading && activeTab !== "sent" && filteredInstallments.length === 0 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-16 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10 mb-4">
             <Check className="h-8 w-8 text-success" />
@@ -458,11 +476,79 @@ function CobrancaTab() {
             {activeTab === "overdue" && "Nenhuma parcela em atraso. Continue assim!"}
             {activeTab === "today" && "Nenhuma parcela vence hoje."}
             {activeTab === "upcoming" && "Nenhuma parcela nos próximos 7 dias."}
+            {activeTab === "upcoming15" && "Nenhuma parcela nos próximos 15 dias."}
+            {activeTab === "upcoming30" && "Nenhuma parcela nos próximos 30 dias."}
           </p>
         </motion.div>
       )}
 
-      {!isLoading && filteredInstallments.length > 0 && (
+      {/* Sent Collection Logs */}
+      {activeTab === "sent" && (
+        <div className="space-y-3">
+          {isLoadingLogs ? (
+            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden divide-y divide-border/30">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-4">
+                  <div className="h-10 w-10 rounded-full bg-muted animate-pulse flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-48 rounded bg-muted animate-pulse" />
+                    <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : collectionLogs && collectionLogs.length > 0 ? (
+            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+              <div className="divide-y divide-border/30">
+                {collectionLogs.slice(0, 50).map((log, index) => {
+                  const statusStyles: Record<string, string> = {
+                    sent: "bg-primary/15 text-primary",
+                    delivered: "bg-success/15 text-success",
+                    read: "bg-success/15 text-success",
+                    failed: "bg-destructive/15 text-destructive",
+                  };
+                  const statusLabels: Record<string, string> = {
+                    sent: "Enviada",
+                    delivered: "Entregue",
+                    read: "Lida",
+                    failed: "Falhou",
+                  };
+                  return (
+                    <motion.div key={log.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.02 }} className="p-4 hover:bg-secondary/20 transition-colors">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 flex-shrink-0">
+                            <MessageCircle className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground truncate">{log.message_sent.slice(0, 80)}...</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {log.channel.toUpperCase()} · {format(parseISO(log.sent_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium", statusStyles[log.status] || "bg-muted text-muted-foreground")}>
+                          {statusLabels[log.status] || log.status}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 mb-4">
+                <MessageCircle className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="font-display text-lg font-semibold text-foreground mb-1">Nenhuma cobrança enviada</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">As cobranças enviadas por WhatsApp, SMS ou e-mail aparecerão aqui.</p>
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {!isLoading && activeTab !== "sent" && filteredInstallments.length > 0 && (
         <div className="rounded-2xl border border-border/50 bg-card overflow-hidden" aria-busy={isLoading}>
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="divide-y divide-border/30">
