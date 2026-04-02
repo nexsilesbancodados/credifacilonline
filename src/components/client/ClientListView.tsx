@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { MoreVertical, CheckSquare, Square } from "lucide-react";
+import { ChevronRight, CheckSquare, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
 import { Client } from "@/hooks/useClients";
@@ -27,77 +27,88 @@ interface ClientListViewProps {
 
 export function ClientListView({ clients, selectionMode, selectedClients, toggleSelection, toggleSelectAll }: ClientListViewProps) {
   return (
-    <div className="rounded-2xl border border-border/50 bg-card overflow-hidden" role="table">
-      <table className="w-full">
-        <thead className="bg-secondary/30">
-          <tr role="row">
-            {selectionMode && (
-              <th className="px-4 py-4 w-12">
-                <button onClick={toggleSelectAll} aria-label="Selecionar todos">
-                  {selectedClients.size === clients.length ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
-                </button>
-              </th>
-            )}
-            <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Cliente</th>
-            <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">CPF</th>
-            <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Score</th>
-            <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Status</th>
-            <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Cidade</th>
-            <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground">Contato</th>
-            <th className="px-6 py-4"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/50">
-          {clients.map((client, index) => (
-            <motion.tr
-              key={client.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
+    <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+      {/* Header */}
+      <div className="bg-secondary/30 px-4 py-3 flex items-center gap-4 text-sm font-medium text-muted-foreground border-b border-border/50">
+        {selectionMode && (
+          <button onClick={toggleSelectAll} className="flex-shrink-0" aria-label="Selecionar todos">
+            {selectedClients.size === clients.length ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
+          </button>
+        )}
+        <span className="flex-1 min-w-[200px]">Cliente</span>
+        <span className="w-32 hidden md:block">CPF</span>
+        <span className="w-20 hidden lg:block">Score</span>
+        <span className="w-20">Status</span>
+        <span className="w-32 hidden lg:block">Cidade</span>
+        <span className="w-32 hidden md:block">Contato</span>
+        <span className="w-8"></span>
+      </div>
+
+      {/* Rows */}
+      <div className="divide-y divide-border/30">
+        {clients.map((client, index) => {
+          const rowContent = (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: Math.min(index * 0.03, 0.5) }}
               onClick={() => selectionMode && toggleSelection(client.id)}
-              role="row"
               className={cn(
-                "transition-colors",
-                selectionMode ? "cursor-pointer" : "cursor-default",
-                selectedClients.has(client.id) ? "bg-primary/10" : "odd:bg-muted/30 hover:bg-secondary/30"
+                "group flex items-center gap-4 px-4 py-3 transition-colors",
+                selectionMode ? "cursor-pointer" : "cursor-pointer hover:bg-secondary/20",
+                selectedClients.has(client.id) ? "bg-primary/10" : ""
               )}
             >
               {selectionMode && (
-                <td className="px-4 py-4">
+                <div className="flex-shrink-0">
                   {selectedClients.has(client.id) ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
-                </td>
+                </div>
               )}
-              <td className="px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-sm text-primary-foreground">
+
+              {/* Client info */}
+              <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                {client.avatar_url ? (
+                  <img
+                    src={client.avatar_url}
+                    alt={client.name}
+                    className="h-10 w-10 rounded-full object-cover border-2 border-border/50 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-sm text-primary-foreground flex-shrink-0">
                     {getInitials(client.name)}
                   </div>
-                  <div>
-                    <p className="font-medium text-foreground">{client.name}</p>
-                    <p className="text-xs text-muted-foreground">{client.email}</p>
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 text-sm text-muted-foreground">{client.cpf}</td>
-              <td className="px-6 py-4"><ClientScoreBadge clientId={client.id} size="sm" /></td>
-              <td className="px-6 py-4">
-                <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", statusStyles[client.status])}>{client.status}</span>
-              </td>
-              <td className="px-6 py-4 text-sm text-muted-foreground">{client.city && client.state ? `${client.city}, ${client.state}` : "-"}</td>
-              <td className="px-6 py-4 text-sm text-muted-foreground">{client.whatsapp || "-"}</td>
-              <td className="px-6 py-4">
-                {!selectionMode && (
-                  <Link to={`/clientes/${client.id}`}>
-                    <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors" aria-label="Ver detalhes">
-                      <MoreVertical className="h-4 w-4" />
-                    </button>
-                  </Link>
                 )}
-              </td>
-            </motion.tr>
-          ))}
-        </tbody>
-      </table>
+                <div className="min-w-0">
+                  <p className="font-medium text-foreground truncate">{client.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{client.email || client.whatsapp || "—"}</p>
+                </div>
+              </div>
+
+              <span className="w-32 text-sm text-muted-foreground font-mono hidden md:block">{client.cpf}</span>
+              <div className="w-20 hidden lg:block"><ClientScoreBadge clientId={client.id} size="sm" /></div>
+              <div className="w-20">
+                <span className={cn("rounded-full border px-2.5 py-0.5 text-xs font-medium", statusStyles[client.status] || statusStyles.Ativo)}>{client.status}</span>
+              </div>
+              <span className="w-32 text-sm text-muted-foreground hidden lg:block truncate">{client.city && client.state ? `${client.city}, ${client.state}` : "—"}</span>
+              <span className="w-32 text-sm text-muted-foreground hidden md:block truncate">{client.whatsapp || "—"}</span>
+
+              {!selectionMode && (
+                <div className="w-8 flex items-center justify-center">
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                </div>
+              )}
+            </motion.div>
+          );
+
+          if (selectionMode) return <div key={client.id}>{rowContent}</div>;
+
+          return (
+            <Link key={client.id} to={`/clientes/${client.id}`} className="block">
+              {rowContent}
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
