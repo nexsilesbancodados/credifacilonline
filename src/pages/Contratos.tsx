@@ -77,6 +77,7 @@ function ContratosTab() {
   const { contracts, isLoading, isError, refetch, page, setPage, totalPages } = useContracts();
   const { data: clients = [] } = useAllClients();
   const { toast } = useToast();
+  useRealtimeSubscription({ tables: ['contracts', 'clients'] });
 
   const clientsMap = clients.reduce((acc, client) => {
     acc[client.id] = client;
