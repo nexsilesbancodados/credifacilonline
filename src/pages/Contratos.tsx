@@ -317,6 +317,7 @@ function CobrancaTab() {
   const [activeTab, setActiveTab] = useState<CobrancaTabType>("overdue");
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const { data: pendingInstallments, isLoading, isError, refetch } = usePendingInstallments();
+  const { logs: collectionLogs, isLoading: isLoadingLogs } = useCollectionLogs();
   const { settings } = useCompanySettings();
   const navigate = useNavigate();
   const [paymentDialog, setPaymentDialog] = useState<{ open: boolean; installment: PendingInstallment | null }>({ open: false, installment: null });
@@ -328,24 +329,37 @@ function CobrancaTab() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const nextWeek = addDays(today, 7);
+  const next15 = addDays(today, 15);
+  const next30 = addDays(today, 30);
 
   const items = (pendingInstallments || []) as PendingInstallment[];
 
-  const filteredInstallments = items.filter((inst) => {
+  const filterByRange = (inst: PendingInstallment, from: Date, to: Date) => {
+    const d = parseISO(inst.due_date);
+    d.setHours(0, 0, 0, 0);
+    return isAfter(d, from) && isBefore(d, to);
+  };
+
+  const filteredInstallments = activeTab === "sent" ? [] : items.filter((inst) => {
     const dueDate = parseISO(inst.due_date);
     dueDate.setHours(0, 0, 0, 0);
     switch (activeTab) {
       case "overdue": return isBefore(dueDate, today) && !isToday(dueDate);
       case "today": return isToday(dueDate);
       case "upcoming": return isAfter(dueDate, today) && isBefore(dueDate, nextWeek);
+      case "upcoming15": return isAfter(dueDate, today) && isBefore(dueDate, next15);
+      case "upcoming30": return isAfter(dueDate, today) && isBefore(dueDate, next30);
       default: return false;
     }
   });
 
-  const counts = {
+  const counts: Record<CobrancaTabType, number> = {
     overdue: items.filter((inst) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isBefore(d, today) && !isToday(d); }).length,
     today: items.filter((inst) => isToday(parseISO(inst.due_date))).length,
-    upcoming: items.filter((inst) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isAfter(d, today) && isBefore(d, nextWeek); }).length,
+    upcoming: items.filter((inst) => filterByRange(inst, today, nextWeek)).length,
+    upcoming15: items.filter((inst) => filterByRange(inst, today, next15)).length,
+    upcoming30: items.filter((inst) => filterByRange(inst, today, next30)).length,
+    sent: collectionLogs?.length || 0,
   };
 
   const totalOverdueAmount = items.filter((inst) => { const d = parseISO(inst.due_date); d.setHours(0,0,0,0); return isBefore(d, today) && !isToday(d); }).reduce((sum, i) => sum + Number(i.amount_due), 0);
