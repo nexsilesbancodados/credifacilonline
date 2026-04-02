@@ -882,23 +882,15 @@ const PortalCliente = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [savedCpf, setSavedCpf] = useState<string | null>(null);
 
-  const handleLogin = useCallback((data: PortalData) => {
-    setPortalData(data);
-  }, []);
-
   const handleLogout = useCallback(() => {
     setPortalData(null);
     setSavedCpf(null);
   }, []);
 
   const handleRefresh = useCallback(async () => {
-    if (!portalData || isRefreshing) return;
+    if (!savedCpf || isRefreshing) return;
     setIsRefreshing(true);
     try {
-      // Re-fetch using the client id approach - we stored cpf from the client data
-      const cpf = portalData.client.id;
-      // We need the CPF to refresh — get it from edge function using client id
-      // Actually we need to store CPF on login. For now, just use existing data.
       const { data } = await supabase.functions.invoke("client-portal", {
         body: { cpf: savedCpf },
       });
@@ -906,15 +898,11 @@ const PortalCliente = () => {
         setPortalData(data as PortalData);
       }
     } catch {
-      // silent fail
+      // silent
     } finally {
       setIsRefreshing(false);
     }
-  }, [portalData, isRefreshing, savedCpf]);
-
-  const handleLoginWithCpf = useCallback((data: PortalData, cpf?: string) => {
-    setPortalData(data);
-  }, []);
+  }, [savedCpf, isRefreshing]);
 
   return (
     <AnimatePresence mode="wait">
