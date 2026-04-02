@@ -2,7 +2,8 @@ import { ReactNode, useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Menu, Search, X, ChevronRight, Home } from "lucide-react";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
-import { GlobalSearch, useGlobalSearch } from "@/components/search/GlobalSearch";
+import { GlobalSearch } from "@/components/search/GlobalSearch";
+import { useGlobalSearch } from "@/hooks/useGlobalSearch";
 import { useLocation, Link } from "react-router-dom";
 
 interface MainLayoutProps {
