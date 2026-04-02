@@ -159,7 +159,7 @@ const MesaCobranca = () => {
       )}
 
       {/* Tabs */}
-      <div className="mb-6 flex gap-2" role="tablist">
+      <div className="mb-6 flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

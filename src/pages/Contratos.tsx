@@ -423,7 +423,7 @@ function CobrancaTab() {
       )}
 
       {/* Sub-Tabs */}
-      <div className="flex gap-2" role="tablist">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist">
         {cobrancaTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
