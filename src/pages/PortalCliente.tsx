@@ -588,16 +588,16 @@ function PortalDashboard({
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-sm text-primary-foreground">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-xs sm:text-sm text-primary-foreground flex-shrink-0">
               {getInitials(client.name)}
             </div>
-            <div>
-              <p className="font-medium text-foreground text-sm truncate max-w-[180px]">
+            <div className="min-w-0">
+              <p className="font-medium text-foreground text-xs sm:text-sm truncate">
                 {client.name}
               </p>
               {operator.company && (
-                <p className="text-xs text-muted-foreground">{operator.company}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{operator.company}</p>
               )}
             </div>
           </div>
