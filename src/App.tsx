@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,29 +8,28 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { queryClient } from "@/lib/queryClient";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { lazyRetry } from "@/lib/lazyRetry";
 
-// Lazy load pages for code splitting
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Clientes = lazy(() => import("./pages/Clientes"));
-const Cobradores = lazy(() => import("./pages/Cobradores"));
-const CobradorExterno = lazy(() => import("./pages/CobradorExterno"));
-const ClienteDossie = lazy(() => import("./pages/ClienteDossie"));
-const NovoContrato = lazy(() => import("./pages/NovoContrato"));
-const Simulador = lazy(() => import("./pages/Simulador"));
-const Contratos = lazy(() => import("./pages/Contratos"));
-const MesaCobranca = lazy(() => import("./pages/Contratos"));
-const Tesouraria = lazy(() => import("./pages/Tesouraria"));
-const Analises = lazy(() => import("./pages/Analises"));
-const Historico = lazy(() => import("./pages/Historico"));
-const Auditoria = lazy(() => import("./pages/Historico"));
-const Login = lazy(() => import("./pages/Login"));
-const Signup = lazy(() => import("./pages/Signup"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
-const Configuracoes = lazy(() => import("./pages/Configuracoes"));
-const QRCodeGenerator = lazy(() => import("./pages/QRCodeGenerator"));
-const AgenteIA = lazy(() => import("./pages/AgenteIA"));
-const PortalCliente = lazy(() => import("./pages/PortalCliente"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+// Lazy load pages with automatic retry on chunk load failure
+const Dashboard = lazyRetry(() => import("./pages/Dashboard"));
+const Clientes = lazyRetry(() => import("./pages/Clientes"));
+const Cobradores = lazyRetry(() => import("./pages/Cobradores"));
+const CobradorExterno = lazyRetry(() => import("./pages/CobradorExterno"));
+const ClienteDossie = lazyRetry(() => import("./pages/ClienteDossie"));
+const NovoContrato = lazyRetry(() => import("./pages/NovoContrato"));
+const Simulador = lazyRetry(() => import("./pages/Simulador"));
+const Contratos = lazyRetry(() => import("./pages/Contratos"));
+const Tesouraria = lazyRetry(() => import("./pages/Tesouraria"));
+const Analises = lazyRetry(() => import("./pages/Analises"));
+const Historico = lazyRetry(() => import("./pages/Historico"));
+const Login = lazyRetry(() => import("./pages/Login"));
+const Signup = lazyRetry(() => import("./pages/Signup"));
+const ForgotPassword = lazyRetry(() => import("./pages/ForgotPassword"));
+const Configuracoes = lazyRetry(() => import("./pages/Configuracoes"));
+const QRCodeGenerator = lazyRetry(() => import("./pages/QRCodeGenerator"));
+const AgenteIA = lazyRetry(() => import("./pages/AgenteIA"));
+const PortalCliente = lazyRetry(() => import("./pages/PortalCliente"));
+const NotFound = lazyRetry(() => import("./pages/NotFound"));
 
 // Loading fallback component
 const PageLoader = () => (

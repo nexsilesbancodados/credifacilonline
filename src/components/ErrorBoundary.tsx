@@ -23,7 +23,22 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Silent in production — no console.log
+    // Auto-recover from chunk load failures by reloading once
+    if (
+      error.message?.includes("Failed to fetch dynamically imported module") ||
+      error.message?.includes("Loading chunk") ||
+      error.message?.includes("Loading CSS chunk")
+    ) {
+      const reloadKey = "error_boundary_reload";
+      const lastReload = sessionStorage.getItem(reloadKey);
+      const now = Date.now();
+      // Only auto-reload if we haven't in the last 10 seconds
+      if (!lastReload || now - Number(lastReload) > 10000) {
+        sessionStorage.setItem(reloadKey, String(now));
+        window.location.reload();
+        return;
+      }
+    }
   }
 
   handleReset = () => {
