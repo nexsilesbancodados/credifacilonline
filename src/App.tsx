@@ -29,6 +29,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const QRCodeGenerator = lazy(() => import("./pages/QRCodeGenerator"));
 const AgenteIA = lazy(() => import("./pages/AgenteIA"));
+const PortalCliente = lazy(() => import("./pages/PortalCliente"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback component
