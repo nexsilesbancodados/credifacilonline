@@ -87,6 +87,7 @@ export function useClients() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["clients-all"] });
       toast({
         title: "Cliente criado!",
         description: "O cliente foi cadastrado com sucesso.",
