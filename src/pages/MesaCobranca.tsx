@@ -18,7 +18,7 @@ import { NotificationCenter } from "@/components/notifications/NotificationCente
 import { PermissionGate } from "@/components/auth/PermissionGate";
 import { QueryErrorState } from "@/components/QueryErrorState";
 
-type TabType = "overdue" | "today" | "upcoming";
+type TabType = "overdue" | "today" | "upcoming" | "upcoming15" | "upcoming30" | "sent";
 
 interface PendingInstallment {
   id: string;
@@ -39,8 +39,11 @@ interface PendingInstallment {
 
 const tabs = [
   { id: "overdue" as TabType, label: "Atrasados", icon: AlertTriangle, color: "destructive" },
-  { id: "today" as TabType, label: "Vencendo Hoje", icon: Clock, color: "warning" },
-  { id: "upcoming" as TabType, label: "Próximos 7 dias", icon: CalendarClock, color: "success" },
+  { id: "today" as TabType, label: "Hoje", icon: Clock, color: "warning" },
+  { id: "upcoming" as TabType, label: "7 dias", icon: CalendarClock, color: "success" },
+  { id: "upcoming15" as TabType, label: "15 dias", icon: CalendarClock, color: "success" },
+  { id: "upcoming30" as TabType, label: "30 dias", icon: CalendarClock, color: "success" },
+  { id: "sent" as TabType, label: "Enviadas", icon: MessageCircle, color: "primary" },
 ];
 
 const MesaCobranca = () => {
