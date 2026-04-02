@@ -928,9 +928,13 @@ const PortalCliente = () => {
           exit={{ opacity: 0 }}
         >
           <PortalLogin
-            onLogin={(data) => {
+            onLogin={(data, cpf) => {
               setPortalData(data);
+              setSavedCpf(cpf);
             }}
+
+
+
           />
         </motion.div>
       )}
