@@ -633,7 +633,7 @@ function PortalDashboard({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/[0.02] p-5"
+          className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/[0.02] p-4 sm:p-5"
         >
           <p className="text-sm text-muted-foreground">Bem-vindo(a) de volta,</p>
           <h2 className="font-display text-xl font-bold text-foreground mt-0.5">
