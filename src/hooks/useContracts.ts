@@ -433,18 +433,31 @@ export function usePendingInstallments() {
   return useQuery({
     queryKey: ["pending-installments"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("installments")
-        .select(`
-          *,
-          clients!inner(name, whatsapp)
-        `)
-        .in("status", ["Pendente", "Atrasado"])
-        .order("due_date", { ascending: true })
-        .limit(100);
+      // Fetch all pending/overdue installments without a hard limit
+      // We need all of them to correctly populate the collection desk tabs
+      const allResults: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      
+      while (true) {
+        const { data: page, error: pageError } = await supabase
+          .from("installments")
+          .select(`
+            *,
+            clients!inner(name, whatsapp)
+          `)
+          .in("status", ["Pendente", "Atrasado"])
+          .order("due_date", { ascending: true })
+          .range(from, from + pageSize - 1);
 
-      if (error) throw error;
-      return data;
+        if (pageError) throw pageError;
+        if (!page || page.length === 0) break;
+        allResults.push(...page);
+        if (page.length < pageSize) break;
+        from += pageSize;
+      }
+
+      return allResults;
     },
     enabled: !!user,
   });
