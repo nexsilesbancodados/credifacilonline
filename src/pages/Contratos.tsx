@@ -38,7 +38,7 @@ const frequencyLabels: Record<string, string> = {
 };
 
 type SortKey = "date" | "amount" | "client";
-type CobrancaTabType = "overdue" | "today" | "upcoming";
+type CobrancaTabType = "overdue" | "today" | "upcoming" | "upcoming15" | "upcoming30" | "sent";
 
 interface PendingInstallment {
   id: string;
@@ -59,8 +59,11 @@ interface PendingInstallment {
 
 const cobrancaTabs = [
   { id: "overdue" as CobrancaTabType, label: "Atrasados", icon: AlertTriangle, color: "destructive" },
-  { id: "today" as CobrancaTabType, label: "Vencendo Hoje", icon: Clock, color: "warning" },
-  { id: "upcoming" as CobrancaTabType, label: "Próximos 7 dias", icon: CalendarClock, color: "success" },
+  { id: "today" as CobrancaTabType, label: "Hoje", icon: Clock, color: "warning" },
+  { id: "upcoming" as CobrancaTabType, label: "7 dias", icon: CalendarClock, color: "success" },
+  { id: "upcoming15" as CobrancaTabType, label: "15 dias", icon: CalendarClock, color: "success" },
+  { id: "upcoming30" as CobrancaTabType, label: "30 dias", icon: CalendarClock, color: "success" },
+  { id: "sent" as CobrancaTabType, label: "Enviadas", icon: MessageCircle, color: "primary" },
 ];
 
 // ========== Contratos Tab ==========
