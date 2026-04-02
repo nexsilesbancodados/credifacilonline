@@ -301,17 +301,17 @@ function SummaryCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className={cn("rounded-2xl border p-4", v.card)}
+      className={cn("rounded-2xl border p-3 sm:p-4 min-w-0", v.card)}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", v.icon)}>
-          <Icon className="h-4 w-4" />
+      <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+        <div className={cn("flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg flex-shrink-0", v.icon)}>
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </div>
       </div>
-      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-      <p className={cn("font-display text-xl font-bold mt-0.5", v.value)}>{value}</p>
+      <p className="text-[10px] sm:text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+      <p className={cn("font-display text-base sm:text-xl font-bold mt-0.5 truncate", v.value)}>{value}</p>
       {subtitle && (
-        <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
+        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">{subtitle}</p>
       )}
     </motion.div>
   );
