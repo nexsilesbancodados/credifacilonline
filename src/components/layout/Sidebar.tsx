@@ -1,8 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Users, FileText, Phone, Wallet, BarChart3, Settings,
+  LayoutDashboard, Users, FileText, Wallet, BarChart3, Settings,
   LogOut, ChevronLeft, ChevronRight, Sparkles, History, Sun, Moon,
-  Upload, Shield, Calculator, QrCode, Bot,
+  Upload, Calculator, QrCode, Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -33,7 +33,6 @@ const menuGroups = [
   {
     label: "Financeiro",
     items: [
-      { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca", permission: "canViewPayments" as const },
       { icon: Wallet, label: "Tesouraria", path: "/tesouraria", permission: "canViewTreasury" as const },
     ],
   },
@@ -42,7 +41,6 @@ const menuGroups = [
     items: [
       { icon: BarChart3, label: "Análises", path: "/analises", permission: "canViewReports" as const },
       { icon: History, label: "Histórico", path: "/historico", permission: null },
-      { icon: Shield, label: "Auditoria", path: "/auditoria", permission: "canViewAuditLog" as const },
     ],
   },
   {
@@ -71,13 +69,13 @@ export function Sidebar() {
 
   // Badge map: path -> count (only show when > 0)
   const badgeCounts: Record<string, number> = {
-    "/cobranca": overdueCount,
+    "/contratos": overdueCount,
     "/clientes": activeClientsCount,
   };
 
   // Badge style map: path -> variant
   const badgeStyles: Record<string, string> = {
-    "/cobranca": "bg-destructive text-destructive-foreground",
+    "/contratos": "bg-destructive text-destructive-foreground",
     "/clientes": "bg-primary/20 text-primary",
   };
 

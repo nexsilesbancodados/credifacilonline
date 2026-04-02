@@ -18,11 +18,11 @@ const ClienteDossie = lazy(() => import("./pages/ClienteDossie"));
 const NovoContrato = lazy(() => import("./pages/NovoContrato"));
 const Simulador = lazy(() => import("./pages/Simulador"));
 const Contratos = lazy(() => import("./pages/Contratos"));
-const MesaCobranca = lazy(() => import("./pages/MesaCobranca"));
+const MesaCobranca = lazy(() => import("./pages/Contratos"));
 const Tesouraria = lazy(() => import("./pages/Tesouraria"));
 const Analises = lazy(() => import("./pages/Analises"));
 const Historico = lazy(() => import("./pages/Historico"));
-const Auditoria = lazy(() => import("./pages/Auditoria"));
+const Auditoria = lazy(() => import("./pages/Historico"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
@@ -63,13 +63,13 @@ const App = () => (
                 <Route path="/clientes/:id" element={<ProtectedRoute><ClienteDossie /></ProtectedRoute>} />
                 <Route path="/contratos" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
                 <Route path="/contratos/novo" element={<ProtectedRoute><NovoContrato /></ProtectedRoute>} />
-                <Route path="/cobranca" element={<ProtectedRoute><MesaCobranca /></ProtectedRoute>} />
+                <Route path="/cobranca" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
                 <Route path="/cobradores" element={<ProtectedRoute><Cobradores /></ProtectedRoute>} />
                 <Route path="/tesouraria" element={<ProtectedRoute><Tesouraria /></ProtectedRoute>} />
                 <Route path="/analises" element={<ProtectedRoute><Analises /></ProtectedRoute>} />
                 <Route path="/historico" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
                 <Route path="/simulador" element={<ProtectedRoute><Simulador /></ProtectedRoute>} />
-                <Route path="/auditoria" element={<ProtectedRoute><Auditoria /></ProtectedRoute>} />
+                <Route path="/auditoria" element={<ProtectedRoute><Historico /></ProtectedRoute>} />
                 <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
                 <Route path="/qrcode" element={<ProtectedRoute><QRCodeGenerator /></ProtectedRoute>} />
                 <Route path="/agente-ia" element={<ProtectedRoute><AgenteIA /></ProtectedRoute>} />
