@@ -26,6 +26,7 @@ import { QueryErrorState } from "@/components/QueryErrorState";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 const statusConfig = {
   Ativo: { style: "bg-success/15 text-success border-success/30", icon: CheckCircle2, label: "Ativo" },
