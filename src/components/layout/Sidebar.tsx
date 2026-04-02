@@ -75,7 +75,7 @@ export function Sidebar() {
 
   // Badge style map: path -> variant
   const badgeStyles: Record<string, string> = {
-    "/cobranca": "bg-destructive text-destructive-foreground",
+    "/contratos": "bg-destructive text-destructive-foreground",
     "/clientes": "bg-primary/20 text-primary",
   };
 
