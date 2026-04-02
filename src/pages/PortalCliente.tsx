@@ -516,14 +516,14 @@ function ContractCard({ contract, paidCount, index }: { contract: ContractData; 
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-3 border-t border-border/30 bg-secondary/20 flex items-center justify-between text-xs text-muted-foreground">
+      <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/30 bg-secondary/20 flex flex-col xs:flex-row items-start xs:items-center justify-between gap-1 text-[11px] sm:text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <Calendar className="h-3.5 w-3.5" />
-          Início: {format(parseISO(contract.start_date), "dd/MM/yyyy", { locale: ptBR })}
+          <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+          <span className="truncate">Início: {format(parseISO(contract.start_date), "dd/MM/yyyy", { locale: ptBR })}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <TrendingUp className="h-3.5 w-3.5" />
-          Juros: {fmt(contract.total_amount - contract.capital)}
+          <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+          <span className="truncate">Juros: {fmt(contract.total_amount - contract.capital)}</span>
         </div>
       </div>
     </motion.div>
