@@ -270,12 +270,16 @@ const Contratos = () => {
               const progressPct = contract.status === "Quitado" ? 100 : Math.round((1 - contract.total_profit / contract.total_amount) * 100);
 
               return (
-                <motion.div
+                <Link
                   key={contract.id}
+                  to={client ? `/clientes/${client.id}` : "#"}
+                  className="block"
+                >
+                <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.03 }}
-                  className="group p-4 hover:bg-secondary/20 transition-colors"
+                  className="group p-4 hover:bg-secondary/20 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-4">
                     {/* Icon */}
