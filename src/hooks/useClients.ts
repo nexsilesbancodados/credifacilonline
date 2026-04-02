@@ -138,6 +138,7 @@ export function useClients() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["clients-all"] });
       toast({
         title: "Cliente removido!",
         description: "O cliente foi excluído com sucesso.",
