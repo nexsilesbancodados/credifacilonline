@@ -22,7 +22,7 @@ const MesaCobranca = lazy(() => import("./pages/Contratos"));
 const Tesouraria = lazy(() => import("./pages/Tesouraria"));
 const Analises = lazy(() => import("./pages/Analises"));
 const Historico = lazy(() => import("./pages/Historico"));
-const Auditoria = lazy(() => import("./pages/Auditoria"));
+const Auditoria = lazy(() => import("./pages/Historico"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
