@@ -702,7 +702,7 @@ function PortalDashboard({
             className="w-full flex items-center gap-3 sm:gap-4 rounded-2xl border border-success/30 bg-success/5 p-3 sm:p-4 transition-all hover:bg-success/10 hover:border-success/50 active:scale-[0.98]"
           >
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-success/20 flex-shrink-0">
-              <MessageCircle className="h-6 w-6 text-success" />
+              <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-success" />
             </div>
             <div className="flex-1 text-left">
               <p className="font-medium text-foreground">Falar no WhatsApp</p>
