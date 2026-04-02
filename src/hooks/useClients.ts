@@ -57,7 +57,7 @@ export function useClients() {
       const { data, error, count } = await supabase
         .from("clients")
         .select("*", { count: "exact" })
-        .order("created_at", { ascending: false })
+        .order("name", { ascending: true })
         .range(from, to);
 
       if (error) throw error;
