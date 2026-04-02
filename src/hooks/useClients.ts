@@ -57,7 +57,7 @@ export function useClients() {
       const { data, error, count } = await supabase
         .from("clients")
         .select("*", { count: "exact" })
-        .order("created_at", { ascending: false })
+        .order("name", { ascending: true })
         .range(from, to);
 
       if (error) throw error;
@@ -87,6 +87,7 @@ export function useClients() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["clients-all"] });
       toast({
         title: "Cliente criado!",
         description: "O cliente foi cadastrado com sucesso.",
@@ -115,6 +116,7 @@ export function useClients() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["clients-all"] });
       toast({
         title: "Cliente atualizado!",
         description: "Os dados foram salvos com sucesso.",
@@ -136,6 +138,7 @@ export function useClients() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["clients-all"] });
       toast({
         title: "Cliente removido!",
         description: "O cliente foi excluído com sucesso.",
@@ -200,7 +203,7 @@ export function useAllClients() {
       const { data, error } = await supabase
         .from("clients")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("name", { ascending: true });
 
       if (error) throw error;
       return data as Client[];

@@ -26,6 +26,7 @@ import { QueryErrorState } from "@/components/QueryErrorState";
 import { PaymentDialog } from "@/components/client/PaymentDialog";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 const statusConfig = {
   Ativo: { style: "bg-success/15 text-success border-success/30", icon: CheckCircle2, label: "Ativo" },
@@ -76,6 +77,7 @@ function ContratosTab() {
   const { contracts, isLoading, isError, refetch, page, setPage, totalPages } = useContracts();
   const { data: clients = [] } = useAllClients();
   const { toast } = useToast();
+  useRealtimeSubscription({ tables: ['contracts', 'clients'] });
 
   const clientsMap = clients.reduce((acc, client) => {
     acc[client.id] = client;

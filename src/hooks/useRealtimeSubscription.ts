@@ -65,6 +65,7 @@ export function useRealtimeSubscription(config: RealtimeConfig = { tables: [] })
               case 'clients':
                 queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
                 queryClient.invalidateQueries({ queryKey: ['clients'] });
+                queryClient.invalidateQueries({ queryKey: ['clients-all'] });
                 break;
 
               case 'treasury_transactions':

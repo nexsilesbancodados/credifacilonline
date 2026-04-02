@@ -20,6 +20,7 @@ import { useClientFilters } from "@/hooks/useClientFilters";
 import { ClientFilters } from "@/components/client/ClientFilters";
 import { ClientGridView } from "@/components/client/ClientGridView";
 import { ClientListView } from "@/components/client/ClientListView";
+import { useRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 
 const toneOptions = [
   { value: "amigavel", label: "Amigável", emoji: "😊" },
@@ -39,6 +40,7 @@ interface GeneratedMessage {
 const Clientes = () => {
   const { clients, isLoading, isError, refetch, page, setPage, totalPages } = useClients();
   const { toast } = useToast();
+  useRealtimeSubscription({ tables: ['clients'] });
 
   const {
     searchQuery, setSearchQuery,
