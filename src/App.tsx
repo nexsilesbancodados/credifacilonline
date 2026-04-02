@@ -29,6 +29,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const QRCodeGenerator = lazy(() => import("./pages/QRCodeGenerator"));
 const AgenteIA = lazy(() => import("./pages/AgenteIA"));
+const PortalCliente = lazy(() => import("./pages/PortalCliente"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback component
@@ -56,6 +57,7 @@ const App = () => (
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/cobrador/:token" element={<CobradorExterno />} />
+                <Route path="/portal" element={<PortalCliente />} />
                 
                 {/* Protected routes */}
                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
