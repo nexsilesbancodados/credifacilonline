@@ -69,7 +69,7 @@ export function Sidebar() {
 
   // Badge map: path -> count (only show when > 0)
   const badgeCounts: Record<string, number> = {
-    "/cobranca": overdueCount,
+    "/contratos": overdueCount,
     "/clientes": activeClientsCount,
   };
 
