@@ -40,6 +40,7 @@ interface GeneratedMessage {
 const Clientes = () => {
   const { clients, isLoading, isError, refetch, page, setPage, totalPages } = useClients();
   const { toast } = useToast();
+  useRealtimeSubscription({ tables: ['clients'] });
 
   const {
     searchQuery, setSearchQuery,
