@@ -297,6 +297,8 @@ export function useContracts(clientId?: string) {
       queryClient.invalidateQueries({ queryKey: ["treasury"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["clients-all"] });
       toast({
         title: "Contrato criado!",
         description: "O contrato e as parcelas foram gerados com sucesso.",
