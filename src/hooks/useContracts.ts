@@ -457,8 +457,7 @@ export function usePendingInstallments() {
         from += pageSize;
       }
 
-      if (error) throw error;
-      return data;
+      return allResults;
     },
     enabled: !!user,
   });
