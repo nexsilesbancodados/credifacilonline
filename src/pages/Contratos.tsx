@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useContracts, usePendingInstallments } from "@/hooks/useContracts";
+import { useCollectionLogs } from "@/hooks/useCollectionLogs";
 import { useAllClients } from "@/hooks/useClients";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useToast } from "@/hooks/use-toast";
