@@ -116,6 +116,7 @@ export function useClients() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["clients-all"] });
       toast({
         title: "Cliente atualizado!",
         description: "Os dados foram salvos com sucesso.",
