@@ -148,7 +148,7 @@ function PortalLogin({ onLogin }: { onLogin: (data: PortalData, cpf: string) => 
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden p-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-background relative overflow-hidden p-4">
       <MeteorShower />
 
       <motion.div
@@ -301,17 +301,17 @@ function SummaryCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className={cn("rounded-2xl border p-4", v.card)}
+      className={cn("rounded-2xl border p-3 sm:p-4 min-w-0", v.card)}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", v.icon)}>
-          <Icon className="h-4 w-4" />
+      <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+        <div className={cn("flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg flex-shrink-0", v.icon)}>
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </div>
       </div>
-      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-      <p className={cn("font-display text-xl font-bold mt-0.5", v.value)}>{value}</p>
+      <p className="text-[10px] sm:text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+      <p className={cn("font-display text-base sm:text-xl font-bold mt-0.5 truncate", v.value)}>{value}</p>
       {subtitle && (
-        <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
+        <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate">{subtitle}</p>
       )}
     </motion.div>
   );
@@ -516,14 +516,14 @@ function ContractCard({ contract, paidCount, index }: { contract: ContractData; 
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-3 border-t border-border/30 bg-secondary/20 flex items-center justify-between text-xs text-muted-foreground">
+      <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-border/30 bg-secondary/20 flex flex-col xs:flex-row items-start xs:items-center justify-between gap-1 text-[11px] sm:text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <Calendar className="h-3.5 w-3.5" />
-          Início: {format(parseISO(contract.start_date), "dd/MM/yyyy", { locale: ptBR })}
+          <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+          <span className="truncate">Início: {format(parseISO(contract.start_date), "dd/MM/yyyy", { locale: ptBR })}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <TrendingUp className="h-3.5 w-3.5" />
-          Juros: {fmt(contract.total_amount - contract.capital)}
+          <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+          <span className="truncate">Juros: {fmt(contract.total_amount - contract.capital)}</span>
         </div>
       </div>
     </motion.div>
@@ -584,20 +584,20 @@ function PortalDashboard({
   const displayValue = (v: string) => (hideValues ? "••••" : v);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-[100dvh] bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/95 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-sm text-primary-foreground">
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 h-14 sm:h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-gradient-gold font-display font-bold text-xs sm:text-sm text-primary-foreground flex-shrink-0">
               {getInitials(client.name)}
             </div>
-            <div>
-              <p className="font-medium text-foreground text-sm truncate max-w-[180px]">
+            <div className="min-w-0">
+              <p className="font-medium text-foreground text-xs sm:text-sm truncate">
                 {client.name}
               </p>
               {operator.company && (
-                <p className="text-xs text-muted-foreground">{operator.company}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{operator.company}</p>
               )}
             </div>
           </div>
@@ -628,12 +628,12 @@ function PortalDashboard({
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      <main className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-5 pb-[env(safe-area-inset-bottom,1rem)]">
         {/* Welcome banner */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/[0.02] p-5"
+          className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/[0.02] p-4 sm:p-5"
         >
           <p className="text-sm text-muted-foreground">Bem-vindo(a) de volta,</p>
           <h2 className="font-display text-xl font-bold text-foreground mt-0.5">
@@ -699,10 +699,10 @@ function PortalDashboard({
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={openWhatsApp}
-            className="w-full flex items-center gap-4 rounded-2xl border border-success/30 bg-success/5 p-4 transition-all hover:bg-success/10 hover:border-success/50"
+            className="w-full flex items-center gap-3 sm:gap-4 rounded-2xl border border-success/30 bg-success/5 p-3 sm:p-4 transition-all hover:bg-success/10 hover:border-success/50 active:scale-[0.98]"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/20">
-              <MessageCircle className="h-6 w-6 text-success" />
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-success/20 flex-shrink-0">
+              <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-success" />
             </div>
             <div className="flex-1 text-left">
               <p className="font-medium text-foreground">Falar no WhatsApp</p>
