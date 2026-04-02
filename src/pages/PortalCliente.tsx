@@ -99,7 +99,7 @@ const frequencyLabels: Record<string, string> = {
 };
 
 // ========== Login Screen ==========
-function PortalLogin({ onLogin }: { onLogin: (data: PortalData) => void }) {
+function PortalLogin({ onLogin }: { onLogin: (data: PortalData, cpf: string) => void }) {
   const [cpf, setCpf] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
