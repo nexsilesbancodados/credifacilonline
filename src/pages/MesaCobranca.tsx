@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePendingInstallments } from "@/hooks/useContracts";
+import { useCollectionLogs } from "@/hooks/useCollectionLogs";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format, isToday, isBefore, isAfter, addDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
