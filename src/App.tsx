@@ -18,7 +18,7 @@ const ClienteDossie = lazy(() => import("./pages/ClienteDossie"));
 const NovoContrato = lazy(() => import("./pages/NovoContrato"));
 const Simulador = lazy(() => import("./pages/Simulador"));
 const Contratos = lazy(() => import("./pages/Contratos"));
-const MesaCobranca = lazy(() => import("./pages/MesaCobranca"));
+const MesaCobranca = lazy(() => import("./pages/Contratos"));
 const Tesouraria = lazy(() => import("./pages/Tesouraria"));
 const Analises = lazy(() => import("./pages/Analises"));
 const Historico = lazy(() => import("./pages/Historico"));
