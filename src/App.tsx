@@ -57,6 +57,7 @@ const App = () => (
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/cobrador/:token" element={<CobradorExterno />} />
+                <Route path="/portal" element={<PortalCliente />} />
                 
                 {/* Protected routes */}
                 <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
