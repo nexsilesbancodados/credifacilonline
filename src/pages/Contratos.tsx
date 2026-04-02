@@ -548,7 +548,7 @@ function CobrancaTab() {
         </div>
       )}
 
-      {!isLoading && filteredInstallments.length > 0 && (
+      {!isLoading && activeTab !== "sent" && filteredInstallments.length > 0 && (
         <div className="rounded-2xl border border-border/50 bg-card overflow-hidden" aria-busy={isLoading}>
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="divide-y divide-border/30">
