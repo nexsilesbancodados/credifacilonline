@@ -333,16 +333,12 @@ const Contratos = () => {
                     </div>
 
                     {/* Arrow */}
-                    {client && (
-                      <Link
-                        to={`/clientes/${client.id}`}
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </Link>
-                    )}
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0">
+                      <ChevronRight className="h-5 w-5" />
+                    </div>
                   </div>
                 </motion.div>
+                </Link>
               );
             })}
           </div>
