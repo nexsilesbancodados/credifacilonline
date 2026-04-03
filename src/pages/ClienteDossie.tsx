@@ -47,7 +47,7 @@ import { ArchiveClientDialog } from "@/components/client/ArchiveClientDialog";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
 import { DocumentUpload } from "@/components/documents/DocumentUpload";
 import { DocumentList } from "@/components/documents/DocumentList";
-import { useClients, Client } from "@/hooks/useClients";
+import { useClients, useClient, Client } from "@/hooks/useClients";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useActivityHistory } from "@/hooks/useActivityHistory";
 import { useClientScore } from "@/hooks/useClientScore";
