@@ -29,6 +29,7 @@ const Configuracoes = lazyRetry(() => import("./pages/Configuracoes"));
 const QRCodeGenerator = lazyRetry(() => import("./pages/QRCodeGenerator"));
 const AgenteIA = lazyRetry(() => import("./pages/AgenteIA"));
 const PortalCliente = lazyRetry(() => import("./pages/PortalCliente"));
+const MesaCobranca = lazyRetry(() => import("./pages/MesaCobranca"));
 const NotFound = lazyRetry(() => import("./pages/NotFound"));
 
 // Loading fallback component
