@@ -97,7 +97,7 @@ const ClienteDossie = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { clients, isLoading: isLoadingClientsList, isError: isErrorClients, refetch: refetchClients, deleteClient } = useClients();
+  const { refetch: refetchClients, deleteClient } = useClients();
   const { data: clientData, isLoading: isLoadingClient, isError: isErrorClient } = useClient(id);
   const { contracts, isLoading: isLoadingContracts, isError: isErrorContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
