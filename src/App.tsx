@@ -29,6 +29,7 @@ const Configuracoes = lazyRetry(() => import("./pages/Configuracoes"));
 const QRCodeGenerator = lazyRetry(() => import("./pages/QRCodeGenerator"));
 const AgenteIA = lazyRetry(() => import("./pages/AgenteIA"));
 const PortalCliente = lazyRetry(() => import("./pages/PortalCliente"));
+const MesaCobranca = lazyRetry(() => import("./pages/MesaCobranca"));
 const NotFound = lazyRetry(() => import("./pages/NotFound"));
 
 // Loading fallback component
@@ -64,7 +65,8 @@ const App = () => (
                 <Route path="/clientes/:id" element={<ProtectedRoute><ClienteDossie /></ProtectedRoute>} />
                 <Route path="/contratos" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
                 <Route path="/contratos/novo" element={<ProtectedRoute><NovoContrato /></ProtectedRoute>} />
-                <Route path="/cobranca" element={<ProtectedRoute><Contratos /></ProtectedRoute>} />
+                <Route path="/cobranca" element={<ProtectedRoute><MesaCobranca /></ProtectedRoute>} />
+                <Route path="/mesa-cobranca" element={<ProtectedRoute><MesaCobranca /></ProtectedRoute>} />
                 <Route path="/cobradores" element={<ProtectedRoute><Cobradores /></ProtectedRoute>} />
                 <Route path="/tesouraria" element={<ProtectedRoute><Tesouraria /></ProtectedRoute>} />
                 <Route path="/analises" element={<ProtectedRoute><Analises /></ProtectedRoute>} />

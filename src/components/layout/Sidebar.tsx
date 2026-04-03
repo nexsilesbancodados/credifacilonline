@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, FileText, Wallet, BarChart3, Settings,
   LogOut, ChevronLeft, ChevronRight, Sparkles, History, Sun, Moon,
-  Upload, Calculator, QrCode, Bot,
+  Upload, Calculator, QrCode, Bot, Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -27,6 +27,7 @@ const menuGroups = [
     items: [
       { icon: Users, label: "Clientes", path: "/clientes", permission: "canViewClients" as const },
       { icon: FileText, label: "Contratos", path: "/contratos", permission: "canViewContracts" as const },
+      { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca", permission: "canViewContracts" as const },
       { icon: Users, label: "Cobradores", path: "/cobradores", permission: "canViewClients" as const },
     ],
   },
