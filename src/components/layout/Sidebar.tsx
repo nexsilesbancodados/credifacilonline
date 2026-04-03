@@ -27,6 +27,7 @@ const menuGroups = [
     items: [
       { icon: Users, label: "Clientes", path: "/clientes", permission: "canViewClients" as const },
       { icon: FileText, label: "Contratos", path: "/contratos", permission: "canViewContracts" as const },
+      { icon: Phone, label: "Mesa de Cobrança", path: "/cobranca", permission: "canViewContracts" as const },
       { icon: Users, label: "Cobradores", path: "/cobradores", permission: "canViewClients" as const },
     ],
   },
