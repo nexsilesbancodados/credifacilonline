@@ -47,7 +47,7 @@ import { ArchiveClientDialog } from "@/components/client/ArchiveClientDialog";
 import { ClientScoreBadge } from "@/components/client/ClientScoreBadge";
 import { DocumentUpload } from "@/components/documents/DocumentUpload";
 import { DocumentList } from "@/components/documents/DocumentList";
-import { useClients, Client } from "@/hooks/useClients";
+import { useClients, useClient, Client } from "@/hooks/useClients";
 import { useContracts, useInstallments } from "@/hooks/useContracts";
 import { useActivityHistory } from "@/hooks/useActivityHistory";
 import { useClientScore } from "@/hooks/useClientScore";
@@ -97,16 +97,17 @@ const ClienteDossie = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { clients, isLoading: isLoadingClients, isError: isErrorClients, refetch: refetchClients, deleteClient } = useClients();
+  const { refetch: refetchClients, deleteClient } = useClients();
+  const { data: clientData, isLoading: isLoadingClient, isError: isErrorClient } = useClient(id);
   const { contracts, isLoading: isLoadingContracts, isError: isErrorContracts } = useContracts();
   const { installments, isLoading: isLoadingInstallments } = useInstallments();
   const { data: activityData, isLoading: isLoadingActivity } = useActivityHistory("all", "", 1, 50);
   const { score } = useClientScore(id || "");
 
-  const isLoading = isLoadingClients || isLoadingContracts || isLoadingInstallments;
-  const isError = isErrorClients || isErrorContracts;
+  const isLoading = isLoadingClient || isLoadingContracts || isLoadingInstallments;
+  const isError = isErrorClient || isErrorContracts;
 
-  const client = useMemo(() => clients.find(c => c.id === id), [clients, id]);
+  const client = clientData || undefined;
 
   const clientContracts = useMemo(() => {
     if (!client) return [];

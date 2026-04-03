@@ -184,10 +184,10 @@ export function useClient(clientId: string | undefined) {
         .from("clients")
         .select("*")
         .eq("id", clientId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as Client;
+      return data as Client | null;
     },
     enabled: !!user && !!clientId,
   });
