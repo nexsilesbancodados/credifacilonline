@@ -29,6 +29,7 @@ export interface ContractFormData {
   frequency: string;
   dailyType: string;
   scheduledDays: number[];
+  scheduledMonths: number;
   startDate: string;
   firstDueDate: string;
   paidInstallments: number;
