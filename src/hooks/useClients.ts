@@ -42,23 +42,31 @@ export interface CreateClientData {
 
 const PAGE_SIZE = 20;
 
-export function useClients() {
+export function useClients(searchQuery?: string) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
 
   const clientsQuery = useQuery({
-    queryKey: ["clients", user?.id, page],
+    queryKey: ["clients", user?.id, page, searchQuery || ""],
     queryFn: async () => {
-      const from = (page - 1) * PAGE_SIZE;
-      const to = from + PAGE_SIZE - 1;
-
-      const { data, error, count } = await supabase
+      let query = supabase
         .from("clients")
         .select("*", { count: "exact" })
-        .order("name", { ascending: true })
-        .range(from, to);
+        .order("name", { ascending: true });
+
+      // When searching, fetch all matching results (no pagination)
+      if (searchQuery && searchQuery.trim().length > 0) {
+        const term = searchQuery.trim();
+        query = query.or(`name.ilike.%${term}%,cpf.ilike.%${term}%,whatsapp.ilike.%${term}%,email.ilike.%${term}%`);
+      } else {
+        const from = (page - 1) * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+        query = query.range(from, to);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
       return { clients: data as Client[], totalCount: count || 0 };
