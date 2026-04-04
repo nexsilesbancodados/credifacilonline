@@ -7,10 +7,11 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isReady } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
+  // Wait until auth session is fully restored before making any decision
+  if (isLoading || !isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -22,7 +23,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!user) {
-    // Redirect to login, saving the attempted location
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
