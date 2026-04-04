@@ -30,7 +30,8 @@ const QRCodeGenerator = lazyRetry(() => import("./pages/QRCodeGenerator"));
 const AgenteIA = lazyRetry(() => import("./pages/AgenteIA"));
 const PortalCliente = lazyRetry(() => import("./pages/PortalCliente"));
 const MesaCobranca = lazyRetry(() => import("./pages/MesaCobranca"));
-const NotFound = lazyRetry(() => import("./pages/NotFound"));
+// NotFound is NOT lazy-loaded to avoid false 404s during chunk loading
+import NotFound from "./pages/NotFound";
 
 // Loading fallback component
 const PageLoader = () => (
