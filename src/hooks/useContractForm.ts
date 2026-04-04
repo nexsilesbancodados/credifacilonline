@@ -295,8 +295,7 @@ export function useContractForm() {
     return (profit / capital) * 100;
   };
 
-  const scheduledTotal = formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1);
-  const effectiveInstallments = formData.frequency === "programada" ? scheduledTotal : (Number(formData.installments) || 0);
+  const effectiveInstallments = formData.frequency === "programada" ? formData.scheduledDates.length : (Number(formData.installments) || 0);
   const installmentResult = mode === "rate" ? calculateInstallment() : (Number(formData.installmentValue) || 0);
   const rateResult = mode === "installment" ? calculateRate() : (Number(formData.interestRate) || 0);
   const capitalNum = Number(formData.capital) || 0;
@@ -315,7 +314,7 @@ export function useContractForm() {
   }
   if (!formData.startDate) validationErrors.push("Data de início é obrigatória");
   if (formData.frequency !== "programada" && !formData.firstDueDate) validationErrors.push("Primeiro vencimento é obrigatório");
-  if (formData.frequency === "programada" && formData.scheduledDays.length === 0) validationErrors.push("Selecione pelo menos um dia de pagamento");
+  if (formData.frequency === "programada" && formData.scheduledDates.length === 0) validationErrors.push("Selecione pelo menos uma data de pagamento");
   if (!formData.capital) validationErrors.push("Capital é obrigatório");
   if (formData.frequency !== "programada" && !formData.installments) validationErrors.push("Número de parcelas é obrigatório");
   if (capitalNum > 0 && totalProfit < 0) validationErrors.push("O lucro está negativo — revise a taxa ou parcela");
