@@ -57,6 +57,7 @@ const initialFormData: ContractFormData = {
   dailyType: "seg-seg",
   scheduledDays: [],
   scheduledMonths: 1,
+  startDate: "",
   firstDueDate: "",
   paidInstallments: "" as unknown as number,
   finePercentage: 10,
