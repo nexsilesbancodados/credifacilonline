@@ -20,10 +20,58 @@ const formatCurrency = (value: number) =>
 
 export function StepLoanConfig({ formData, setFormData, mode, setMode, existingClient, installmentResult }: StepLoanConfigProps) {
   const capitalNum = Number(formData.capital) || 0;
-  const effectiveInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 0);
+  const effectiveInstallments = formData.frequency === "programada" ? formData.scheduledDates.length : (Number(formData.installments) || 0);
   const totalAmount = installmentResult * effectiveInstallments;
   const totalProfit = totalAmount - capitalNum;
   const profitMargin = capitalNum > 0 ? (totalProfit / capitalNum) * 100 : 0;
+
+  // Month navigator state for programada
+  const now = new Date();
+  const [viewMonth, setViewMonth] = useState(now.getMonth()); // 0-11
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+
+  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfWeek = (year: number, month: number) => new Date(year, month, 1).getDay(); // 0=Sun
+
+  const toDateStr = (year: number, month: number, day: number) =>
+    `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+
+  const toggleDate = (dateStr: string) => {
+    setFormData(prev => {
+      const exists = prev.scheduledDates.includes(dateStr);
+      const newDates = exists
+        ? prev.scheduledDates.filter(d => d !== dateStr)
+        : [...prev.scheduledDates, dateStr].sort();
+      return { ...prev, scheduledDates: newDates };
+    });
+  };
+
+  const clearAllDates = () => {
+    setFormData(prev => ({ ...prev, scheduledDates: [], installments: 0 as unknown as number }));
+  };
+
+  // Group dates by month for display
+  const datesByMonth = formData.scheduledDates.reduce<Record<string, string[]>>((acc, d) => {
+    const key = d.substring(0, 7); // "YYYY-MM"
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(d);
+    return acc;
+  }, {});
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
+    else setViewMonth(m => m - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
+    else setViewMonth(m => m + 1);
+  };
+
+  const daysInView = getDaysInMonth(viewYear, viewMonth);
+  const firstDay = getFirstDayOfWeek(viewYear, viewMonth);
+  const datesInViewMonth = formData.scheduledDates.filter(d => d.startsWith(toDateStr(viewYear, viewMonth, 1).substring(0, 7)));
 
   return (
     <>
