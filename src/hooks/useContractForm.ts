@@ -59,6 +59,7 @@ const initialFormData: ContractFormData = {
   dailyType: "seg-seg",
   scheduledDays: [],
   scheduledMonths: 1,
+  scheduledDates: [],
   startDate: "",
   firstDueDate: "",
   paidInstallments: "" as unknown as number,
