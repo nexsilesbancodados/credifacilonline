@@ -413,9 +413,11 @@ export function StepLoanConfig({ formData, setFormData, mode, setMode, existingC
             </div>
           ) : (
             <div>
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">Dias de pagamento</label>
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">Datas de pagamento</label>
               <div className="h-11 w-full rounded-xl border border-border bg-secondary/30 px-4 flex items-center text-sm text-muted-foreground">
-                {formData.scheduledDays.length > 0 ? formData.scheduledDays.map(d => `dia ${d}`).join(", ") : "Selecione os dias acima"}
+                {formData.scheduledDates.length > 0
+                  ? `${formData.scheduledDates.length} data${formData.scheduledDates.length > 1 ? "s" : ""} selecionada${formData.scheduledDates.length > 1 ? "s" : ""}`
+                  : "Selecione as datas no calendário acima"}
               </div>
             </div>
           )}
