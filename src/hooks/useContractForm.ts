@@ -32,6 +32,8 @@ export interface ContractFormData {
   startDate: string;
   firstDueDate: string;
   paidInstallments: number;
+  finePercentage: number;
+  dailyInterestRate: number;
 }
 
 const initialFormData: ContractFormData = {
@@ -56,20 +58,22 @@ const initialFormData: ContractFormData = {
   startDate: "",
   firstDueDate: "",
   paidInstallments: "" as unknown as number,
+  finePercentage: 10,
+  dailyInterestRate: 2,
 };
 
 export const frequencies = [
-  { value: "diario", label: "Diário" },
-  { value: "semanal", label: "Semanal" },
-  { value: "quinzenal", label: "Quinzenal" },
-  { value: "mensal", label: "Mensal" },
-  { value: "programada", label: "Programada" },
+  { value: "diario", label: "Diário", icon: "⚡", description: "Cobranças todos os dias" },
+  { value: "semanal", label: "Semanal", icon: "📅", description: "Uma vez por semana" },
+  { value: "quinzenal", label: "Quinzenal", icon: "📆", description: "A cada 15 dias" },
+  { value: "mensal", label: "Mensal", icon: "🗓️", description: "Uma vez por mês" },
+  { value: "programada", label: "Programada", icon: "🎯", description: "Dias específicos" },
 ];
 
 export const dailyTypes = [
-  { value: "seg-seg", label: "Segunda a Segunda", description: "Todos os dias" },
-  { value: "seg-sex", label: "Segunda a Sexta", description: "Dias úteis" },
-  { value: "seg-sab", label: "Segunda a Sábado", description: "Exceto domingo" },
+  { value: "seg-seg", label: "Segunda a Segunda", description: "Todos os dias (7/7)" },
+  { value: "seg-sex", label: "Segunda a Sexta", description: "Dias úteis (5/7)" },
+  { value: "seg-sab", label: "Segunda a Sábado", description: "Exceto domingo (6/7)" },
 ];
 
 export function useContractForm() {
@@ -293,34 +297,34 @@ export function useContractForm() {
   const totalAmount = installmentResult * effectiveInstallments;
   const totalProfit = totalAmount - capitalNum;
 
-  const handleSave = async () => {
-    if (isSaving || isCreatingContract) return; // Prevent double submission
-    const clientToUse = selectedExistingClient || existingClient;
+  // Validation helpers
+  const validationErrors: string[] = [];
+  const clientToUse = selectedExistingClient || existingClient;
+  
+  if (!clientToUse) {
+    if (!formData.name) validationErrors.push("Nome do cliente é obrigatório");
+    if (!formData.cpf) validationErrors.push("CPF é obrigatório");
+    else if (!validateCPF(formData.cpf)) validationErrors.push("CPF inválido");
+    if (formData.whatsapp && !validatePhone(formData.whatsapp)) validationErrors.push("WhatsApp inválido");
+  }
+  if (!formData.startDate) validationErrors.push("Data de início é obrigatória");
+  if (formData.frequency !== "programada" && !formData.firstDueDate) validationErrors.push("Primeiro vencimento é obrigatório");
+  if (formData.frequency === "programada" && formData.scheduledDays.length === 0) validationErrors.push("Selecione pelo menos um dia de pagamento");
+  if (!formData.capital) validationErrors.push("Capital é obrigatório");
+  if (formData.frequency !== "programada" && !formData.installments) validationErrors.push("Número de parcelas é obrigatório");
+  if (capitalNum > 0 && totalProfit < 0) validationErrors.push("O lucro está negativo — revise a taxa ou parcela");
 
-    if (!clientToUse) {
-      if (!formData.name || !formData.cpf) {
-        toast({ title: "Erro", description: "Preencha o nome e CPF do cliente.", variant: "destructive" });
-        return;
-      }
-      if (!validateCPF(formData.cpf)) {
-        toast({ title: "CPF Inválido", description: "O CPF informado não é válido.", variant: "destructive" });
-        return;
-      }
-      if (formData.whatsapp && !validatePhone(formData.whatsapp)) {
-        toast({ title: "WhatsApp Inválido", description: "O número de WhatsApp deve ter 10 ou 11 dígitos.", variant: "destructive" });
-        return;
-      }
-    }
-    if (!formData.startDate || (!formData.firstDueDate && formData.frequency !== "programada")) {
-      toast({ title: "Erro", description: "Preencha as datas do contrato.", variant: "destructive" });
-      return;
-    }
-    if (formData.frequency === "programada" && formData.scheduledDays.length === 0) {
-      toast({ title: "Erro", description: "Selecione pelo menos um dia do mês para pagamento.", variant: "destructive" });
-      return;
-    }
-    if (!formData.capital || (formData.frequency !== "programada" && !formData.installments)) {
-      toast({ title: "Erro", description: "Preencha o capital e número de parcelas.", variant: "destructive" });
+  const isFormValid = validationErrors.length === 0;
+
+  const handleSave = async () => {
+    if (isSaving || isCreatingContract) return;
+
+    if (!isFormValid) {
+      toast({ 
+        title: "Formulário incompleto", 
+        description: validationErrors[0], 
+        variant: "destructive" 
+      });
       return;
     }
 
@@ -367,8 +371,8 @@ export function useContractForm() {
         start_date: formData.startDate,
         first_due_date: formData.frequency === "programada" ? formData.startDate : formData.firstDueDate,
         paid_installments: formData.paidInstallments,
-        fine_percentage: 10,
-        daily_interest_rate: 2,
+        fine_percentage: Number(formData.finePercentage) || 10,
+        daily_interest_rate: Number(formData.dailyInterestRate) || 2,
         client_name: clientForPdf.name,
         client_cpf: clientForPdf.cpf,
         client_city: clientForPdf.city || undefined,
@@ -397,6 +401,6 @@ export function useContractForm() {
     handleSave, navigate,
     effectiveInstallments, installmentResult, rateResult,
     capitalNum, totalAmount, totalProfit,
-    isCreatingContract,
+    isCreatingContract, isFormValid, validationErrors,
   };
 }
