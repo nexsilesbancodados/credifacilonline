@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClients } from "@/hooks/useClients";
+import { useDebounce } from "@/hooks/useDebounce";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { QueryErrorState } from "@/components/QueryErrorState";
@@ -38,12 +39,14 @@ interface GeneratedMessage {
 }
 
 const Clientes = () => {
-  const { clients, isLoading, isError, refetch, page, setPage, totalPages } = useClients();
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchForServer = useDebounce(searchQuery, 400);
+  const { clients, isLoading, isError, refetch, page, setPage, totalPages } = useClients(debouncedSearchForServer);
   const { toast } = useToast();
   useRealtimeSubscription({ tables: ['clients'] });
 
   const {
-    searchQuery, setSearchQuery,
+    searchQuery: _ignored, setSearchQuery: _setIgnored,
     activeFilter, setActiveFilter,
     showArchived, setShowArchived,
     viewMode, setViewMode,
