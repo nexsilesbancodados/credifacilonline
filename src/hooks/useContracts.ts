@@ -57,6 +57,8 @@ export interface CreateContractData {
   frequency: "diario" | "semanal" | "mensal" | "quinzenal" | "programada";
   daily_type?: "seg-seg" | "seg-sex" | "seg-sab";
   scheduled_days?: number[];
+  /** Specific dates for programada (YYYY-MM-DD strings, sorted) */
+  scheduled_dates?: string[];
   start_date: string;
   first_due_date: string;
   paid_installments?: number;
@@ -152,6 +154,7 @@ export function useContracts(clientId?: string) {
         fine_percentage = 2,
         daily_interest_rate = 0.033,
         scheduled_days,
+        scheduled_dates,
         ...contractFields 
       } = contractData;
 
@@ -171,7 +174,28 @@ export function useContracts(clientId?: string) {
 
       const installments = [];
 
-      if (contractData.frequency === "programada" && scheduled_days && scheduled_days.length > 0) {
+      if (contractData.frequency === "programada" && scheduled_dates && scheduled_dates.length > 0) {
+        // Use specific dates directly (already sorted)
+        const sortedDates = [...scheduled_dates].sort();
+        
+        for (let i = 0; i < sortedDates.length; i++) {
+          const isPaid = (i + 1) <= paid_installments;
+          installments.push({
+            contract_id: contract.id,
+            client_id: contractData.client_id,
+            operator_id: user.id,
+            installment_number: i + 1,
+            total_installments: sortedDates.length,
+            due_date: sortedDates[i],
+            amount_due: contractData.installment_value,
+            amount_paid: isPaid ? contractData.installment_value : 0,
+            payment_date: isPaid ? formatLocalDate(new Date()) : null,
+            status: isPaid ? "Pago" : "Pendente",
+            fine: 0,
+          });
+        }
+      } else if (contractData.frequency === "programada" && scheduled_days && scheduled_days.length > 0) {
+        // Legacy fallback: repeating days across months
         const sortedDays = [...scheduled_days].sort((a, b) => a - b);
         const startDate = parseLocalDate(contractData.first_due_date);
         let currentMonth = startDate.getMonth();

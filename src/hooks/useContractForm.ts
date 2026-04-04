@@ -30,6 +30,8 @@ export interface ContractFormData {
   dailyType: string;
   scheduledDays: number[];
   scheduledMonths: number;
+  /** Per-month specific dates for "programada" frequency (YYYY-MM-DD strings) */
+  scheduledDates: string[];
   startDate: string;
   firstDueDate: string;
   paidInstallments: number;
@@ -57,6 +59,7 @@ const initialFormData: ContractFormData = {
   dailyType: "seg-seg",
   scheduledDays: [],
   scheduledMonths: 1,
+  scheduledDates: [],
   startDate: "",
   firstDueDate: "",
   paidInstallments: "" as unknown as number,
@@ -276,8 +279,7 @@ export function useContractForm() {
   const calculateInstallment = () => {
     const capital = Number(formData.capital) || 0;
     const interestRate = Number(formData.interestRate) || 0;
-    const scheduledTotal = formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1);
-    const numInstallments = formData.frequency === "programada" ? scheduledTotal : (Number(formData.installments) || 1);
+    const numInstallments = formData.frequency === "programada" ? formData.scheduledDates.length : (Number(formData.installments) || 1);
     const rate = interestRate / 100;
     const totalAmount = capital * (1 + rate);
     return numInstallments > 0 ? totalAmount / numInstallments : 0;
@@ -286,16 +288,14 @@ export function useContractForm() {
   const calculateRate = () => {
     const capital = Number(formData.capital) || 0;
     const installmentValue = Number(formData.installmentValue) || 0;
-    const scheduledTotal = formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1);
-    const numInstallments = formData.frequency === "programada" ? scheduledTotal : (Number(formData.installments) || 1);
+    const numInstallments = formData.frequency === "programada" ? formData.scheduledDates.length : (Number(formData.installments) || 1);
     if (installmentValue <= 0 || capital <= 0) return 0;
     const totalAmount = installmentValue * numInstallments;
     const profit = totalAmount - capital;
     return (profit / capital) * 100;
   };
 
-  const scheduledTotal = formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1);
-  const effectiveInstallments = formData.frequency === "programada" ? scheduledTotal : (Number(formData.installments) || 0);
+  const effectiveInstallments = formData.frequency === "programada" ? formData.scheduledDates.length : (Number(formData.installments) || 0);
   const installmentResult = mode === "rate" ? calculateInstallment() : (Number(formData.installmentValue) || 0);
   const rateResult = mode === "installment" ? calculateRate() : (Number(formData.interestRate) || 0);
   const capitalNum = Number(formData.capital) || 0;
@@ -314,7 +314,7 @@ export function useContractForm() {
   }
   if (!formData.startDate) validationErrors.push("Data de início é obrigatória");
   if (formData.frequency !== "programada" && !formData.firstDueDate) validationErrors.push("Primeiro vencimento é obrigatório");
-  if (formData.frequency === "programada" && formData.scheduledDays.length === 0) validationErrors.push("Selecione pelo menos um dia de pagamento");
+  if (formData.frequency === "programada" && formData.scheduledDates.length === 0) validationErrors.push("Selecione pelo menos uma data de pagamento");
   if (!formData.capital) validationErrors.push("Capital é obrigatório");
   if (formData.frequency !== "programada" && !formData.installments) validationErrors.push("Número de parcelas é obrigatório");
   if (capitalNum > 0 && totalProfit < 0) validationErrors.push("O lucro está negativo — revise a taxa ou parcela");
@@ -366,15 +366,16 @@ export function useContractForm() {
         client_id: clientId,
         capital: formData.capital,
         interest_rate: rateResult,
-        installments: formData.frequency === "programada" ? (formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1)) : formData.installments,
+        installments: formData.frequency === "programada" ? formData.scheduledDates.length : formData.installments,
         installment_value: installmentResult,
         total_amount: totalAmount,
         total_profit: totalProfit,
         frequency: formData.frequency as "diario" | "semanal" | "mensal" | "quinzenal" | "programada",
         daily_type: formData.frequency === "diario" ? formData.dailyType as "seg-seg" | "seg-sex" | "seg-sab" : undefined,
         scheduled_days: formData.frequency === "programada" ? formData.scheduledDays : undefined,
+        scheduled_dates: formData.frequency === "programada" ? formData.scheduledDates : undefined,
         start_date: formData.startDate,
-        first_due_date: formData.frequency === "programada" ? formData.startDate : formData.firstDueDate,
+        first_due_date: formData.frequency === "programada" ? (formData.scheduledDates[0] || formData.startDate) : formData.firstDueDate,
         paid_installments: formData.paidInstallments,
         fine_percentage: Number(formData.finePercentage) || 10,
         daily_interest_rate: Number(formData.dailyInterestRate) || 2,
