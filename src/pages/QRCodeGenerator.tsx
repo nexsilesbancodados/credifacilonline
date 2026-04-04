@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Smartphone,
   Plus,
@@ -26,15 +27,10 @@ interface Instance {
   instanceId?: string;
   status?: string;
   state?: string;
-  owner?: string;
-}
-
-interface ConnectionState {
-  state: string;
-  instance?: string;
 }
 
 const QRCodeGenerator = () => {
+  const { user } = useAuth();
   const [instances, setInstances] = useState<Instance[]>([]);
   const [loading, setLoading] = useState(false);
   const [newInstanceName, setNewInstanceName] = useState("");
@@ -54,28 +50,51 @@ const QRCodeGenerator = () => {
     return data;
   }, []);
 
+  /** Fetch only the instances that THIS operator created */
   const fetchInstances = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
+      // 1. Get operator's registered instance names from DB
+      const { data: dbInstances, error: dbError } = await supabase
+        .from("whatsapp_instances")
+        .select("instance_name")
+        .eq("operator_id", user.id);
+
+      if (dbError) throw dbError;
+
+      const myInstanceNames = new Set(
+        (dbInstances ?? []).map((r: { instance_name: string }) => r.instance_name)
+      );
+
+      if (myInstanceNames.size === 0) {
+        setInstances([]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fetch all instances from Evolution API
       const data = await callEvolutionApi({ action: "list_instances" });
       const list = Array.isArray(data) ? data : data?.instances || [];
-      setInstances(list.map((i: Record<string, unknown> & { instance?: Record<string, unknown> }) => ({
-        instanceName: i.instance?.instanceName || i.instanceName || i.name,
-        instanceId: i.instance?.instanceId || i.instanceId,
-        status: i.instance?.status || i.status,
-        owner: i.instance?.owner || i.owner,
-      })));
 
-      // Fetch connection states
-      for (const inst of list) {
-        const name = inst.instance?.instanceName || inst.instanceName || inst.name;
-        if (name) {
-          try {
-            const state = await callEvolutionApi({ action: "get_instance", instanceName: name });
-            setConnectionStates(prev => ({ ...prev, [name]: state?.instance?.state || state?.state || "unknown" }));
-          } catch {
-            setConnectionStates(prev => ({ ...prev, [name]: "unknown" }));
-          }
+      // 3. Filter to only show operator's instances
+      const filtered = list
+        .map((i: Record<string, unknown> & { instance?: Record<string, unknown> }) => ({
+          instanceName: (i.instance?.instanceName || i.instanceName || i.name) as string,
+          instanceId: (i.instance?.instanceId || i.instanceId) as string | undefined,
+          status: (i.instance?.status || i.status) as string | undefined,
+        }))
+        .filter((inst: Instance) => myInstanceNames.has(inst.instanceName));
+
+      setInstances(filtered);
+
+      // 4. Fetch connection states for filtered instances only
+      for (const inst of filtered) {
+        try {
+          const state = await callEvolutionApi({ action: "get_instance", instanceName: inst.instanceName });
+          setConnectionStates(prev => ({ ...prev, [inst.instanceName]: state?.instance?.state || state?.state || "unknown" }));
+        } catch {
+          setConnectionStates(prev => ({ ...prev, [inst.instanceName]: "unknown" }));
         }
       }
     } catch (err: unknown) {
@@ -83,7 +102,7 @@ const QRCodeGenerator = () => {
     } finally {
       setLoading(false);
     }
-  }, [callEvolutionApi]);
+  }, [callEvolutionApi, user]);
 
   useEffect(() => {
     fetchInstances();
@@ -101,14 +120,30 @@ const QRCodeGenerator = () => {
       toast.error("Digite o nome da instância");
       return;
     }
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
     setCreating(true);
     try {
+      // Create on Evolution API
       const data = await callEvolutionApi({
         action: "create_instance",
         instanceName: newInstanceName.trim(),
       });
 
-      
+      // Register in our database
+      const { error: insertError } = await supabase
+        .from("whatsapp_instances")
+        .insert({
+          operator_id: user.id,
+          instance_name: newInstanceName.trim(),
+        });
+
+      if (insertError) {
+        console.error("Error saving instance to DB:", insertError);
+        // Don't block — instance was created on Evolution
+      }
 
       const qr = extractQrCode(data);
       if (qr) {
@@ -120,9 +155,9 @@ const QRCodeGenerator = () => {
 
       setNewInstanceName("");
       await fetchInstances();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Create instance error:", err);
-      toast.error("Erro ao criar instância: " + (err.message || "Erro desconhecido"));
+      toast.error("Erro ao criar instância: " + (err instanceof Error ? err.message : "Erro desconhecido"));
     } finally {
       setCreating(false);
     }
@@ -131,8 +166,6 @@ const QRCodeGenerator = () => {
   const handleConnect = async (instanceName: string) => {
     try {
       const data = await callEvolutionApi({ action: "connect_instance", instanceName });
-      
-      
       const qr = extractQrCode(data);
       if (qr) {
         setQrCodes(prev => ({ ...prev, [instanceName]: qr }));
@@ -141,12 +174,10 @@ const QRCodeGenerator = () => {
         toast.success("Instância já está conectada!");
         setConnectionStates(prev => ({ ...prev, [instanceName]: "open" }));
       } else {
-        console.warn("No QR code found in response:", data);
         toast.info("Nenhum QR Code retornado. Tente novamente em alguns segundos.");
       }
-    } catch (err: any) {
-      console.error("Connect error:", err);
-      toast.error("Erro ao conectar: " + (err.message || "Erro desconhecido"));
+    } catch (err: unknown) {
+      toast.error("Erro ao conectar: " + (err instanceof Error ? err.message : "Erro desconhecido"));
     }
   };
 
@@ -156,8 +187,8 @@ const QRCodeGenerator = () => {
       toast.success(`Instância "${instanceName}" desconectada.`);
       setConnectionStates(prev => ({ ...prev, [instanceName]: "close" }));
       setQrCodes(prev => { const n = { ...prev }; delete n[instanceName]; return n; });
-    } catch (err: any) {
-      toast.error("Erro ao desconectar: " + (err.message || "Erro desconhecido"));
+    } catch (err: unknown) {
+      toast.error("Erro ao desconectar: " + (err instanceof Error ? err.message : "Erro desconhecido"));
     }
   };
 
@@ -165,10 +196,20 @@ const QRCodeGenerator = () => {
     if (!confirm(`Excluir a instância "${instanceName}"?`)) return;
     try {
       await callEvolutionApi({ action: "delete_instance", instanceName });
+
+      // Remove from our database too
+      if (user) {
+        await supabase
+          .from("whatsapp_instances")
+          .delete()
+          .eq("operator_id", user.id)
+          .eq("instance_name", instanceName);
+      }
+
       toast.success(`Instância "${instanceName}" excluída.`);
       await fetchInstances();
-    } catch (err: any) {
-      toast.error("Erro ao excluir: " + (err.message || "Erro desconhecido"));
+    } catch (err: unknown) {
+      toast.error("Erro ao excluir: " + (err instanceof Error ? err.message : "Erro desconhecido"));
     }
   };
 
@@ -177,8 +218,8 @@ const QRCodeGenerator = () => {
       await callEvolutionApi({ action: "restart_instance", instanceName });
       toast.success(`Instância "${instanceName}" reiniciada.`);
       setTimeout(fetchInstances, 2000);
-    } catch (err: any) {
-      toast.error("Erro ao reiniciar: " + (err.message || "Erro desconhecido"));
+    } catch (err: unknown) {
+      toast.error("Erro ao reiniciar: " + (err instanceof Error ? err.message : "Erro desconhecido"));
     }
   };
 
@@ -197,8 +238,8 @@ const QRCodeGenerator = () => {
       });
       toast.success("Mensagem enviada com sucesso!");
       setTestMessage("");
-    } catch (err: any) {
-      toast.error("Erro ao enviar: " + (err.message || "Erro desconhecido"));
+    } catch (err: unknown) {
+      toast.error("Erro ao enviar: " + (err instanceof Error ? err.message : "Erro desconhecido"));
     } finally {
       setSendingMessage(false);
     }
@@ -228,7 +269,7 @@ const QRCodeGenerator = () => {
             Gerenciar Instâncias WhatsApp
           </h1>
           <p className="text-muted-foreground mt-1">
-            Crie e gerencie instâncias do WhatsApp via Evolution API.
+            Crie e gerencie suas instâncias do WhatsApp via Evolution API.
           </p>
         </div>
 
@@ -261,8 +302,8 @@ const QRCodeGenerator = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle className="text-lg">Instâncias ({instances.length})</CardTitle>
-              <CardDescription>Gerencie suas conexões WhatsApp</CardDescription>
+              <CardTitle className="text-lg">Minhas Instâncias ({instances.length})</CardTitle>
+              <CardDescription>Somente instâncias criadas por você</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={fetchInstances} disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Atualizar
