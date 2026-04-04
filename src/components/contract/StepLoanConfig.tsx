@@ -130,10 +130,12 @@ export function StepLoanConfig({ formData, setFormData, mode, setMode, existingC
             </div>
           ) : (
             <div>
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">Nº de Parcelas</label>
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">Total de Parcelas</label>
               <div className="h-12 w-full rounded-xl border border-border bg-secondary/30 px-4 flex items-center font-display text-lg font-semibold text-muted-foreground">
-                {formData.scheduledDays.length || "—"}
-                <span className="ml-2 text-xs font-normal">(dias selecionados)</span>
+                {(formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1)) || "—"}
+                <span className="ml-2 text-xs font-normal">
+                  ({formData.scheduledDays.length || 0}/mês × {formData.scheduledMonths || 1}m)
+                </span>
               </div>
             </div>
           )}
@@ -253,14 +255,51 @@ export function StepLoanConfig({ formData, setFormData, mode, setMode, existingC
                   <button type="button" onClick={() => setFormData(prev => ({ ...prev, scheduledDays: [], installments: 0 as unknown as number }))} className="text-xs text-destructive hover:text-destructive/80 transition-colors font-medium">Limpar todos</button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mb-3">Selecione os dias em que o cliente fará os pagamentos.</p>
+              <p className="text-xs text-muted-foreground mb-3">Selecione os dias do mês e quantos meses durará o empréstimo.</p>
+              
+              {/* Months selector */}
+              <div className="mb-4 p-3 rounded-xl bg-secondary/30 border border-border/50">
+                <label className="block text-xs font-medium text-muted-foreground mb-2">Duração (meses)</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    value={formData.scheduledMonths}
+                    onChange={(e) => {
+                      const val = Math.max(1, Math.min(60, Number(e.target.value) || 1));
+                      setFormData(prev => ({ ...prev, scheduledMonths: val }));
+                    }}
+                    min={1}
+                    max={60}
+                    className="h-10 w-24 rounded-xl border border-border bg-secondary/50 px-3 text-center font-display font-semibold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <div className="flex gap-1.5">
+                    {[1, 2, 3, 6, 12].map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, scheduledMonths: m }))}
+                        className={cn(
+                          "h-8 px-2.5 rounded-lg text-xs font-medium transition-all",
+                          formData.scheduledMonths === m
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary/50 text-foreground hover:bg-secondary border border-border/50"
+                        )}
+                      >
+                        {m}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-7 gap-1.5">
                 {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
                   const isSelected = formData.scheduledDays.includes(day);
                   return (
                     <button key={day} type="button" onClick={() => {
                       const newDays = isSelected ? formData.scheduledDays.filter(d => d !== day) : [...formData.scheduledDays, day].sort((a, b) => a - b);
-                      setFormData(prev => ({ ...prev, scheduledDays: newDays, installments: newDays.length as unknown as number }));
+                      setFormData(prev => ({ ...prev, scheduledDays: newDays, installments: (newDays.length * (Number(prev.scheduledMonths) || 1)) as unknown as number }));
                     }} className={cn("h-10 w-full rounded-lg text-sm font-medium transition-all", isSelected ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30" : "bg-secondary/50 text-foreground hover:bg-secondary border border-border/50")}>
                       {day}
                     </button>
@@ -271,13 +310,20 @@ export function StepLoanConfig({ formData, setFormData, mode, setMode, existingC
                 <div className="mt-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-foreground">Dias selecionados</span>
-                    <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{formData.scheduledDays.length} parcela{formData.scheduledDays.length > 1 ? "s" : ""}/mês</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {formData.scheduledDays.length}/mês × {formData.scheduledMonths} {formData.scheduledMonths === 1 ? "mês" : "meses"}
+                      </span>
+                      <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        = {formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1)} parcelas
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {formData.scheduledDays.map(day => (
                       <span key={day} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
                         {day}
-                        <button type="button" onClick={() => { const newDays = formData.scheduledDays.filter(d => d !== day); setFormData(prev => ({ ...prev, scheduledDays: newDays, installments: newDays.length as unknown as number })); }} className="ml-0.5 hover:text-destructive transition-colors">
+                        <button type="button" onClick={() => { const newDays = formData.scheduledDays.filter(d => d !== day); setFormData(prev => ({ ...prev, scheduledDays: newDays, installments: (newDays.length * (Number(prev.scheduledMonths) || 1)) as unknown as number })); }} className="ml-0.5 hover:text-destructive transition-colors">
                           <X className="h-3 w-3" />
                         </button>
                       </span>
