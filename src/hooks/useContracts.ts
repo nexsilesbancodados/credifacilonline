@@ -57,6 +57,8 @@ export interface CreateContractData {
   frequency: "diario" | "semanal" | "mensal" | "quinzenal" | "programada";
   daily_type?: "seg-seg" | "seg-sex" | "seg-sab";
   scheduled_days?: number[];
+  /** Specific dates for programada (YYYY-MM-DD strings, sorted) */
+  scheduled_dates?: string[];
   start_date: string;
   first_due_date: string;
   paid_installments?: number;
