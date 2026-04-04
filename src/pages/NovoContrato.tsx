@@ -138,6 +138,8 @@ const NovoContrato = () => {
           isSaving={isSaving}
           isUploadingAvatar={isUploadingAvatar}
           onSave={handleSave}
+          isFormValid={isFormValid}
+          validationErrors={validationErrors}
         />
       </div>
     </MainLayout>
