@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calculator, DollarSign, Percent, Calendar, X, Shield, TrendingUp, AlertTriangle, Info } from "lucide-react";
+import { Calculator, DollarSign, Percent, Calendar, X, Shield, TrendingUp, AlertTriangle, Info, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContractFormData, CalculationMode, frequencies, dailyTypes } from "@/hooks/useContractForm";
 import { Client } from "@/hooks/useClients";
