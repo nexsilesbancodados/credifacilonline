@@ -378,6 +378,7 @@ export function useContractForm() {
 
       navigate(`/clientes/${clientId}`);
     } catch (error: unknown) {
+      console.error("CONTRACT_SAVE_ERROR:", error);
       const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({ title: "Erro ao criar contrato", description: message, variant: "destructive" });
     } finally {
