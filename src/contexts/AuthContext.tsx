@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { queryClient } from "@/lib/queryClient";
@@ -22,6 +22,7 @@ interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   isLoading: boolean;
+  isReady: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -35,53 +36,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+  const initialSessionResolved = useRef(false);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return null;
+      }
+
+      return data as Profile;
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
       return null;
     }
-
-    return data as Profile;
   };
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
 
-        if (session?.user) {
+        if (newSession?.user) {
           // Use setTimeout to avoid potential deadlock with Supabase client
           setTimeout(async () => {
-            const profileData = await fetchProfile(session.user.id);
+            const profileData = await fetchProfile(newSession.user.id);
             setProfile(profileData);
           }, 0);
         } else {
           setProfile(null);
         }
 
-        setIsLoading(false);
+        // Only mark as not loading after the initial session has been resolved
+        if (initialSessionResolved.current) {
+          setIsLoading(false);
+        }
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // THEN restore session from storage
+    supabase.auth.getSession().then(({ data: { session: restoredSession } }) => {
+      initialSessionResolved.current = true;
+      setSession(restoredSession);
+      setUser(restoredSession?.user ?? null);
 
-      if (session?.user) {
-        fetchProfile(session.user.id).then(setProfile);
+      if (restoredSession?.user) {
+        fetchProfile(restoredSession.user.id).then((p) => {
+          setProfile(p);
+          setIsLoading(false);
+          setIsReady(true);
+        });
+      } else {
+        setIsLoading(false);
+        setIsReady(true);
       }
-
+    }).catch(() => {
+      // Even on error, stop loading to prevent infinite spinner
+      initialSessionResolved.current = true;
       setIsLoading(false);
+      setIsReady(true);
     });
 
     return () => {
@@ -95,12 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: {
-          name,
-        },
+        data: { name },
       },
     });
-
     return { error };
   };
 
@@ -109,14 +128,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
     });
-
     return { error };
   };
 
   const signOut = async () => {
-    // Clear all React Query cache to prevent data leakage between users
     queryClient.clear();
-    
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
@@ -146,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         profile,
         isLoading,
+        isReady,
         signUp,
         signIn,
         signOut,
