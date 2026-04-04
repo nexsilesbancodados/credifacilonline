@@ -38,12 +38,14 @@ interface GeneratedMessage {
 }
 
 const Clientes = () => {
-  const { clients, isLoading, isError, refetch, page, setPage, totalPages } = useClients();
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchForServer = useDebounce(searchQuery, 400);
+  const { clients, isLoading, isError, refetch, page, setPage, totalPages } = useClients(debouncedSearchForServer);
   const { toast } = useToast();
   useRealtimeSubscription({ tables: ['clients'] });
 
   const {
-    searchQuery, setSearchQuery,
+    searchQuery: _ignored, setSearchQuery: _setIgnored,
     activeFilter, setActiveFilter,
     showArchived, setShowArchived,
     viewMode, setViewMode,
