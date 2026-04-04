@@ -30,6 +30,8 @@ export interface ContractFormData {
   dailyType: string;
   scheduledDays: number[];
   scheduledMonths: number;
+  /** Per-month specific dates for "programada" frequency (YYYY-MM-DD strings) */
+  scheduledDates: string[];
   startDate: string;
   firstDueDate: string;
   paidInstallments: number;
