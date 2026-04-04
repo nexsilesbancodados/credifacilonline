@@ -366,7 +366,7 @@ export function useContractForm() {
         client_id: clientId,
         capital: formData.capital,
         interest_rate: rateResult,
-        installments: formData.frequency === "programada" ? formData.scheduledDays.length : formData.installments,
+        installments: formData.frequency === "programada" ? (formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1)) : formData.installments,
         installment_value: installmentResult,
         total_amount: totalAmount,
         total_profit: totalProfit,
