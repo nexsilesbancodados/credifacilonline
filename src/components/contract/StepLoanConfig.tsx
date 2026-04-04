@@ -130,10 +130,12 @@ export function StepLoanConfig({ formData, setFormData, mode, setMode, existingC
             </div>
           ) : (
             <div>
-              <label className="mb-2 block text-sm font-medium text-muted-foreground">Nº de Parcelas</label>
+              <label className="mb-2 block text-sm font-medium text-muted-foreground">Total de Parcelas</label>
               <div className="h-12 w-full rounded-xl border border-border bg-secondary/30 px-4 flex items-center font-display text-lg font-semibold text-muted-foreground">
-                {formData.scheduledDays.length || "—"}
-                <span className="ml-2 text-xs font-normal">(dias selecionados)</span>
+                {(formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1)) || "—"}
+                <span className="ml-2 text-xs font-normal">
+                  ({formData.scheduledDays.length || 0}/mês × {formData.scheduledMonths || 1}m)
+                </span>
               </div>
             </div>
           )}
