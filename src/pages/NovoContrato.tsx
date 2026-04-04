@@ -17,7 +17,7 @@ const NovoContrato = () => {
     handleAvatarSelect, removeAvatar, fetchAddressByCep,
     handleSave,
     effectiveInstallments, installmentResult, rateResult,
-    totalAmount, totalProfit,
+    totalAmount, totalProfit, isFormValid, validationErrors,
   } = useContractForm();
 
   // Show loading while fetching existing client
