@@ -56,7 +56,7 @@ const initialFormData: ContractFormData = {
   frequency: "mensal",
   dailyType: "seg-seg",
   scheduledDays: [],
-  startDate: "",
+  scheduledMonths: 1,
   firstDueDate: "",
   paidInstallments: "" as unknown as number,
   finePercentage: 10,
