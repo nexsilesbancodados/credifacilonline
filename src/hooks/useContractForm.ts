@@ -276,7 +276,8 @@ export function useContractForm() {
   const calculateInstallment = () => {
     const capital = Number(formData.capital) || 0;
     const interestRate = Number(formData.interestRate) || 0;
-    const numInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 1);
+    const scheduledTotal = formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1);
+    const numInstallments = formData.frequency === "programada" ? scheduledTotal : (Number(formData.installments) || 1);
     const rate = interestRate / 100;
     const totalAmount = capital * (1 + rate);
     return numInstallments > 0 ? totalAmount / numInstallments : 0;
@@ -285,14 +286,16 @@ export function useContractForm() {
   const calculateRate = () => {
     const capital = Number(formData.capital) || 0;
     const installmentValue = Number(formData.installmentValue) || 0;
-    const numInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 1);
+    const scheduledTotal = formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1);
+    const numInstallments = formData.frequency === "programada" ? scheduledTotal : (Number(formData.installments) || 1);
     if (installmentValue <= 0 || capital <= 0) return 0;
     const totalAmount = installmentValue * numInstallments;
     const profit = totalAmount - capital;
     return (profit / capital) * 100;
   };
 
-  const effectiveInstallments = formData.frequency === "programada" ? formData.scheduledDays.length : (Number(formData.installments) || 0);
+  const scheduledTotal = formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1);
+  const effectiveInstallments = formData.frequency === "programada" ? scheduledTotal : (Number(formData.installments) || 0);
   const installmentResult = mode === "rate" ? calculateInstallment() : (Number(formData.installmentValue) || 0);
   const rateResult = mode === "installment" ? calculateRate() : (Number(formData.interestRate) || 0);
   const capitalNum = Number(formData.capital) || 0;
