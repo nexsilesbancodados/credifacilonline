@@ -294,89 +294,102 @@ export function StepLoanConfig({ formData, setFormData, mode, setMode, existingC
           )}
         </AnimatePresence>
 
-        {/* Scheduled Days */}
+        {/* Scheduled Dates - Per Month Calendar */}
         <AnimatePresence>
           {formData.frequency === "programada" && (
             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-5 overflow-hidden">
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-muted-foreground">Dias do mês para pagamento</label>
-                {formData.scheduledDays.length > 0 && (
-                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, scheduledDays: [], installments: 0 as unknown as number }))} className="text-xs text-destructive hover:text-destructive/80 transition-colors font-medium">Limpar todos</button>
+                <label className="block text-sm font-medium text-muted-foreground">Datas de pagamento</label>
+                {formData.scheduledDates.length > 0 && (
+                  <button type="button" onClick={clearAllDates} className="text-xs text-destructive hover:text-destructive/80 transition-colors font-medium">Limpar todas</button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground mb-3">Selecione os dias do mês e quantos meses durará o empréstimo.</p>
-              
-              {/* Months selector */}
-              <div className="mb-4 p-3 rounded-xl bg-secondary/30 border border-border/50">
-                <label className="block text-xs font-medium text-muted-foreground mb-2">Duração (meses)</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    value={formData.scheduledMonths}
-                    onChange={(e) => {
-                      const val = Math.max(1, Math.min(60, Number(e.target.value) || 1));
-                      setFormData(prev => ({ ...prev, scheduledMonths: val }));
-                    }}
-                    min={1}
-                    max={60}
-                    className="h-10 w-24 rounded-xl border border-border bg-secondary/50 px-3 text-center font-display font-semibold text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  <div className="flex gap-1.5">
-                    {[1, 2, 3, 6, 12].map((m) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, scheduledMonths: m }))}
-                        className={cn(
-                          "h-8 px-2.5 rounded-lg text-xs font-medium transition-all",
-                          formData.scheduledMonths === m
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary/50 text-foreground hover:bg-secondary border border-border/50"
-                        )}
-                      >
-                        {m}m
-                      </button>
-                    ))}
-                  </div>
+              <p className="text-xs text-muted-foreground mb-3">Navegue entre os meses e selecione os dias exatos de cada parcela.</p>
+
+              {/* Month Navigator */}
+              <div className="flex items-center justify-between mb-3 p-2 rounded-xl bg-secondary/30 border border-border/50">
+                <button type="button" onClick={prevMonth} className="h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors">
+                  <ChevronLeft className="h-4 w-4 text-foreground" />
+                </button>
+                <div className="text-center">
+                  <span className="font-display font-semibold text-foreground">{monthNames[viewMonth]} {viewYear}</span>
+                  {datesInViewMonth.length > 0 && (
+                    <span className="ml-2 text-xs text-primary font-medium">({datesInViewMonth.length} selecionado{datesInViewMonth.length > 1 ? "s" : ""})</span>
+                  )}
                 </div>
+                <button type="button" onClick={nextMonth} className="h-8 w-8 rounded-lg bg-secondary hover:bg-secondary/80 flex items-center justify-center transition-colors">
+                  <ChevronRight className="h-4 w-4 text-foreground" />
+                </button>
               </div>
 
-              <div className="grid grid-cols-7 gap-1.5">
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => {
-                  const isSelected = formData.scheduledDays.includes(day);
+              {/* Day-of-week headers */}
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(d => (
+                  <div key={d} className="text-center text-xs font-medium text-muted-foreground py-1">{d}</div>
+                ))}
+              </div>
+
+              {/* Calendar Grid */}
+              <div className="grid grid-cols-7 gap-1">
+                {/* Empty cells for offset */}
+                {Array.from({ length: firstDay }, (_, i) => (
+                  <div key={`empty-${i}`} />
+                ))}
+                {Array.from({ length: daysInView }, (_, i) => {
+                  const day = i + 1;
+                  const dateStr = toDateStr(viewYear, viewMonth, day);
+                  const isSelected = formData.scheduledDates.includes(dateStr);
                   return (
-                    <button key={day} type="button" onClick={() => {
-                      const newDays = isSelected ? formData.scheduledDays.filter(d => d !== day) : [...formData.scheduledDays, day].sort((a, b) => a - b);
-                      setFormData(prev => ({ ...prev, scheduledDays: newDays, installments: (newDays.length * (Number(prev.scheduledMonths) || 1)) as unknown as number }));
-                    }} className={cn("h-10 w-full rounded-lg text-sm font-medium transition-all", isSelected ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30" : "bg-secondary/50 text-foreground hover:bg-secondary border border-border/50")}>
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDate(dateStr)}
+                      className={cn(
+                        "h-9 w-full rounded-lg text-sm font-medium transition-all",
+                        isSelected
+                          ? "bg-primary text-primary-foreground shadow-sm ring-2 ring-primary/30"
+                          : "bg-secondary/50 text-foreground hover:bg-secondary border border-border/50"
+                      )}
+                    >
                       {day}
                     </button>
                   );
                 })}
               </div>
-              {formData.scheduledDays.length > 0 && (
+
+              {/* Selected dates summary */}
+              {formData.scheduledDates.length > 0 && (
                 <div className="mt-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-foreground">Dias selecionados</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {formData.scheduledDays.length}/mês × {formData.scheduledMonths} {formData.scheduledMonths === 1 ? "mês" : "meses"}
-                      </span>
-                      <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                        = {formData.scheduledDays.length * (Number(formData.scheduledMonths) || 1)} parcelas
-                      </span>
-                    </div>
+                    <span className="text-xs font-medium text-foreground">Datas selecionadas</span>
+                    <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                      {formData.scheduledDates.length} parcela{formData.scheduledDates.length > 1 ? "s" : ""}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {formData.scheduledDays.map(day => (
-                      <span key={day} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-xs font-semibold">
-                        {day}
-                        <button type="button" onClick={() => { const newDays = formData.scheduledDays.filter(d => d !== day); setFormData(prev => ({ ...prev, scheduledDays: newDays, installments: (newDays.length * (Number(prev.scheduledMonths) || 1)) as unknown as number })); }} className="ml-0.5 hover:text-destructive transition-colors">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {Object.entries(datesByMonth).sort(([a], [b]) => a.localeCompare(b)).map(([monthKey, dates]) => {
+                      const [y, m] = monthKey.split("-").map(Number);
+                      return (
+                        <div key={monthKey} className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground w-24 shrink-0">
+                            {monthNames[m - 1]} {y}
+                          </span>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {dates.map(d => {
+                              const dayNum = Number(d.split("-")[2]);
+                              return (
+                                <span key={d} className="inline-flex items-center gap-0.5 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-semibold">
+                                  {dayNum}
+                                  <button type="button" onClick={() => toggleDate(d)} className="ml-0.5 hover:text-destructive transition-colors">
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                   {installmentResult > 0 && (
                     <p className="mt-2 text-xs text-muted-foreground">
